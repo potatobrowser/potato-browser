@@ -25,5 +25,6 @@
     { "name": "LOOKUP_LIMIT", "namespace_id": "4101", "simple": { "limit": 240, "period": 60 } },
     { "name": "FLAG_LIMIT", "namespace_id": "4102", "simple": { "limit": 40, "period": 60 } }
   ],
-  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+  // Error logs only: no invocation logs, so no request metadata (like IPs) is retained.
+  "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false }, "traces": { "enabled": false } }
 }

@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react';
+import { useId, type SVGProps } from 'react';
 
 type P = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -141,16 +141,19 @@ export const File = (p: P) => (
   </Svg>
 );
 
-/** The brand mark: an AI "sparkle" struck through. */
+/** The brand mark: an AI "sparkle" struck through (same drawing as the app icon). */
 export function BrandMark({ size = 24, strike = '#E5322D', color = 'currentColor' }: { size?: number; strike?: string; color?: string }) {
+  const id = useId().replace(/:/g, '');
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <path
-        d="M32 6c1.6 11.6 8.4 18.4 20 20-11.6 1.6-18.4 8.4-20 20-1.6-11.6-8.4-18.4-20-20 11.6-1.6 18.4-8.4 20-20z"
-        fill={color}
-        transform="translate(0 6)"
-      />
-      <path d="M10 54 54 10" stroke={strike} strokeWidth="7" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="262 262 500 500" aria-hidden="true">
+      <defs>
+        <mask id={`m${id}`} maskUnits="userSpaceOnUse" x="262" y="262" width="500" height="500">
+          <rect x="262" y="262" width="500" height="500" fill="#fff" />
+          <line x1="312" y1="712" x2="712" y2="312" stroke="#000" strokeWidth="120" strokeLinecap="round" />
+        </mask>
+      </defs>
+      <path mask={`url(#m${id})`} d="M512 262c20 145 105 230 250 250c-145 20-230 105-250 250c-20-145-105-230-250-250c145-20 230-105 250-250z" fill={color} />
+      <line x1="312" y1="712" x2="712" y2="312" stroke={strike} strokeWidth="64" strokeLinecap="round" />
     </svg>
   );
 }

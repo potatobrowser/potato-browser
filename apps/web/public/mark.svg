@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="262 262 500 500">
+  <defs>
+    <mask id="m" maskUnits="userSpaceOnUse" x="262" y="262" width="500" height="500">
+      <rect x="262" y="262" width="500" height="500" fill="#fff"/>
+      <line x1="312" y1="712" x2="712" y2="312" stroke="#000" stroke-width="120" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <path mask="url(#m)" d="M512 262c20 145 105 230 250 250c-145 20-230 105-250 250c-20-145-105-230-250-250c145-20 230-105 250-250z" fill="#000"/>
+  <line x1="312" y1="712" x2="712" y2="312" stroke="#E5322D" stroke-width="64" stroke-linecap="round"/>
+</svg>

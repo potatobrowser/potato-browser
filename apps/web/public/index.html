@@ -1,1 +1,206 @@
-<!doctype html><title>No-AI Browser</title><p>placeholder</p>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No-AI Browser: the web, minus the AI</title>
+  <meta name="description" content="A fast Chromium browser for Mac that hides AI Overviews, chatbots and AI buttons on major sites, ships without AI in the engine, and lets people flag AI-generated posts.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:title" content="No-AI Browser">
+  <meta property="og:description" content="The web, minus the AI. A Mac browser that hides AI features and lets people flag AI-generated posts.">
+  <meta property="og:image" content="/og.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <a class="brand" href="/" aria-label="No-AI Browser home">
+      <img src="/mark.svg" alt="" width="28" height="28">
+      <span>No-AI Browser</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#hidden">What it hides</a>
+      <a href="#flags">Flags</a>
+      <a href="#faq">Questions</a>
+      <a class="nav-cta" href="#download">Download</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title"><span>The web,</span> <span>minus the AI.</span></h1>
+      <div class="hero-copy">
+        <p class="lede">A fast Chromium browser for Mac that hides AI Overviews, chatbots and "help me write" buttons on the sites you use, and lets people flag AI-generated posts for each other.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="/download/mac-arm64" data-download="arm64">Download for Mac</a>
+          <a class="btn quiet" href="/download/mac-x64" data-download="x64">Intel Mac</a>
+        </div>
+        <p class="fine" data-release>Free. For Apple Silicon and Intel Macs running macOS 13 Ventura or later.</p>
+      </div>
+
+      <figure class="demo" data-ai="shown" aria-label="Example: a search results page whose AI Overview gets struck out and removed">
+        <div class="win">
+          <div class="win-bar">
+            <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="win-url">search results for "how do magnets work"</span>
+            <button class="shield" type="button" aria-pressed="false" data-shield>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 13 3.6v4c0 3.1-2.1 5.4-5 6.6-2.9-1.2-5-3.5-5-6.6v-4z"/></svg>
+              <span data-shield-label>Hide AI</span>
+            </button>
+          </div>
+          <div class="page">
+            <p class="query">how do magnets work</p>
+            <div class="ai-wrap" data-ai-block>
+              <div class="ai-clip"><div class="ai-box">
+                <p class="ai-title"><span class="sparkle" aria-hidden="true">&#10022;</span> AI Overview</p>
+                <p class="ai-text">Magnets work because of the alignment of tiny magnetic domains. When these domains align, they create a magnetic field that, in today's fast-paced world, can delve into...</p>
+                <p class="ai-chips"><span>Ask a follow up</span><span>Dive deeper in AI Mode</span></p>
+                <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
+                  <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
+                </svg>
+              </div></div>
+            </div>
+            <ol class="results">
+              <li><span class="r-url">physics.example.edu</span><span class="r-title">Magnetism, explained by a physicist</span><span class="r-text">Every electron is a tiny magnet. In iron, neighbours line up in regions called domains...</span></li>
+              <li><span class="r-url">museum.example.org</span><span class="r-title">Why do magnets stick to the fridge?</span><span class="r-text">A hands-on page from the science museum, with a fridge-door experiment you can try.</span></li>
+              <li><span class="r-url">forum.example.net</span><span class="r-title">Explain magnets to a curious 10 year old</span><span class="r-text">Answers from teachers and parents, written by people.</span></li>
+            </ol>
+          </div>
+        </div>
+        <figcaption>Press the shield to see what it removes. On real sites it works the same way, per site.</figcaption>
+      </figure>
+    </section>
+
+    <section class="hidden-list" id="hidden" aria-labelledby="hidden-title">
+      <div class="section-head">
+        <h2 id="hidden-title">What it hides</h2>
+        <p>The AI Shield knows the AI features of the sites people use most and hides them before the page finishes loading. The articles, results and messages stay where they are. If you want the AI back on one site, the shield button in the toolbar turns it on for that site only.</p>
+      </div>
+      <dl class="struck">
+        <div><dt>Google Search</dt><dd><s>AI Overviews</s> <s>AI Mode</s> <s>AI answers in People also ask</s></dd></div>
+        <div><dt>Gmail</dt><dd><s>Gemini</s> <s>Help me write</s> <s>Summarize this email</s></dd></div>
+        <div><dt>Docs, Sheets, Drive</dt><dd><s>Ask Gemini</s> <s>Help me create</s> <s>File summaries</s></dd></div>
+        <div><dt>YouTube</dt><dd><s>Ask</s> <s>AI video summaries</s> <s>Ask YouTube</s></dd></div>
+        <div><dt>X</dt><dd><s>Grok</s> <s>Explain this post</s> <s>Grok Imagine</s></dd></div>
+        <div><dt>Facebook, Instagram, WhatsApp</dt><dd><s>Meta AI</s> <s>AI comment summaries</s></dd></div>
+        <div><dt>Bing and Outlook</dt><dd><s>Copilot</s> <s>Copilot Search</s></dd></div>
+        <div><dt>LinkedIn</dt><dd><s>Rewrite with AI</s> <s>AI job match</s></dd></div>
+        <div><dt>Reddit</dt><dd><s>Reddit Answers</s> <s>AI comment summaries</s></dd></div>
+        <div><dt>Amazon</dt><dd><s>Rufus</s> <s>AI review summaries</s></dd></div>
+        <div><dt>DuckDuckGo, Brave Search</dt><dd><s>Search Assist</s> <s>Duck.ai</s> <s>Answer with AI</s></dd></div>
+        <div><dt>GitHub, Stack Overflow, Notion</dt><dd><s>Copilot</s> <s>AI Assist</s> <s>Notion AI</s></dd></div>
+      </dl>
+      <p class="aside">The default search engine is DuckDuckGo with its AI switched off. Google with plain web results is one click away in Settings.</p>
+    </section>
+
+    <section class="engine" aria-labelledby="engine-title">
+      <h2 id="engine-title">No model in the engine</h2>
+      <div class="engine-body">
+        <p>Chrome now ships language models inside the browser and lets websites use them. No-AI Browser is built on the same Chromium engine with all of that switched off: no Gemini Nano, no model downloads in the background, and none of the built-in AI interfaces a page could call.</p>
+        <ul class="off">
+          <li>Prompt API</li>
+          <li>Summarizer</li>
+          <li>Writer and Rewriter</li>
+          <li>Proofreader</li>
+          <li>Translator and Language Detector</li>
+          <li>Speech recognition</li>
+          <li>WebNN</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="flags" id="flags" aria-labelledby="flags-title">
+      <div class="flags-copy">
+        <h2 id="flags-title">Flag the AI posts. Everyone sees fewer.</h2>
+        <p>Every post on Reddit, X, Instagram, Facebook, Threads, LinkedIn, YouTube, Bluesky and TikTok gets a small "AI?" button. When enough people flag a post, your browser does what you chose:</p>
+        <div class="modes" role="radiogroup" aria-label="What happens to flagged posts">
+          <button type="button" role="radio" aria-checked="true" data-mode="label">Label it</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="hide">Hide it</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="ignore">Leave it</button>
+        </div>
+        <p class="mode-note" data-mode-note>Flagged posts stay in your feed with a visible AI label.</p>
+        <p>Flags are anonymous. There is no account and no email. When your browser checks a page, it sends only the first five characters of a fingerprint of each post, so the flag service never learns what you read. Your own flag is stored as a scrambled id that cannot be traced back to you.</p>
+      </div>
+      <div class="post-stage" data-flag-mode="label" aria-hidden="true">
+        <div class="post-hidden">Hidden: flagged as AI-generated by 214 people. <u>Show</u></div>
+        <article class="post">
+          <header><span class="avatar"></span><span><b>growth_mindset_daily</b><small>2 h</small></span><span class="pill">AI &middot; 214</span></header>
+          <p>In today's fast-paced world, it's important to delve into the tapestry of productivity. Here are 10 game-changing tips that will unlock your potential.</p>
+          <div class="post-img"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="browser" aria-labelledby="browser-title">
+      <h2 id="browser-title">Everything else you expect from a browser</h2>
+      <ul class="plain">
+        <li><b>Bring your stuff.</b> Import bookmarks and history from Chrome, Safari, Firefox, Arc, Edge, Brave, Vivaldi and Opera.</li>
+        <li><b>Private windows.</b> Nothing is saved, and everything is wiped when the last one closes.</li>
+        <li><b>Tabs, history, bookmarks, downloads.</b> Search your history, pin sites to the bookmarks bar, pick up where you left off.</li>
+        <li><b>Fast.</b> The current Chromium engine, so sites work the way they do in Chrome.</li>
+        <li><b>No telemetry.</b> The browser does not report what you do. This website has no trackers either.</li>
+      </ul>
+    </section>
+
+    <section class="download" id="download" aria-labelledby="download-title">
+      <h2 id="download-title">Get No-AI Browser</h2>
+      <div class="cta-row">
+        <a class="btn primary big" href="/download/mac-arm64" data-download="arm64">Download for Apple Silicon</a>
+        <a class="btn quiet big" href="/download/mac-x64" data-download="x64">Download for Intel</a>
+      </div>
+      <p class="fine" data-release-detail>Free. macOS 13 Ventura or later. Not sure which Mac you have? Apple menu, About This Mac: "Apple M" means Apple Silicon.</p>
+      <ol class="steps">
+        <li><b>Open the downloaded file</b> and drag No-AI Browser into Applications.</li>
+        <li><b>Open the app.</b> macOS says it can't verify the developer, because the app isn't notarized by Apple yet.</li>
+        <li><b>Allow it once:</b> open System Settings, go to Privacy &amp; Security, scroll down and click Open Anyway. From then on it opens like any app.</li>
+      </ol>
+    </section>
+
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <details>
+        <summary>Is it free?</summary>
+        <p>Yes. No account, no subscription, no ads.</p>
+      </details>
+      <details>
+        <summary>Can I see the AI on a site when I actually want it?</summary>
+        <p>Yes. Click the shield in the toolbar and switch it off for that site. Everything comes back right away, on that site only. Settings has the full list of covered sites and features if you want to keep some of them.</p>
+      </details>
+      <details>
+        <summary>Can't people just flag everything?</summary>
+        <p>Each install counts once per post, there is a daily limit per install, and the service rate-limits by network. You choose how many flags it takes before a post counts as AI-generated, and a hidden post is always one click away.</p>
+      </details>
+      <details>
+        <summary>What exactly does the flag service store?</summary>
+        <p>For each flagged post: a one-way fingerprint of the post's id, the platform name, and a count. For each flag: a scrambled version of your browser's random id, so you can undo it. No IP addresses, no URLs, no accounts.</p>
+      </details>
+      <details>
+        <summary>Why does macOS warn me the first time?</summary>
+        <p>Apple asks developers to send apps through its notarization service. This first release isn't notarized yet, so macOS asks you to confirm once in System Settings. Notarized builds are planned.</p>
+      </details>
+      <details>
+        <summary>Does it support extensions and saved passwords?</summary>
+        <p>Not yet. Your password manager's own app works alongside it in the meantime.</p>
+      </details>
+      <details>
+        <summary>Windows or Linux?</summary>
+        <p>Mac only for now.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p><img src="/mark.svg" alt="" width="18" height="18"> No-AI Browser. Built on Chromium. Not affiliated with Google, Apple or any site named here.</p>
+    <p data-stats></p>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
