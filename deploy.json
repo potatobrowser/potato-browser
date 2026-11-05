@@ -1,0 +1,12 @@
+{
+  "targets": [
+    {
+      "name": "web",
+      "dir": "apps/web",
+      "install": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile --filter @noai/web...",
+      "run": "pnpm test && pnpm run deploy",
+      "paths": ["apps/web", "packages/shared", "pnpm-lock.yaml", "pnpm-workspace.yaml", "deploy.json"],
+      "url": "https://noaibrowser.laszlo-kiss27.workers.dev/api/v1/health"
+    }
+  ]
+}
