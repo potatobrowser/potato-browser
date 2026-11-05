@@ -88,14 +88,16 @@ export class FlagsService {
 
   async lookup(keys: string[], isPrivate: boolean, localOnly = false): Promise<Record<string, FlagStatus>> {
     const valid = [...new Set(keys)].filter((k) => parseContentKey(k)).slice(0, 500);
-    const mine = ctx.db.myFlags(valid);
     const out: Record<string, FlagStatus> = {};
     if (localOnly) {
+      const mine = ctx.db.myFlags(valid);
       for (const k of valid) out[k] = { n: 0, mine: mine.has(k) || (isPrivate && this.privateMine.has(k)) };
       return out;
     }
     const hashes = await Promise.all(valid.map((k) => this.hash(k)));
     await this.fetchPrefixes([...new Set(hashes.map(hashPrefix))]);
+    // Read the user's own flags only now: one may have been set while the lookup was in flight.
+    const mine = ctx.db.myFlags(valid);
     valid.forEach((k, i) => {
       const h = hashes[i]!;
       const n = this.prefixCache.get(hashPrefix(h))?.counts.get(h) ?? 0;

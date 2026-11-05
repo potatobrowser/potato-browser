@@ -39,6 +39,8 @@ export class FlagsEngine {
   private lastReport = '';
   private running = false;
   private lastPath = location.pathname;
+  /** Bumped when the user flags/unflags a key, so older lookup answers cannot overwrite it. */
+  private epoch = new Map<string, number>();
 
   constructor(
     private readonly adapter: FlagAdapter,
@@ -154,9 +156,12 @@ export class FlagsEngine {
     const keys = [...this.queued];
     this.queued.clear();
     if (!keys.length) return;
+    const started = new Map(keys.map((k) => [k, this.epoch.get(k) ?? 0]));
     try {
       const result = await this.bridge.lookup(keys, this.config.mode === 'ignore');
-      for (const [k, v] of Object.entries(result)) this.status.set(k, v);
+      for (const [k, v] of Object.entries(result)) {
+        if ((this.epoch.get(k) ?? 0) === started.get(k)) this.status.set(k, v);
+      }
     } catch {
       return;
     }
@@ -231,6 +236,7 @@ export class FlagsEngine {
 
   private async toggle(el: Element, item: Item): Promise<void> {
     const flag = !this.statusOf(item)?.mine;
+    for (const k of item.keys) this.epoch.set(k, (this.epoch.get(k) ?? 0) + 1);
     item.busy = true;
     item.error = false;
     this.render(el, item);

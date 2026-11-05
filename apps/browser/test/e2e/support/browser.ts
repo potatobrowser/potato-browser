@@ -40,8 +40,10 @@ export class TestBrowser {
       if (opts.firstRun) merged.firstRunDone = false;
       fs.writeFileSync(settingsFile, JSON.stringify(merged));
     }
+    // NOAI_E2E_EXECUTABLE runs the suite against a packaged build instead of the dev bundle.
+    const packaged = process.env.NOAI_E2E_EXECUTABLE;
     const app = await electron.launch({
-      args: [APP_DIR],
+      ...(packaged ? { executablePath: packaged, args: [] } : { args: [APP_DIR] }),
       cwd: APP_DIR,
       env: {
         ...process.env,
@@ -117,11 +119,6 @@ export class TestBrowser {
     await this.app.close().catch(() => {});
   }
 }
-
-export const fixtureRequests = async (): Promise<string[]> => {
-  // The fixture server lives in the runner process; tests inspect effects instead.
-  return [];
-};
 
 export async function apiLookup(prefixes: string[]): Promise<{ h: string; n: number }[]> {
   const res = await fetch(`${process.env.NOAI_E2E_API}/api/v1/lookup`, {

@@ -251,7 +251,11 @@ export class Tab {
       });
     });
     wc.on('did-start-loading', update);
-    wc.on('did-stop-loading', update);
+    wc.on('did-stop-loading', () => {
+      const current = wc.getTitle();
+      if (!this.title && current && current !== this.url) this.title = current;
+      update();
+    });
     wc.on('did-start-navigation', (details) => {
       if (details.isMainFrame && !details.isSameDocument) {
         this.errorPage = null;
@@ -268,7 +272,9 @@ export class Tab {
         this.favicon = host ? ctx.db.favicon(host) : null;
       }
       if (isInternalUrl(url)) this.favicon = null;
-      this.title = '';
+      // Reloads keep their title and Chromium does not announce it again, so read it back.
+      const current = wc.getTitle();
+      this.title = current && current !== url ? current : '';
       this.recordVisit(url);
       this.applySiteZoom(url);
       this.win.onTabNavigated(this);
