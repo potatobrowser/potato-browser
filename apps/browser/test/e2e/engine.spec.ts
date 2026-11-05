@@ -1,0 +1,61 @@
+import { expect, test } from '@playwright/test';
+import { TestBrowser } from './support/browser';
+
+let b: TestBrowser;
+test.afterEach(async () => b?.close());
+
+const FORBIDDEN = [
+  'LanguageModel',
+  'Summarizer',
+  'Writer',
+  'Rewriter',
+  'Proofreader',
+  'Translator',
+  'LanguageDetector',
+  'Classifier',
+  'ai',
+  'SpeechRecognition',
+  'webkitSpeechRecognition',
+];
+
+test('no built-in AI APIs exist in pages, iframes or workers', async () => {
+  b = await TestBrowser.launch();
+  const page = await b.goto('https://site.test/engine');
+  const report = await page.evaluate((names) => (window as any).engineReport(names), FORBIDDEN);
+  for (const scope of ['main', 'frame', 'worker'] as const) {
+    for (const name of FORBIDDEN) expect(report[scope][name], `${scope}.${name}`).toBe('undefined');
+  }
+  expect(report.ml).toBe(false);
+  // The page cannot reach Node or Electron either.
+  expect(report.electron).toBe('undefined/undefined');
+});
+
+test('identifies as a plain Chromium browser', async () => {
+  b = await TestBrowser.launch();
+  const page = await b.goto('https://site.test/');
+  const ua = await page.evaluate(() => navigator.userAgent);
+  expect(ua).toMatch(/Chrome\/\d+\.0\.0\.0 Safari\/537\.36$/);
+  expect(ua).not.toMatch(/Electron|No-AI/i);
+  const brands = await page.evaluate(() => (navigator as any).userAgentData?.brands.map((x: any) => x.brand).join(','));
+  expect(brands).not.toMatch(/Electron/);
+});
+
+test('the About page reports the engine and what is switched off', async () => {
+  b = await TestBrowser.launch();
+  await b.cmd('showAbout');
+  const about = await b.tabPage('noai://settings/');
+  await expect(about.getByTestId('about-version')).toContainText(/Version \d+\.\d+\.\d+ · Chromium \d+/);
+  const report = about.getByTestId('engine-report');
+  for (const f of ['AIPromptAPI', 'AISummarizationAPI', 'TranslationAPI', 'LanguageDetectionAPI', 'AIWriterAPI', 'AIRewriterAPI']) {
+    await expect(report).toContainText(f);
+  }
+});
+
+test('internal pages expose their API only to themselves', async () => {
+  b = await TestBrowser.launch();
+  const web = await b.goto('https://site.test/');
+  expect(await web.evaluate(() => typeof (window as any).noai)).toBe('undefined');
+  await b.cmd('showHistory');
+  const history = await b.tabPage('noai://history/');
+  expect(await history.evaluate(() => typeof (window as any).noai?.call)).toBe('function');
+});

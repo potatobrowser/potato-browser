@@ -220,7 +220,9 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
                 <SuggestionIcon s={s} />
               </span>
               <span className="s-title">{s.title}</span>
-              {s.kind === 'history' || s.kind === 'bookmark' ? <span className="s-url">{prettyUrl(s.url).host}</span> : null}
+              {s.kind === 'history' || s.kind === 'bookmark' || (s.kind === 'url' && s.title !== s.fill && s.title !== s.url) ? (
+                <span className="s-url">{prettyUrl(s.url).host}</span>
+              ) : null}
               {s.kind === 'search' ? <span className="s-url">Search</span> : null}
             </li>
           ))}

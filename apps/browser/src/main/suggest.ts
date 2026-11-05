@@ -6,6 +6,14 @@ import { isTest } from './paths';
 
 const remoteCache = new Map<string, string[]>();
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
 async function remoteSuggestions(template: string, query: string): Promise<string[]> {
   const key = template + '|' + query;
   const hit = remoteCache.get(key);
@@ -39,13 +47,18 @@ export async function suggest(input: string): Promise<SuggestResult> {
   const target = classifyInput(text);
   const out: Suggestion[] = [];
 
+  const history = ctx.db.suggestUrls(text, 6);
   const inline = ctx.db.inlineHost(text);
-  if (inline) out.push({ kind: 'url', title: inline, url: `https://${inline}/`, fill: inline });
+  if (inline) {
+    // Complete to the page the user actually visits on that host, with its title.
+    const match = history.find((h) => hostOf(h.url) === inline);
+    out.push({ kind: 'url', title: match?.title || inline, url: match?.url ?? `https://${inline}/`, fill: inline });
+  }
 
   if (target?.type === 'url') out.push({ kind: 'url', title: target.url, url: target.url, fill: text });
   else out.push({ kind: 'search', title: text, url: searchUrl(engine.id, text), fill: text });
 
-  for (const r of ctx.db.suggestUrls(text, 5)) {
+  for (const r of history) {
     out.push({ kind: r.bookmarked ? 'bookmark' : 'history', title: r.title || r.url, url: r.url, fill: r.url });
   }
 

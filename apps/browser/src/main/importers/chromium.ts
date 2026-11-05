@@ -138,18 +138,19 @@ export function readChromiumHistory(profile: ChromiumProfile): ImportedHistoryIt
   return withDbCopy(file, (db) => {
     const rows = db
       .prepare(
-        `SELECT url, title, visit_count, typed_count, last_visit_time FROM urls
+        // Chrome times are microseconds since 1601, beyond JS's safe integers: divide in SQL.
+        `SELECT url, title, visit_count, typed_count, last_visit_time / 1000 AS last_ms FROM urls
          WHERE hidden = 0 AND (url LIKE 'http:%' OR url LIKE 'https:%')
          ORDER BY last_visit_time DESC LIMIT ?`,
       )
-      .all(HISTORY_LIMIT) as { url: string; title: string; visit_count: number; typed_count: number; last_visit_time: number | bigint }[];
+      .all(HISTORY_LIMIT) as { url: string; title: string; visit_count: number; typed_count: number; last_ms: number }[];
     return rows
       .map((r) => ({
         url: r.url,
         title: r.title ?? '',
         visitCount: Number(r.visit_count) || 1,
         typedCount: Number(r.typed_count) || 0,
-        lastVisit: fromWebkitTime(r.last_visit_time),
+        lastVisit: Math.max(0, Math.round(Number(r.last_ms) - 11_644_473_600_000)),
       }))
       .filter((r) => r.lastVisit > 0 && isImportableUrl(r.url));
   });

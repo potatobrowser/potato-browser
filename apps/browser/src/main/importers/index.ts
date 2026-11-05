@@ -8,6 +8,11 @@ import { readSafariBookmarks, readSafariHistory, safariDir, safariState } from '
 import path from 'node:path';
 import fs from 'node:fs';
 
+/** Browsers' built-in profile names ("default-release", "Person 1") are noise in labels. */
+export function displayProfile(name: string): string {
+  return /^(default(-release|-esr|-nightly|-beta)?|dev-edition-default|person 1|default profile)$/i.test(name.trim()) ? 'Default' : name;
+}
+
 interface SourceImpl extends ImportSource {
   readBookmarks: () => ImportedBookmarks;
   readHistory: () => ImportedHistoryItem[];
@@ -19,7 +24,7 @@ function sources(): SourceImpl[] {
     out.push({
       id: `chromium:${p.browser.key}:${p.profileDir}`,
       browser: p.browser.name,
-      profile: p.profileName,
+      profile: displayProfile(p.profileName),
       path: p.path,
       kind: 'chromium',
       hasBookmarks: fs.existsSync(path.join(p.path, 'Bookmarks')) || p.browser.key === 'arc',
@@ -33,7 +38,7 @@ function sources(): SourceImpl[] {
     out.push({
       id: `firefox:${path.basename(p.path)}`,
       browser: 'Firefox',
-      profile: p.name,
+      profile: displayProfile(p.name),
       path: p.path,
       kind: 'firefox',
       hasBookmarks: true,
@@ -107,7 +112,7 @@ export async function runImport(sourceId: string, what: { bookmarks: boolean; hi
     result.errors.push('That browser profile is no longer available.');
     return result;
   }
-  const label = src.profile && src.profile !== 'Default' && src.profile !== 'Person 1' ? `${src.browser} (${src.profile})` : src.browser;
+  const label = src.profile && src.profile !== 'Default' ? `${src.browser} (${src.profile})` : src.browser;
   if (what.bookmarks && src.hasBookmarks) {
     try {
       const tree = src.readBookmarks();
