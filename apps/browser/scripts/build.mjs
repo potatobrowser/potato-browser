@@ -46,7 +46,7 @@ await Promise.all([
     target: 'chrome150',
     external: ['electron'],
   }),
-  viteBuild({ configFile: path.join(root, 'vite.config.ts'), logLevel: 'warn', define }),
+  viteBuild({ configFile: path.join(root, 'vite.config.mts'), logLevel: 'warn', define }),
 ]);
 
 console.log(`built ${pkg.productName} ${pkg.version}${prod ? ' (prod)' : ''}`);

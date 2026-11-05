@@ -20,7 +20,7 @@ export function defaultSettings(): Settings {
     askWhereToSave: false,
     shield: { enabled: true, disabledSites: [], disabledRules: [] },
     flags: { mode: 'label', threshold: 3, showButtons: true, disabledPlatforms: [] },
-    privacy: { blockThirdPartyCookies: false, globalPrivacyControl: true, blockAiChatbots: false },
+    privacy: { globalPrivacyControl: true, blockAiChatbots: false },
     installId: crypto.randomBytes(16).toString('hex'),
     firstRunDone: false,
   };
@@ -60,7 +60,6 @@ export function sanitizeSettings(raw: unknown): Settings {
       disabledPlatforms: strList(r.flags?.disabledPlatforms).filter(isPlatform),
     },
     privacy: {
-      blockThirdPartyCookies: bool(r.privacy?.blockThirdPartyCookies, d.privacy.blockThirdPartyCookies),
       globalPrivacyControl: bool(r.privacy?.globalPrivacyControl, d.privacy.globalPrivacyControl),
       blockAiChatbots: bool(r.privacy?.blockAiChatbots, d.privacy.blockAiChatbots),
     },

@@ -38,7 +38,6 @@ export interface Settings {
     disabledPlatforms: Platform[];
   };
   privacy: {
-    blockThirdPartyCookies: boolean;
     globalPrivacyControl: boolean;
     blockAiChatbots: boolean;
   };
@@ -96,6 +95,7 @@ export interface BookmarkNode {
   position: number;
   createdAt: number;
   children?: BookmarkNode[];
+  favicon?: string | null;
 }
 
 export interface PermissionPrompt {
@@ -212,7 +212,7 @@ export interface EngineReport {
 export interface ShieldRuleSummary {
   id: string;
   site: string;
-  features: string[];
+  features: { id: string; name: string }[];
   hosts: string[];
 }
 
@@ -233,7 +233,7 @@ export interface ClearDataOptions {
 export interface PageConfig {
   isPrivate: boolean;
   shield: { enabled: boolean; disabledRules: string[] };
-  flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean };
+  flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean; disabledPlatforms: Platform[] };
 }
 
 export interface FlagStatus {

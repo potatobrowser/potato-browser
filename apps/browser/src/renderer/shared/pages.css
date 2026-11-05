@@ -1,0 +1,344 @@
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-2: #f0f0ee;
+  --text: #17181b;
+  --muted: #64676e;
+  --faint: #8c8f96;
+  --border: #e2e2df;
+  --border-strong: #cfd0cc;
+  --ink: #17181b;
+  --ink-text: #ffffff;
+  --ring: #2563eb;
+  --ok: #15803d;
+  --ok-bg: #e7f4ec;
+  --warn: #b45309;
+  --warn-bg: #fdf3e2;
+  --danger: #c62828;
+  --brand: #e5322d;
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161719;
+    --surface: #1e1f22;
+    --surface-2: #26272b;
+    --text: #ececee;
+    --muted: #a3a6ad;
+    --faint: #7c7f86;
+    --border: #2f3135;
+    --border-strong: #3d3f44;
+    --ink: #f2f2f0;
+    --ink-text: #141517;
+    --ring: #7aa2ff;
+    --ok: #4ade80;
+    --ok-bg: rgba(74, 222, 128, 0.12);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251, 191, 36, 0.12);
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--ring);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-head h1 {
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card + .card {
+  margin-top: 16px;
+}
+.card-head {
+  padding: 18px 20px 6px;
+}
+.card-head h2 {
+  font-size: 16px;
+}
+.card-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px;
+}
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+.row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.row-label small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.btn {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn:hover {
+  background: var(--surface-2);
+}
+.btn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-text);
+}
+.btn.primary:hover {
+  opacity: 0.88;
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.input,
+select {
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 0 12px;
+  min-width: 0;
+}
+.input:focus,
+select:focus {
+  border-color: var(--ring);
+  outline: none;
+}
+input[role='switch'] {
+  appearance: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--border-strong);
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin: 0;
+}
+input[role='switch']::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+input[role='switch']:checked {
+  background: var(--ok);
+}
+input[role='switch']:checked::after {
+  transform: translateX(16px);
+}
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  gap: 2px;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+}
+.seg button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.muted {
+  color: var(--muted);
+}
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.pill.ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.pill.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  min-height: 48px;
+}
+.list-item + .list-item {
+  border-top: 1px solid var(--border);
+}
+.list-item .grow {
+  flex: 1;
+  min-width: 0;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fav {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+}
+.fav img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.icon-btn {
+  border: 0;
+  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+}
+.search input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  flex: 1;
+  height: 100%;
+  color: var(--text);
+}
+.search:focus-within {
+  border-color: var(--ring);
+}
+.day {
+  padding: 18px 20px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+code,
+.mono {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}

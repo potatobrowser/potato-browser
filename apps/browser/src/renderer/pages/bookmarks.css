@@ -1,0 +1,65 @@
+.page.wide {
+  max-width: 1100px;
+}
+.bm-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+}
+.folders,
+.folders ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.folder {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--muted);
+  text-align: left;
+}
+.folder:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.folder.on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
+.crumbs {
+  margin: 0 0 10px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.plain {
+  color: inherit;
+  text-decoration: none;
+}
+.row-btn {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 600;
+}
+.edit-form {
+  display: flex;
+  gap: 8px;
+}
+.edit-form .input {
+  flex: 1;
+}
+select.move {
+  height: 28px;
+  font-size: 12.5px;
+  padding: 0 6px;
+}

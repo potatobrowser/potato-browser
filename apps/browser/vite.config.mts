@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, 'src/renderer');
-export const PAGES = ['ui', 'newtab', 'settings', 'history', 'bookmarks', 'downloads', 'welcome', 'error'];
+const PAGES = ['ui', 'newtab', 'settings', 'history', 'bookmarks', 'downloads', 'welcome', 'error'];
 
 export default defineConfig({
   root,
