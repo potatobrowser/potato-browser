@@ -9,6 +9,7 @@ import {
   type LookupItem,
   type ReleaseInfo,
 } from '@noai/shared';
+import { DAILY_FLAG_CAP, voterId } from './lib';
 
 export interface Env {
   DB: D1Database;
@@ -20,8 +21,6 @@ export interface Env {
   VOTER_SALT?: string;
 }
 
-/** Flags one install may add per rolling day. */
-export const DAILY_FLAG_CAP = 300;
 const DAY_MS = 86_400_000;
 
 const JSON_HEADERS = {
@@ -58,18 +57,6 @@ async function limited(limiter: RateLimit | undefined, key: string): Promise<boo
   return !success;
 }
 
-const hmacKeys = new Map<string, Promise<CryptoKey>>();
-
-/** Voter id = HMAC(secret, install id): stable per install, useless without the secret. */
-export async function voterId(secret: string, client: string): Promise<string> {
-  let key = hmacKeys.get(secret);
-  if (!key) {
-    key = crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-    hmacKeys.set(secret, key);
-  }
-  const sig = await crypto.subtle.sign('HMAC', await key, new TextEncoder().encode(client));
-  return Array.from(new Uint8Array(sig).slice(0, 16), (b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 async function lookup(req: Request, env: Env): Promise<Response> {
   const body = await readJson(req);

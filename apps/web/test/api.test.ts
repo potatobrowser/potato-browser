@@ -1,7 +1,7 @@
 import { env, exports } from 'cloudflare:workers';
 import { hashContentKey, hashPrefix } from '@noai/shared';
 import { describe, expect, it } from 'vitest';
-import { DAILY_FLAG_CAP, voterId } from '../src/index';
+import { DAILY_FLAG_CAP, voterId } from '../src/lib';
 
 const BASE = 'https://noaibrowser.test';
 const worker = (exports as unknown as { default: { fetch(r: Request): Promise<Response> } }).default;

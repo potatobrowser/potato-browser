@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Geo</title></head>
+<body>
+<button id="ask" onclick="navigator.geolocation.getCurrentPosition(() => (out.textContent = 'granted'), (e) => (out.textContent = 'denied:' + e.code))">Where am I</button>
+<button id="notify" onclick="Notification.requestPermission().then((p) => (out.textContent = 'notifications:' + p))">Notify me</button>
+<p id="out">idle</p>
+</body></html>

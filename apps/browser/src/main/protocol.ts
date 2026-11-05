@@ -60,9 +60,13 @@ export function installInternalProtocol(ses: Session): void {
  */
 export function installFixtureProxy(ses: Session): void {
   const proxy = process.env.NOAI_FIXTURE_PROXY;
-  const hosts = (process.env.NOAI_FIXTURE_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean);
-  if (!proxy || !hosts.length) return;
-  const matches = (host: string) => hosts.some((h) => h === '*' || host === h || (h.startsWith('*.') && host.endsWith(h.slice(1))));
+  const entries = (process.env.NOAI_FIXTURE_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean);
+  if (!proxy || !entries.length) return;
+  // "-host" entries always use the real network (e.g. to test DNS failures).
+  const excluded = entries.filter((h) => h.startsWith('-')).map((h) => h.slice(1));
+  const hosts = entries.filter((h) => !h.startsWith('-'));
+  const matches = (host: string) =>
+    !excluded.includes(host) && hosts.some((h) => h === '*' || host === h || (h.startsWith('*.') && host.endsWith(h.slice(1))));
   for (const scheme of ['https', 'http']) {
     ses.protocol.handle(scheme, async (request) => {
       const u = new URL(request.url);

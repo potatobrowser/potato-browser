@@ -96,7 +96,10 @@ export class BrowserWindowController {
     this.base.on('resized', () => manager.saveSessionSoon());
     this.base.on('close', () => {
       this.closing = true;
-      for (const tab of [...this.tabs]) tab.close(true);
+      for (const tab of [...this.tabs]) {
+        this.base.contentView.removeChildView(tab.view);
+        tab.close(true);
+      }
     });
     this.base.on('closed', () => {
       if (!this.ui.webContents.isDestroyed()) this.ui.webContents.close();
@@ -174,7 +177,7 @@ export class BrowserWindowController {
   }
 
   activate(tab: Tab): void {
-    if (tab.isDestroyed) return;
+    if (tab.isDestroyed || this.closing || this.base.isDestroyed()) return;
     if (this.activeTab === tab) {
       this.layout();
       return;
@@ -228,6 +231,11 @@ export class BrowserWindowController {
     }
     this.tabs.splice(i, 1);
     if (!this.base.isDestroyed()) this.base.contentView.removeChildView(tab.view);
+    if (this.closing) {
+      // The window is going away: never re-attach views to it (that keeps the process alive).
+      if (this.activeTab === tab) this.activeTab = null;
+      return;
+    }
     if (this.htmlFullscreenTab === tab) this.setHtmlFullscreen(tab, false);
     if (this.activeTab === tab) {
       this.activeTab = null;

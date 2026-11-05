@@ -411,8 +411,7 @@ button {
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
-  pointer-events: auto;
-  cursor: text;
+  pointer-events: none;
 }
 .omni-icon.sec-insecure ~ .not-secure ~ .pretty {
   left: 112px;

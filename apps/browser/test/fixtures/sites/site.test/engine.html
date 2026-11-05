@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Engine</title></head>
+<body>
+<iframe id="frame" srcdoc="<p>frame</p>"></iframe>
+<script>
+window.engineReport = async (names) => {
+  const main = Object.fromEntries(names.map((n) => [n, typeof globalThis[n]]));
+  const frameWin = document.getElementById('frame').contentWindow;
+  const frame = Object.fromEntries(names.map((n) => [n, typeof frameWin[n]]));
+  const src = `postMessage(Object.fromEntries(${JSON.stringify(names)}.map((n) => [n, typeof self[n]])))`;
+  const worker = await new Promise((resolve) => {
+    const w = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+    w.onmessage = (e) => resolve(e.data);
+  });
+  return { main, frame, worker, ml: 'ml' in navigator, electron: typeof window.process + '/' + typeof window.require };
+};
+</script>
+</body></html>

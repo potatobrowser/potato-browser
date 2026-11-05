@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cookie Jar</title></head>
+<body>
+<p>Before: <span id="before"></span></p>
+<p>Storage before: <span id="storage-before"></span></p>
+<button id="set" onclick="document.cookie='visited=yes; path=/; max-age=86400'; localStorage.setItem('k','stored'); location.reload()">Set</button>
+<script>
+document.getElementById('before').textContent = document.cookie || 'none';
+document.getElementById('storage-before').textContent = localStorage.getItem('k') || 'none';
+</script>
+</body></html>

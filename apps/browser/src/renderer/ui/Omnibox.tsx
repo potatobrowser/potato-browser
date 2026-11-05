@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import type { Suggestion, TabState } from '../../shared/types';
 import { prettyUrl } from '../../shared/urls';
 import { chrome } from '../shared/api';
@@ -30,6 +30,9 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
   const [selected, setSelected] = useState(-1);
   const typed = useRef('');
   const inlineActive = useRef(false);
+  // Selection to apply right after React commits a new value. A layout effect runs before the
+  // next input event, so a fast keystroke can never land between the value and its selection.
+  const pendingSelection = useRef<[number, number] | null>(null);
   const url = tab?.url ?? '';
 
   useImperativeHandle(ref, () => ({
@@ -40,6 +43,13 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
       el.select();
     },
   }));
+
+  useLayoutEffect(() => {
+    const sel = pendingSelection.current;
+    if (!sel || !input.current) return;
+    pendingSelection.current = null;
+    input.current.setSelectionRange(sel[0], sel[1]);
+  }, [value]);
 
   // Show the page URL whenever the user is not editing.
   useEffect(() => {
@@ -69,8 +79,8 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
         if (!deleting && res.inline && res.inline.startsWith(lower) && res.inline.length > text.length && !/\s/.test(text)) {
           const completed = text + res.inline.slice(text.length);
           inlineActive.current = true;
+          pendingSelection.current = [text.length, completed.length];
           setValue(completed);
-          requestAnimationFrame(() => input.current?.setSelectionRange(text.length, completed.length));
         } else {
           inlineActive.current = false;
         }
@@ -174,7 +184,7 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
         className={showPretty ? 'hide-text' : ''}
       />
       {showPretty && (
-        <span className="pretty" aria-hidden="true" onMouseDown={(e) => { e.preventDefault(); input.current?.focus(); }}>
+        <span className="pretty" aria-hidden="true">
           <span className="host">{pretty.host}</span>
           <span className="rest">{pretty.rest}</span>
         </span>
