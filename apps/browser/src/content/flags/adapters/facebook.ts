@@ -25,7 +25,12 @@ function posts(doc: Document): Element[] {
 
 /** comment_id is numeric or base64 "comment:<postId>_<commentId>". */
 export function decodeCommentId(raw: string): { post?: string; comment: string } | null {
-  const v = decodeURIComponent(raw);
+  let v = raw;
+  try {
+    v = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
   if (/^\d+$/.test(v)) return { comment: v };
   try {
     const m = /^comment:(\d+)_(\d+)$/.exec(atob(v));

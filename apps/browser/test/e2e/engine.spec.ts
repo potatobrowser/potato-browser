@@ -59,3 +59,25 @@ test('internal pages expose their API only to themselves', async () => {
   const history = await b.tabPage('noai://history/');
   expect(await history.evaluate(() => typeof (window as any).noai?.call)).toBe('function');
 });
+
+test('every AI Shield selector is valid CSS in this Chromium', async () => {
+  const { RULES } = await import('../../src/content/shield/rules');
+  const selectors = RULES.flatMap((r) =>
+    r.features.flatMap((f) => [...(f.css ?? []), ...(f.match ?? []).map((m) => m.candidates), ...(f.placeholders ?? []).map((p) => p.selector)]),
+  );
+  b = await TestBrowser.launch();
+  const page = await b.goto('https://site.test/');
+  const invalid = await page.evaluate((list) => {
+    const bad: string[] = [];
+    for (const s of list) {
+      try {
+        document.querySelector(s);
+      } catch {
+        bad.push(s);
+      }
+    }
+    return bad;
+  }, selectors);
+  expect(selectors.length).toBeGreaterThan(150);
+  expect(invalid).toEqual([]);
+});
