@@ -60,6 +60,11 @@
       parts.push('For Apple Silicon and Intel Macs running macOS 13 Ventura or later.');
       const fine = document.querySelector('[data-release]');
       if (fine) fine.textContent = parts.join(' ');
+      const sums = document.querySelector('[data-checksums]');
+      if (sums && info.sha256 && info.sha256.arm64) {
+        sums.textContent = `SHA-256 checksums for version ${info.version}. Apple Silicon: ${info.sha256.arm64}. Intel: ${info.sha256.x64}.`;
+        sums.hidden = false;
+      }
       document.querySelectorAll('[data-download]').forEach((a) => {
         const size = sizes[a.dataset.download];
         if (size) a.title = `${mb(size)}, version ${info.version}`;

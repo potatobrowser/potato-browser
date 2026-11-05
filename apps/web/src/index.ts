@@ -117,6 +117,7 @@ async function stats(env: Env): Promise<Response> {
 interface LatestManifest extends ReleaseInfo {
   files: { arm64: string; x64: string };
   sizes?: { arm64?: number; x64?: number };
+  sha256?: { arm64?: string; x64?: string };
 }
 
 async function latestManifest(env: Env): Promise<LatestManifest | null> {
@@ -133,12 +134,13 @@ async function latestRelease(req: Request, env: Env): Promise<Response> {
   const m = await latestManifest(env);
   if (!m) return error(404, 'no release yet');
   const origin = new URL(req.url).origin;
-  const info: ReleaseInfo & { sizes?: LatestManifest['sizes'] } = {
+  const info: ReleaseInfo & Pick<LatestManifest, 'sizes' | 'sha256'> = {
     version: m.version,
     date: m.date,
     notes: m.notes,
     downloads: { arm64: `${origin}/download/mac-arm64`, x64: `${origin}/download/mac-x64` },
     sizes: m.sizes,
+    sha256: m.sha256,
   };
   return json(info, 200, { 'cache-control': 'public, max-age=300' });
 }

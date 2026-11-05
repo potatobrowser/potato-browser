@@ -97,9 +97,8 @@ app.whenReady().then(() => {
   ctx.downloads.onChange(() => notifyInternalPages({ type: 'downloads' }));
 
   const firstRun = !ctx.settings.get().firstRunDone && process.env.NOAI_SKIP_WELCOME !== '1';
-  ctx.windows.restoreOrOpen(firstRun);
   ready = true;
-  for (const url of pendingUrls.splice(0)) ctx.windows.openUrl(url);
+  ctx.windows.restoreOrOpen(firstRun, pendingUrls.splice(0));
   ctx.updates.start();
 
   if (isTest()) {

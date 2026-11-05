@@ -74,3 +74,18 @@ test('settings changes apply immediately', async () => {
   await settings.getByTestId('flag-threshold').selectOption('5');
   await expect.poll(async () => (await b.settings()).flags).toMatchObject({ mode: 'hide', threshold: 5 });
 });
+
+test('links opened from other apps reuse a window or open alone', async () => {
+  b = await TestBrowser.launch();
+  const ui = await b.uiPage();
+  // As if macOS handed us a link while a window is open: it becomes a new tab.
+  await b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.openUrl('https://site.test/page2'));
+  await expect(ui.getByTestId('tab')).toHaveCount(2);
+  await expect.poll(() => b.activeTabUrl()).toBe('https://site.test/page2');
+
+  // With every window closed, the link opens in a new window without an extra empty tab.
+  await b.cmd('closeWindow');
+  await expect.poll(() => b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.windows.length)).toBe(0);
+  await b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.openUrl('https://other.test/'));
+  await expect.poll(() => b.tabUrls()).toEqual(['https://other.test/']);
+});

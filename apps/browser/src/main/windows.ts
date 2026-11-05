@@ -87,14 +87,6 @@ export class WindowManager {
     return this.windows[this.windows.length - 1] ?? null;
   }
 
-  /** The focused normal (non-private) window, creating one when none exists. */
-  normalWindow(): BrowserWindowController {
-    const f = this.focused();
-    if (f && !f.isPrivate) return f;
-    const w = [...this.windows].reverse().find((x) => !x.isPrivate);
-    return w ?? this.createWindow();
-  }
-
   onWindowFocused(win: BrowserWindowController): void {
     this.lastFocused = win;
   }
@@ -129,7 +121,13 @@ export class WindowManager {
       this.createWindow({ isPrivate: opts.isPrivate, urls: [url] }).focus();
       return;
     }
-    const win = this.normalWindow();
+    const f = this.focused();
+    const win = f && !f.isPrivate ? f : [...this.windows].reverse().find((x) => !x.isPrivate);
+    if (!win) {
+      // No window yet (cold launch from a link, or all windows closed): open just the link.
+      this.createWindow({ urls: [url] }).focus();
+      return;
+    }
     win.newTab(url, { background: opts.background });
     win.focus();
   }
@@ -217,10 +215,14 @@ export class WindowManager {
     this.sessionFile.flush();
   }
 
-  restoreOrOpen(firstRun: boolean): void {
+  restoreOrOpen(firstRun: boolean, links: string[] = []): void {
     const settings = ctx.settings.get();
+    if (links.length && !firstRun && settings.startup !== 'restore') {
+      this.createWindow({ urls: links });
+      return;
+    }
     if (firstRun) {
-      this.createWindow({ urls: ['noai://welcome/'] });
+      this.createWindow({ urls: ['noai://welcome/', ...links] });
       return;
     }
     if (settings.startup === 'restore') {
@@ -231,11 +233,13 @@ export class WindowManager {
           const urls = w.tabs.filter((u) => typeof u === 'string').slice(0, 100);
           this.createWindow({ urls, active: Math.min(w.active ?? 0, urls.length - 1), bounds: this.visibleBounds(w.bounds) });
         }
+        for (const url of links) this.openUrl(url);
         return;
       }
     }
     const home = settings.startup === 'homepage' && settings.homepage ? settings.homepage : NEW_TAB_URL;
     this.createWindow({ urls: [home] });
+    for (const url of links) this.openUrl(url);
   }
 
   private visibleBounds(b: Rectangle | undefined): Partial<Rectangle> | undefined {
