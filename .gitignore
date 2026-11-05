@@ -1,0 +1,12 @@
+node_modules/
+dist/
+release/
+out/
+.wrangler/
+.dev.vars
+test-results/
+playwright-report/
+*.log
+.DS_Store
+.vite/
+apps/browser/test/.tmp/
