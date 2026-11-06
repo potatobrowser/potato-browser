@@ -1,10 +1,12 @@
 import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@noai/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { AppInfo, FlagMode, ImportResult, ImportSource, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
+import type { AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
 import { SEARCH_ENGINES } from '../../shared/urls';
 import { call } from '../shared/api';
 import { Card, Row, Toggle, useSettings } from '../shared/components';
+import { FlagModePicker } from '../shared/flagmodes';
+import { AccessSteps, useImporter, type What } from '../shared/importer';
 import { BrandMark } from '../shared/icons';
 import '../shared/pages.css';
 import './settings.css';
@@ -155,11 +157,6 @@ function ShieldSection({ s, update }: { s: Settings; update: Update }) {
 function FlagsSection({ s, update }: { s: Settings; update: Update }) {
   const [mine, setMine] = useState(0);
   useEffect(() => void call<{ mine: number }>('flags.stats').then((r) => setMine(r.mine)), []);
-  const modes: { id: FlagMode; title: string; hint: string }[] = [
-    { id: 'hide', title: 'Hide', hint: 'Collapse flagged posts behind a small notice you can open.' },
-    { id: 'label', title: 'Label', hint: 'Show flagged posts with an "AI" label and outline.' },
-    { id: 'ignore', title: 'Ignore', hint: 'Show everything as is. Flag buttons still work.' },
-  ];
   const disabled = new Set(s.flags.disabledPlatforms);
   return (
     <Card
@@ -171,21 +168,7 @@ function FlagsSection({ s, update }: { s: Settings; update: Update }) {
         <div className="row-label">
           <span>Posts flagged as AI-generated</span>
         </div>
-        <div className="mode-grid" role="radiogroup" aria-label="Flagged posts" data-testid="flag-mode">
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              role="radio"
-              aria-checked={s.flags.mode === m.id}
-              data-testid={`flag-mode-${m.id}`}
-              className={`mode${s.flags.mode === m.id ? ' on' : ''}`}
-              onClick={() => void update({ flags: { mode: m.id } })}
-            >
-              <strong>{m.title}</strong>
-              <small>{m.hint}</small>
-            </button>
-          ))}
-        </div>
+        <FlagModePicker value={s.flags.mode} onChange={(mode) => void update({ flags: { mode } })} testIdPrefix="flag-mode" />
       </div>
       <Row title="Flags needed" hint="How many people must flag a post before it counts as AI-generated. Your own flag always counts.">
         <select value={s.flags.threshold} data-testid="flag-threshold" onChange={(e) => void update({ flags: { threshold: Number(e.target.value) } })}>
@@ -304,12 +287,9 @@ function PrivacySection({ s, update }: { s: Settings; update: Update }) {
 }
 
 function ImportSection() {
-  const [sources, setSources] = useState<ImportSource[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [results, setResults] = useState<Record<string, ImportResult>>({});
-  const [what, setWhat] = useState<Record<string, { bookmarks: boolean; history: boolean }>>({});
-  const detect = () => void call<ImportSource[]>('import.detect').then(setSources);
-  useEffect(detect, []);
+  const { sources, states, run, cancel, recheck } = useImporter();
+  const [what, setWhat] = useState<Record<string, What>>({});
+  const busy = Object.values(states).includes('busy');
   return (
     <Card title="Import from another browser" id="import" hint="Bring your bookmarks and history. Passwords and cookies stay where they are.">
       {sources === null ? (
@@ -320,7 +300,8 @@ function ImportSection() {
         <ul className="list" data-testid="import-sources">
           {sources.map((src) => {
             const w = what[src.id] ?? { bookmarks: src.hasBookmarks, history: src.hasHistory };
-            const r = results[src.id];
+            const st = states[src.id];
+            const r = st && st !== 'busy' && st !== 'access' ? st : null;
             return (
               <li key={src.id} className="list-item import-item" data-testid="import-source" data-source-id={src.id}>
                 <div className="grow">
@@ -335,14 +316,8 @@ function ImportSection() {
                       History
                     </label>
                   </div>
-                  {src.blocked && !r ? (
-                    <p className="warn-text">
-                      {src.blocked}{' '}
-                      <button className="link-btn" onClick={() => void call('app.openFullDiskAccess')}>
-                        Open System Settings
-                      </button>
-                    </p>
-                  ) : null}
+                  {src.blocked && !st ? <p className="muted small-text">macOS protects {src.browser} data. Import opens System Settings so you can allow access.</p> : null}
+                  {st === 'access' ? <AccessSteps browser={src.browser} onRecheck={() => void recheck()} onCancel={() => cancel(src.id)} /> : null}
                   {r ? (
                     <p className={r.errors.length ? 'warn-text' : 'ok-text'} data-testid="import-result">
                       {r.errors.length
@@ -354,18 +329,10 @@ function ImportSection() {
                 <button
                   className="btn primary"
                   data-testid="import-run"
-                  disabled={busy !== null || (!w.bookmarks && !w.history)}
-                  onClick={async () => {
-                    setBusy(src.id);
-                    try {
-                      const res = await call<ImportResult>('import.run', src.id, w);
-                      setResults((prev) => ({ ...prev, [src.id]: res }));
-                    } finally {
-                      setBusy(null);
-                    }
-                  }}
+                  disabled={busy || st === 'access' || (!w.bookmarks && !w.history)}
+                  onClick={() => void run(src, w)}
                 >
-                  {busy === src.id ? 'Importing...' : 'Import'}
+                  {st === 'busy' ? 'Importing...' : 'Import'}
                 </button>
               </li>
             );

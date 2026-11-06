@@ -127,6 +127,16 @@ export const Flag = (p: P) => (
     <path d="M3.5 2.8c3-1.6 5.2 1.6 9 0v6.4c-3.8 1.6-6-1.6-9 0" />
   </Svg>
 );
+export const Check = (p: P) => (
+  <Svg {...p}>
+    <path d="m3 8.5 3.2 3L13 4.5" />
+  </Svg>
+);
+export const ArrowRight = (p: P) => (
+  <Svg {...p}>
+    <path d="M3 8h10M8.5 3.5 13 8l-4.5 4.5" />
+  </Svg>
+);
 export const Mask = (p: P) => (
   <Svg {...p}>
     <path d="M2 6.5c0-1.5 1.2-2.5 3-2.5h6c1.8 0 3 1 3 2.5 0 2.5-1.5 4.5-3.5 4.5-1.2 0-1.8-1-2.5-1s-1.3 1-2.5 1C3.5 11 2 9 2 6.5z" />

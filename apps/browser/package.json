@@ -1,7 +1,7 @@
 {
   "name": "@noai/browser",
   "productName": "No-AI Browser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Chromium-based browser for the human web. AI features hidden, no AI in the engine.",
   "author": "No-AI Browser",
   "private": true,

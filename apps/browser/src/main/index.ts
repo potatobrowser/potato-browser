@@ -96,6 +96,8 @@ app.whenReady().then(() => {
     notifyInternalPages({ type: 'settings' });
   });
   ctx.downloads.onChange(() => notifyInternalPages({ type: 'downloads' }));
+  // Internal pages re-check permissions (Full Disk Access, default browser) when the user returns.
+  app.on('did-become-active', () => notifyInternalPages({ type: 'app-active' }));
 
   const firstRun = !ctx.settings.get().firstRunDone && process.env.NOAI_SKIP_WELCOME !== '1';
   ready = true;

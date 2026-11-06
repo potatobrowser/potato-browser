@@ -46,7 +46,7 @@ pnpm --filter @noai/web dev            # Worker and landing page on localhost:87
 pnpm --filter @noai/shared test        # protocol unit tests
 pnpm --filter @noai/web test           # Worker API tests in workerd (D1, R2)
 pnpm --filter @noai/browser test       # browser unit tests
-pnpm --filter @noai/browser test:e2e   # 49 end-to-end tests
+pnpm --filter @noai/browser test:e2e   # 52 end-to-end tests
 ```
 
 The e2e suite builds the app, serves fixture copies of real sites under their real hostnames

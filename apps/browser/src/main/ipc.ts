@@ -246,6 +246,7 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
     apiBase: apiBase(),
   }),
   'app.isDefaultBrowser': () => app.isDefaultProtocolClient('https') && app.isDefaultProtocolClient('http'),
+  'app.defaultBrowserName': () => app.getApplicationNameForProtocol('https://') || null,
   'app.setDefaultBrowser': () => {
     app.setAsDefaultProtocolClient('http');
     app.setAsDefaultProtocolClient('https');
@@ -264,6 +265,10 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
   },
   'app.openFullDiskAccess': () =>
     void shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles'),
+  'app.relaunch': () => {
+    app.relaunch();
+    app.quit();
+  },
   'app.clearData': async (o: ClearDataOptions) => {
     const since = num(o?.since) || 0;
     if (o?.history) ctx.db.clearHistory(since);

@@ -342,3 +342,73 @@ code,
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12.5px;
 }
+.btn.small {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ring);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 13px;
+}
+.link-btn.muted {
+  color: var(--muted);
+}
+.warn-text {
+  color: var(--warn);
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.ok-text {
+  color: var(--ok);
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+/* Radio dot for card-style choices: the card carries role=radio and aria-checked. */
+.radio {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  display: inline-grid;
+  place-items: center;
+}
+[aria-checked='true'] .radio {
+  border-color: var(--ink);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.access {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  font-size: 13px;
+}
+.access-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+.access ol {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+}
+.access li + li {
+  margin-top: 2px;
+}
+.access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 10px;
+}

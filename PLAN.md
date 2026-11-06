@@ -83,9 +83,9 @@ Key decisions:
 
 All nine milestones are done and committed.
 
-- Version 0.1.1 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
+- Version 0.1.2 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
   from https://noaibrowser.laszlo-kiss27.workers.dev with SHA-256 checksums.
-- Tests: 63 unit tests (shared 4, worker 11, browser 48) and 49 e2e tests, also run against the
+- Tests: 63 unit tests (shared 4, worker 11, browser 48) and 52 e2e tests, also run against the
   packaged app. The AI Shield was additionally checked on live Google (saved real SERP DOM),
   Bing, DuckDuckGo, YouTube, Amazon and Instagram; flag adapters on live Reddit, YouTube,
   Bluesky and Threads.
@@ -94,6 +94,9 @@ All nine milestones are done and committed.
   race, a Worker entrypoint export rejected by workerd, omnibox click and autocomplete races.
 - An independent security review led to 0.1.1: screen sharing always asks first, votes count
   once per network, certificate exceptions are per certificate and session.
+- 0.1.2 reworked the welcome page: search engine choice (DuckDuckGo or Google), flag modes
+  shown as miniature feeds, numbered setup steps, a sticky Start browsing bar, and a guided
+  Safari import that opens Full Disk Access and resumes on its own (also after a relaunch).
 
 Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
 account, extensions and a password manager.
