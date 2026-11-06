@@ -185,3 +185,22 @@ test('internal pages are reachable and web pages cannot navigate into them', asy
   await page.waitForTimeout(800);
   expect(await b.activeTabUrl()).toBe('https://site.test/');
 });
+
+test('quits promptly after a busy session', async () => {
+  b = await TestBrowser.launch();
+  const ui = await b.uiPage();
+  const page = await b.goto('https://site.test/', ui);
+  await page.click('#to-page2');
+  await expect(ui.getByTestId('tab-title')).toHaveText('Page Two');
+  await ui.getByTestId('back').click();
+  await ui.getByTestId('forward').click();
+  await b.cmd('newTab');
+  await b.goto('https://site.test/title?t=Second', ui);
+  await b.cmd('selectTab', 0);
+  await ui.getByTestId('reload').click();
+  await b.cmd('newPrivateWindow');
+  const pui = await b.uiPage();
+  await b.goto('https://site.test/page2', pui);
+  const ms = await b.close(10_000);
+  expect(ms).toBeLessThan(10_000);
+});

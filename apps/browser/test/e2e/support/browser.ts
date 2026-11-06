@@ -115,8 +115,18 @@ export class TestBrowser {
     return this.app.evaluate(() => (globalThis as any).__noai.ctx.windows.focused()?.state());
   }
 
-  async close(): Promise<void> {
-    await this.app.close().catch(() => {});
+  /** Quits the app. Returns how long quitting took; kills it if it doesn't exit in time. */
+  async close(budgetMs = 30_000): Promise<number> {
+    const started = Date.now();
+    const quit = this.app.close().then(() => true, () => true);
+    const done = await Promise.race([quit, new Promise<boolean>((r) => setTimeout(() => r(false), budgetMs))]);
+    if (!done) {
+      console.warn(`app did not quit within ${budgetMs} ms; killing it`);
+      try {
+        this.app.process().kill('SIGKILL');
+      } catch {}
+    }
+    return done ? Date.now() - started : Number.POSITIVE_INFINITY;
   }
 }
 
