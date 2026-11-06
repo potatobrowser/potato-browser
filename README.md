@@ -90,8 +90,10 @@ Pushing `main` deploys `apps/web` through srv-deploy (`deploy.json`): tests, D1 
   shipped Chromium.
 - **Flags** never send what you read. Lookups send 5-character prefixes of
   `sha256("noai-flag:v1:<platform>:<id>")`; the browser matches full hashes locally. A flag
-  sends the full hash and a random install id, which the Worker stores only as an HMAC. The
-  Worker keeps no IPs or URLs; rate limits are per IP but not persisted.
+  sends the full hash and a random install id, which the Worker stores only as an HMAC, plus a
+  16-bit keyed bucket of the network prefix (IPv4 /24, IPv6 /48). Counts are distinct buckets,
+  so one connection cannot stuff votes with made-up install ids. The Worker keeps no IPs or
+  URLs; rate limits are per IP but not persisted.
 - **Platform adapters** (`apps/browser/src/content/flags/adapters`) find posts and their stable
   ids. Facebook and LinkedIn show different ids for one post on different surfaces; flags are
   written to every id found and lookups take the highest count.

@@ -1,4 +1,4 @@
-import { desktopCapturer, systemPreferences, type Session, type WebContents } from 'electron';
+import { BaseWindow, desktopCapturer, dialog, systemPreferences, type Session, type WebContents } from 'electron';
 import type { PermissionPrompt } from '../shared/types';
 import { ctx } from './context';
 import type { BrowserWindowController } from './window';
@@ -96,21 +96,39 @@ export class PermissionManager {
       tab.win.update();
     });
 
-    ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) => {
+    ses.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) => {
       if (ALWAYS_ALLOW.has(permission)) return true;
       const origin = originOf(requestingOrigin);
       if (origin.startsWith('noai:')) return true;
       if (permission === 'media') {
-        return this.decision(origin, 'perm:camera+microphone', isPrivate) === 'allow';
+        // A combined grant covers both devices; single grants cover their own device.
+        const single = details.mediaType === 'video' ? 'perm:camera' : details.mediaType === 'audio' ? 'perm:microphone' : null;
+        return [single, 'perm:camera+microphone'].some((k) => k && this.decision(origin, k, isPrivate) === 'allow');
       }
       return this.decision(origin, `perm:${permission}`, isPrivate) === 'allow';
     });
 
     ses.setDisplayMediaRequestHandler(
-      async (_request, callback) => {
-        // Fallback when the macOS system picker is unavailable: share the primary screen.
+      async (request, callback) => {
+        // Only reached when the macOS system picker is unavailable (macOS 13 and 14). The picker
+        // is the user's consent, so ask explicitly before sharing anything.
         const sources = await desktopCapturer.getSources({ types: ['screen'] });
-        callback(sources[0] ? { video: sources[0] } : {});
+        if (!sources[0]) return callback({});
+        let site = request.securityOrigin;
+        try {
+          site = new URL(request.securityOrigin).host || site;
+        } catch {}
+        const owner = BaseWindow.getFocusedWindow();
+        const opts = {
+          type: 'question' as const,
+          buttons: ['Share Entire Screen', 'Cancel'],
+          defaultId: 1,
+          cancelId: 1,
+          message: `Share your entire screen with ${site}?`,
+          detail: 'Everything on your screen, including other apps and notifications, is shared until you stop sharing.',
+        };
+        const { response } = owner ? await dialog.showMessageBox(owner, opts) : await dialog.showMessageBox(opts);
+        callback(response === 0 ? { video: sources[0] } : {});
       },
       { useSystemPicker: true },
     );

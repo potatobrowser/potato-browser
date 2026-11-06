@@ -41,7 +41,7 @@ function spoofFirefoxNavigator(): void {
 function startWebPage(): void {
   let config: PageConfig | null = null;
   try {
-    config = ipcRenderer.sendSync('page:config', location.href) as PageConfig;
+    config = ipcRenderer.sendSync('page:config') as PageConfig;
   } catch {
     return;
   }

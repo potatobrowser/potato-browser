@@ -9,7 +9,7 @@ import {
   type LookupItem,
   type ReleaseInfo,
 } from '@noai/shared';
-import { DAILY_FLAG_CAP, voterId } from './lib';
+import { DAILY_FLAG_CAP, networkBucket, voterId } from './lib';
 
 export interface Env {
   DB: D1Database;
@@ -80,7 +80,10 @@ async function setFlag(req: Request, env: Env, flag: boolean): Promise<Response>
   if (!env.VOTER_SALT) return error(503, 'flag service is not configured');
   if (await limited(env.FLAG_LIMIT, clientIp(req))) return error(429, 'slow down');
   const voter = await voterId(env.VOTER_SALT, client);
+  const src = await networkBucket(env.VOTER_SALT, clientIp(req));
   const now = Date.now();
+  // Distinct network buckets, not distinct install ids: one network counts once per post.
+  const count = '(SELECT COUNT(DISTINCT src) FROM votes WHERE h = ?1)';
 
   if (flag) {
     const recent = await env.DB.prepare('SELECT COUNT(*) AS c FROM votes WHERE voter = ?1 AND created_at > ?2')
@@ -88,17 +91,17 @@ async function setFlag(req: Request, env: Env, flag: boolean): Promise<Response>
       .first<{ c: number }>();
     if ((recent?.c ?? 0) >= DAILY_FLAG_CAP) return error(429, 'daily flag limit reached');
     await env.DB.batch([
-      env.DB.prepare('INSERT OR IGNORE INTO votes (h, voter, created_at) VALUES (?1, ?2, ?3)').bind(h, voter, now),
+      env.DB.prepare('INSERT OR IGNORE INTO votes (h, voter, created_at, src) VALUES (?1, ?2, ?3, ?4)').bind(h, voter, now, src),
       env.DB.prepare(
         `INSERT INTO items (h, prefix, platform, n, created_at, updated_at)
-         VALUES (?1, ?2, ?3, (SELECT COUNT(*) FROM votes WHERE h = ?1), ?4, ?4)
-         ON CONFLICT (h) DO UPDATE SET n = (SELECT COUNT(*) FROM votes WHERE h = ?1), updated_at = ?4`,
+         VALUES (?1, ?2, ?3, ${count}, ?4, ?4)
+         ON CONFLICT (h) DO UPDATE SET n = ${count}, updated_at = ?4`,
       ).bind(h, hashPrefix(h), platform, now),
     ]);
   } else {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM votes WHERE h = ?1 AND voter = ?2').bind(h, voter),
-      env.DB.prepare('UPDATE items SET n = (SELECT COUNT(*) FROM votes WHERE h = ?1), updated_at = ?2 WHERE h = ?1').bind(h, now),
+      env.DB.prepare(`UPDATE items SET n = ${count}, updated_at = ?2 WHERE h = ?1`).bind(h, now),
     ]);
   }
   const row = await env.DB.prepare('SELECT n FROM items WHERE h = ?1').bind(h).first<{ n: number }>();

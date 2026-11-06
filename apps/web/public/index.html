@@ -176,11 +176,11 @@
       </details>
       <details>
         <summary>Can't people just flag everything?</summary>
-        <p>Each install counts once per post, there is a daily limit per install, and the service rate-limits by network. You choose how many flags it takes before a post counts as AI-generated, and a hidden post is always one click away.</p>
+        <p>Each install counts once per post, and so does each network: flags coming from one home or office connection count once, however many installs they claim to be. There is also a daily limit per install. You choose how many flags it takes before a post counts as AI-generated, and a hidden post is always one click away.</p>
       </details>
       <details>
         <summary>What exactly does the flag service store?</summary>
-        <p>For each flagged post: a one-way fingerprint of the post's id, the platform name, and a count. For each flag: a scrambled version of your browser's random id, so you can undo it. No IP addresses, no URLs, no accounts.</p>
+        <p>For each flagged post: a one-way fingerprint of the post's id, the platform name, and a count. For each flag: a scrambled version of your browser's random id, so you can undo it, and a network bucket, a number from 0 to 65,535 derived from the first part of your IP address. Hundreds of networks share every bucket, so it identifies no one; it only stops one connection from flagging a post twice. No IP addresses, no URLs, no accounts.</p>
       </details>
       <details>
         <summary>Why does macOS warn me the first time?</summary>

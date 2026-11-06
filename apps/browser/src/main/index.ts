@@ -60,17 +60,18 @@ app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (event) => event.preventDefault());
 });
 
-app.on('certificate-error', (event, _wc, url, _error, _cert, callback) => {
+app.on('certificate-error', (event, wc, url, _error, cert, callback) => {
   let host = '';
   try {
     host = new URL(url).hostname;
   } catch {}
-  if (host && ctx.windows?.isCertificateAllowed(host)) {
+  if (host && ctx.windows?.isCertificateAllowed(wc.session, host, cert.fingerprint)) {
     event.preventDefault();
     callback(true);
-  } else {
-    callback(false);
+    return;
   }
+  if (host) ctx.windows?.noteCertificateError(wc, host, cert.fingerprint);
+  callback(false);
 });
 
 app.whenReady().then(() => {

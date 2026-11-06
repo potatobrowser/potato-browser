@@ -303,10 +303,11 @@ export function registerIpc(): void {
   });
 
   // ---- web pages (preload) ----------------------------------------------------------------------
-  ipcMain.on('page:config', (e, href: unknown) => {
+  ipcMain.on('page:config', (e) => {
     const tab = ctx.windows.tabFor(e.sender);
-    const isMain = !e.senderFrame || e.senderFrame.parent === null;
-    const topUrl = isMain ? str(href) : e.sender.getURL();
+    // Never trust a URL the page reports about itself; ask the browser which document this is.
+    const frame = e.senderFrame;
+    const topUrl = frame && frame.parent === null ? frame.url : e.sender.getURL();
     e.returnValue = ctx.shield.pageConfig(e.sender, topUrl, tab?.win.isPrivate ?? false);
   });
   ipcMain.on('page:shield-report', (e, r: { count?: unknown; features?: unknown; delta?: unknown }) => {
@@ -338,8 +339,5 @@ export function registerIpc(): void {
       labeled: Math.max(0, num(r.labeled) || 0),
     };
     tab.win.update();
-  });
-  ipcMain.on('page:open-flag-settings', (e) => {
-    if (ctx.windows.tabFor(e.sender)) openInternal('settings', '#flags');
   });
 }

@@ -139,7 +139,8 @@ export async function flagAsOthers(key: string, count: number): Promise<void> {
     const client = (Date.now().toString(16) + (clientSeq++).toString(16).padStart(8, '0') + Math.random().toString(16).slice(2)).slice(0, 32).padEnd(32, '0');
     const res = await fetch(`${process.env.NOAI_E2E_API}/api/v1/flags`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'cf-connecting-ip': `203.0.113.${(clientSeq % 250) + 1}` },
+      // Each simulated person flags from a different network (votes count once per network).
+      headers: { 'content-type': 'application/json', 'cf-connecting-ip': `10.${process.pid % 200}.${clientSeq % 250}.9` },
       body: JSON.stringify({ h, platform, client }),
     });
     if (!res.ok) throw new Error(`seeding flag failed: ${res.status} ${await res.text()}`);

@@ -378,7 +378,7 @@ export class Tab {
     } else if (action === 'proceed') {
       const target = u.searchParams.get('url');
       if (!target) return;
-      this.win.manager.allowCertificateFor(hostOf(target));
+      this.win.manager.allowCertificateFor(this.wc, hostOf(target));
       this.errorPage = null;
       this.navigate(target);
     } else if (action === 'allow-chatbot') {

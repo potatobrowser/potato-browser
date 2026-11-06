@@ -1,7 +1,7 @@
 import { env, exports } from 'cloudflare:workers';
 import { hashContentKey, hashPrefix } from '@noai/shared';
 import { describe, expect, it } from 'vitest';
-import { DAILY_FLAG_CAP, voterId } from '../src/lib';
+import { DAILY_FLAG_CAP, networkPrefix, voterId } from '../src/lib';
 
 const BASE = 'https://noaibrowser.test';
 const worker = (exports as unknown as { default: { fetch(r: Request): Promise<Response> } }).default;
@@ -26,7 +26,9 @@ async function call(method: string, path: string, body?: unknown, headers: Recor
   return { status: res.status, json, headers: res.headers, text };
 }
 
-const flag = (h: string, c: string, platform = 'reddit', ip = '198.51.100.1') =>
+// By default every install flags from its own network, like real users do.
+const netOf = (c: string) => `10.${parseInt(c.slice(-4), 16) % 250}.${parseInt(c.slice(-8, -4), 16) % 250}.7`;
+const flag = (h: string, c: string, platform = 'reddit', ip = netOf(c)) =>
   call('POST', '/api/v1/flags', { h, platform, client: c }, { 'cf-connecting-ip': ip });
 const unflag = (h: string, c: string, platform = 'reddit') => call('DELETE', '/api/v1/flags', { h, platform, client: c });
 const lookup = (prefixes: string[]) => call('POST', '/api/v1/lookup', { prefixes });
@@ -45,6 +47,31 @@ describe('flags API', () => {
     expect((await flag(h, client(2))).json.n).toBe(2);
     expect((await unflag(h, client(1))).json).toEqual({ h, n: 1, flagged: false });
     expect((await unflag(h, client(1))).json.n).toBe(1); // undo is idempotent
+  });
+
+  it('counts one network once per post, whatever install ids it sends', async () => {
+    const h = await hashContentKey('reddit:t3_stuffed');
+    for (let i = 0; i < 5; i++) {
+      const r = await flag(h, client(700 + i), 'reddit', `203.0.113.${10 + i}`); // same /24
+      expect(r.json.n).toBe(1);
+    }
+    expect((await flag(h, client(800), 'reddit', '2001:db8:aa:1::5')).json.n).toBe(2);
+    expect((await flag(h, client(801), 'reddit', '2001:db8:aa:ffff::9')).json.n).toBe(2); // same /48
+    expect((await flag(h, client(802), 'reddit', '198.51.100.20')).json.n).toBe(3);
+    // Undo removes that network's contribution only when its last vote goes.
+    expect((await unflag(h, client(802))).json.n).toBe(2);
+    const rows = await env.DB.prepare('SELECT DISTINCT src FROM votes WHERE h = ?').bind(h).all<{ src: string }>();
+    for (const r of rows.results) expect(r.src).toMatch(/^[0-9a-f]{4}$/);
+  });
+
+  it('derives networks from IPv4, IPv6 and mapped addresses', () => {
+    expect(networkPrefix('203.0.113.77')).toBe('203.0.113');
+    expect(networkPrefix('::ffff:203.0.113.77')).toBe('203.0.113');
+    expect(networkPrefix('2001:db8:aa:1::5')).toBe('2001:db8:aa');
+    expect(networkPrefix('2001:0db8:00aa:ffff:1:2:3:4')).toBe('2001:db8:aa');
+    expect(networkPrefix('2001:db8::1')).toBe('2001:db8:0');
+    expect(networkPrefix('::1')).toBe('0:0:0');
+    expect(networkPrefix('local')).toBe('local');
   });
 
   it('answers lookups by prefix and never lists unflagged posts', async () => {
@@ -70,6 +97,8 @@ describe('flags API', () => {
     expect(rows.results[0]!.voter).toBe(await voterId('test-salt-for-voter-ids', client(77)));
     const item = await env.DB.prepare('SELECT * FROM items WHERE h = ?').bind(h).first<Record<string, unknown>>();
     expect(Object.keys(item!).sort()).toEqual(['created_at', 'h', 'n', 'platform', 'prefix', 'updated_at']);
+    const vote = await env.DB.prepare('SELECT * FROM votes WHERE h = ?').bind(h).first<Record<string, unknown>>();
+    expect(Object.keys(vote!).sort()).toEqual(['created_at', 'h', 'src', 'voter']);
   });
 
   it('rejects malformed input', async () => {

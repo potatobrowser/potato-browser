@@ -29,7 +29,9 @@ export class WindowManager {
   private tabsByWc = new Map<number, Tab>();
   private sessionFile: JsonFile<SavedSession>;
   private recentlyClosed: { win: BrowserWindowController; tab: ClosedTab }[] = [];
-  private certAllowed = new Set<string>();
+  /** "host|fingerprint" exceptions per session, so private windows never inherit them. */
+  private certAllowed = new WeakMap<Session, Set<string>>();
+  private lastCertError = new Map<number, { host: string; fingerprint: string }>();
   quitting = false;
 
   constructor() {
@@ -139,7 +141,12 @@ export class WindowManager {
   }
 
   unregisterTab(tab: Tab): void {
-    for (const [id, t] of this.tabsByWc) if (t === tab) this.tabsByWc.delete(id);
+    for (const [id, t] of this.tabsByWc) {
+      if (t === tab) {
+        this.tabsByWc.delete(id);
+        this.lastCertError.delete(id);
+      }
+    }
   }
 
   tabFor(wc: WebContents | null | undefined): Tab | null {
@@ -174,12 +181,22 @@ export class WindowManager {
     showPageContextMenu(this, tab, params);
   }
 
-  allowCertificateFor(host: string): void {
-    if (host) this.certAllowed.add(host);
+  /** Remembers the certificate a tab was just warned about, for its "Continue anyway" link. */
+  noteCertificateError(wc: WebContents, host: string, fingerprint: string): void {
+    this.lastCertError.set(wc.id, { host, fingerprint });
   }
 
-  isCertificateAllowed(host: string): boolean {
-    return this.certAllowed.has(host);
+  /** Accepts exactly the certificate the user was shown, for this host and session only. */
+  allowCertificateFor(wc: WebContents, host: string): void {
+    const seen = this.lastCertError.get(wc.id);
+    if (!host || !seen || seen.host !== host) return;
+    let set = this.certAllowed.get(wc.session);
+    if (!set) this.certAllowed.set(wc.session, (set = new Set()));
+    set.add(`${host}|${seen.fingerprint}`);
+  }
+
+  isCertificateAllowed(ses: Session, host: string, fingerprint: string): boolean {
+    return this.certAllowed.get(ses)?.has(`${host}|${fingerprint}`) ?? false;
   }
 
   broadcast(): void {
