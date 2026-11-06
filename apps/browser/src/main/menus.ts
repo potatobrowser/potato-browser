@@ -1,5 +1,5 @@
 import { app, clipboard, Menu, shell, type ContextMenuParams, type MenuItemConstructorOptions } from 'electron';
-import { SITE_URL } from '../shared/constants';
+import { SITE_URL, SOURCE_URL } from '../shared/constants';
 import { getSearchEngine, searchUrl } from '../shared/urls';
 import { commands, openInternal } from './commands';
 import { ctx } from './context';
@@ -136,7 +136,10 @@ export function buildAppMenu(): void {
     { role: 'windowMenu' },
     {
       role: 'help',
-      submenu: [{ label: 'Potato Browser Website', click: () => void shell.openExternal(SITE_URL) }],
+      submenu: [
+        { label: 'Potato Browser Website', click: () => void shell.openExternal(SITE_URL) },
+        { label: 'Source Code on GitHub', click: () => void shell.openExternal(SOURCE_URL) },
+      ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

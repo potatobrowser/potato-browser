@@ -4,6 +4,7 @@ import { ruleMatchesPath } from '../content/shield/match';
 import type { PageConfig, ShieldRuleSummary } from '../shared/types';
 import { hostMatches, siteKey } from '../shared/urls';
 import { ctx } from './context';
+import { isTest } from './paths';
 
 function hostOf(url: string): string {
   try {
@@ -101,6 +102,7 @@ export class ShieldService {
     const web = /^https?:/.test(topUrl);
     return {
       isPrivate,
+      testHooks: isTest(),
       shield: { enabled: web && this.isEnabledFor(topUrl), disabledRules: s.shield.disabledRules },
       flags: {
         enabled: web && (s.flags.mode !== 'ignore' || s.flags.showButtons),

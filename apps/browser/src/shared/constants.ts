@@ -3,3 +3,4 @@ export const GOOGLE_SIGNIN_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv
 export const GOOGLE_SIGNIN_HOSTS = ['accounts.google.com'];
 
 export const SITE_URL = 'https://potatobrowser.com';
+export const SOURCE_URL = 'https://github.com/potatobrowser/potato-browser';

@@ -63,6 +63,13 @@
       const sums = document.querySelector('[data-checksums]');
       if (sums && info.sha256 && info.sha256.arm64) {
         sums.textContent = `SHA-256 checksums for version ${info.version}. Apple Silicon: ${info.sha256.arm64}. Intel: ${info.sha256.x64}.`;
+        const src = info.source;
+        if (src && /^[0-9a-f]{40}$/.test(src.commit) && /^https:\/\/github\.com\//.test(src.release)) {
+          const a = document.createElement('a');
+          a.href = src.release;
+          a.textContent = `Built from commit ${src.commit.slice(0, 7)}.`;
+          sums.append(' ', a);
+        }
         sums.hidden = false;
       }
       document.querySelectorAll('[data-download]').forEach((a) => {

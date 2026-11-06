@@ -772,3 +772,61 @@ main > section.hero {
   max-width: 80ch;
   font-size: 13px;
 }
+
+/* ---- source ------------------------------------------------------------------------------------ */
+.source {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(24px, 5vw, 72px);
+}
+.source-body {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.source-body p {
+  max-width: var(--measure);
+}
+.source-body .cta-row {
+  margin: 0;
+}
+.source h3 {
+  color: var(--ink);
+  font-stretch: var(--semi);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  margin: 18px 0 0;
+}
+.code {
+  margin: 0;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--wash);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 18px 20px;
+  overflow-x: auto;
+  font: 15px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
+  color: var(--ink);
+}
+.faq code {
+  font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace;
+  background: var(--wash);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.fine a,
+.foot a {
+  text-underline-offset: 3px;
+}
+@media (max-width: 960px) {
+  .source {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .code {
+    font-size: 13px;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+}

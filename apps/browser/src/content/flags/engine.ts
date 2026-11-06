@@ -38,7 +38,7 @@ export class FlagsEngine {
   private lookupTimer: ReturnType<typeof setTimeout> | null = null;
   private lastReport = '';
   private running = false;
-  private lastPath = location.pathname;
+  private lastHref = location.href;
   /** Bumped when the user flags/unflags a key, so older lookup answers cannot overwrite it. */
   private epoch = new Map<string, number>();
 
@@ -57,10 +57,12 @@ export class FlagsEngine {
     const boot = () => {
       this.observer = new MutationObserver((records) => {
         // Ignore mutations caused by our own buttons and placeholders.
-        const ours = records.every((r) =>
-          [...r.addedNodes, ...r.removedNodes].every(
-            (n) => n instanceof Element && (n.localName === BUTTON_TAG || n.localName === PLACEHOLDER_TAG),
-          ),
+        const ours = records.every(
+          (r) =>
+            r.type === 'childList' &&
+            [...r.addedNodes, ...r.removedNodes].every(
+              (n) => n instanceof Element && (n.localName === BUTTON_TAG || n.localName === PLACEHOLDER_TAG),
+            ),
         );
         if (!ours) this.scheduleScan(150);
       });
@@ -76,8 +78,9 @@ export class FlagsEngine {
     else boot();
     // SPAs change pages with pushState, sometimes without any DOM mutation.
     setInterval(() => {
-      if (location.pathname !== this.lastPath) {
-        this.lastPath = location.pathname;
+      // The full URL: YouTube changes videos with ?v= alone.
+      if (location.href !== this.lastHref) {
+        this.lastHref = location.href;
         this.scheduleScan(0);
         setTimeout(() => this.scheduleScan(0), 800);
       }
@@ -134,7 +137,9 @@ export class FlagsEngine {
         keys.filter((k) => !item!.keys.includes(k)).forEach((k) => this.queue(k));
         item.keys = [...new Set([...item.keys, ...keys])];
       }
-      this.render(el, item);
+      try {
+        this.render(el, item);
+      } catch {}
     }
     for (const [el, item] of this.items) {
       if (!seen.has(el) && !el.isConnected) {
@@ -195,7 +200,7 @@ export class FlagsEngine {
       if (!item.button) item.button = createButton(() => void this.toggle(el, item));
       if (!item.button.host.isConnected || !el.contains(item.button.host)) {
         const mount = this.adapter.mount(el);
-        if (mount) mount.parent.insertBefore(item.button.host, mount.before ?? null);
+        if (mount) mount.parent.insertBefore(item.button.host, mount.before?.parentNode === mount.parent ? mount.before : null);
         else el.prepend(item.button.host);
       }
       const n = s?.n ?? 0;

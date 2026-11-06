@@ -40,7 +40,8 @@ export function matcherHits(m: Matcher, el: Element): boolean {
   if (m.notInside && el.parentElement?.closest(m.notInside)) return false;
   if (m.any) return true;
   const raw = m.attr ? el.getAttribute(m.attr) : el.textContent;
-  if (raw == null) return false;
+  // Cheap bound before norm(): broad candidates (div, span) would otherwise normalize whole pages.
+  if (raw == null || (m.maxLength && raw.length > m.maxLength * 10 + 200)) return false;
   const value = norm(raw);
   if (!value || (m.maxLength && value.length > m.maxLength)) return false;
   const c = compile(m);

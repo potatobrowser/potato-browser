@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { net } from 'electron';
 import {
   hashContentKey,
@@ -48,6 +49,8 @@ export class FlagsService {
   private inflight = new Map<string, Promise<void>>();
   /** Flags made in private windows are remembered only until the private session ends. */
   private privateMine = new Set<string>();
+  /** Private windows flag under a throwaway id, so the server cannot link them to this install. */
+  private privateClient: string | null = null;
 
   private async hash(key: string): Promise<string> {
     let h = this.hashCache.get(key);
@@ -91,7 +94,7 @@ export class FlagsService {
     const out: Record<string, FlagStatus> = {};
     if (localOnly) {
       const mine = ctx.db.myFlags(valid);
-      for (const k of valid) out[k] = { n: 0, mine: mine.has(k) || (isPrivate && this.privateMine.has(k)) };
+      for (const k of valid) out[k] = { n: 0, mine: isPrivate ? this.privateMine.has(k) : mine.has(k) };
       return out;
     }
     const hashes = await Promise.all(valid.map((k) => this.hash(k)));
@@ -101,7 +104,7 @@ export class FlagsService {
     valid.forEach((k, i) => {
       const h = hashes[i]!;
       const n = this.prefixCache.get(hashPrefix(h))?.counts.get(h) ?? 0;
-      out[k] = { n, mine: mine.has(k) || (isPrivate && this.privateMine.has(k)) };
+      out[k] = { n, mine: isPrivate ? this.privateMine.has(k) : mine.has(k) };
     });
     return out;
   }
@@ -110,7 +113,7 @@ export class FlagsService {
   async set(keys: string[], flag: boolean, isPrivate: boolean): Promise<Record<string, FlagStatus>> {
     const valid = [...new Set(keys)].filter((k) => parseContentKey(k)).slice(0, 10);
     if (!valid.length) throw new Error('invalid content key');
-    const client = ctx.settings.get().installId;
+    const client = isPrivate ? (this.privateClient ??= crypto.randomBytes(16).toString('hex')) : ctx.settings.get().installId;
     const out: Record<string, FlagStatus> = {};
     for (const key of valid) {
       const { platform } = parseContentKey(key)!;
@@ -119,8 +122,9 @@ export class FlagsService {
       if (isPrivate) {
         if (flag) this.privateMine.add(key);
         else this.privateMine.delete(key);
+      } else {
+        ctx.db.setMyFlag(key, h, platform, flag);
       }
-      if (!isPrivate || !flag) ctx.db.setMyFlag(key, h, platform, flag && !isPrivate);
       const prefix = hashPrefix(h);
       const entry = this.prefixCache.get(prefix) ?? { at: Date.now(), counts: new Map<string, number>() };
       entry.counts.set(h, res.n);
@@ -132,6 +136,7 @@ export class FlagsService {
 
   forgetPrivate(): void {
     this.privateMine.clear();
+    this.privateClient = null;
   }
 
   clearCache(): void {

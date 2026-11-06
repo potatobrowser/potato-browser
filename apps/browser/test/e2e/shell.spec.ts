@@ -129,6 +129,12 @@ test('target=_blank links and window.open open new tabs with an opener', async (
   const popup = await b.tabPage('https://site.test/popup');
   await expect(popup.locator('#opener')).toHaveText('has-opener');
   await expect(ui.getByTestId('tab')).toHaveCount(3);
+  // Popups run the same preload as other tabs, so the AI Shield works in them too.
+  await ui.getByTestId('tab').nth(0).click();
+  await page.evaluate(() => window.open('https://www.google.com/search?q=from+a+popup', '_blank'));
+  const google = await b.tabPage(/google\.com\/search\?q=from\+a\+popup/);
+  await expect(google.locator('#r0')).toBeVisible();
+  for (const s of ['#aio-wrapper', '#aio-text', '#tab-ai']) await expect(google.locator(s).first(), `${s} hidden in popup`).toBeHidden();
 });
 
 test('find in page counts matches', async () => {
@@ -184,6 +190,17 @@ test('internal pages are reachable and web pages cannot navigate into them', asy
   });
   await page.waitForTimeout(800);
   expect(await b.activeTabUrl()).toBe('https://site.test/');
+  // Not through the new tab page's host either, nor through a server redirect.
+  await page.evaluate(() => {
+    location.href = 'potato://newtab/settings.html';
+  });
+  await page.waitForTimeout(800);
+  expect(await b.activeTabUrl()).toBe('https://site.test/');
+  await page.evaluate(() => {
+    location.href = '/to-internal';
+  });
+  await page.waitForTimeout(800);
+  expect(await b.activeTabUrl()).not.toMatch(/^potato:/);
 });
 
 test('quits promptly after a busy session', async () => {

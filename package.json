@@ -1,6 +1,7 @@
 {
   "name": "potatobrowser",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@12.9.1",
   "scripts": {
     "build": "pnpm -r run build",

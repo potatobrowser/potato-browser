@@ -43,6 +43,21 @@ test('optional AI chatbot blocking with a one-time bypass', async () => {
   await expect(page.locator('#chatbot')).toBeVisible();
 });
 
+test('web pages cannot use the error page actions themselves', async () => {
+  b = await TestBrowser.launch({ settings: { privacy: { blockAiChatbots: true } } });
+  const ui = await b.uiPage();
+  const page = await b.goto('https://site.test/', ui);
+  await page.evaluate(() => {
+    location.href = 'potato://action/allow-chatbot?url=' + encodeURIComponent('https://chatgpt.com/');
+  });
+  await page.waitForTimeout(800);
+  expect(await b.activeTabUrl()).toBe('https://site.test/');
+  await ui.getByTestId('omnibox-input').fill('chatgpt.com');
+  await ui.getByTestId('omnibox-input').press('Enter');
+  const blocked = () => b.app.windows().find((w) => w.url().startsWith('chrome-error://') || w.url().includes('chatgpt.com'));
+  await expect.poll(async () => (await blocked()?.evaluate(() => document.body.innerText).catch(() => '')) ?? '').toContain('AI chatbot blocked');
+});
+
 test('new windows, private windows and the new tab page', async () => {
   b = await TestBrowser.launch();
   const ui = await b.uiPage();

@@ -25,7 +25,8 @@
       "migrations_dir": "./migrations"
     }
   ],
-  "r2_buckets": [{ "binding": "RELEASES", "bucket_name": "noaibrowser-releases" }],
+  // Builds come from the GitHub Releases of this public repository (latest.json + DMGs).
+  "vars": { "SOURCE_REPO": "potatobrowser/potato-browser" },
   // Per-IP limits; they back up the per-voter daily caps enforced in D1.
   "ratelimits": [
     { "name": "LOOKUP_LIMIT", "namespace_id": "4101", "simple": { "limit": 240, "period": 60 } },

@@ -36,16 +36,17 @@ function copyFor(code: number, desc: string, host: string): ErrorCopy {
   return { title: "This page isn't working", body: `${h} could not be loaded.` };
 }
 
-export function errorPageHtml(url: string, code: number, desc: string): string {
+/** `token` is the tab's secret for this error page; its action links carry it (see Tab.handleAction). */
+export function errorPageHtml(url: string, code: number, desc: string, token = ''): string {
   let host = url;
   try {
     host = new URL(url).host || url;
   } catch {}
   const c = copyFor(code, desc, host);
   const proceed = c.proceed
-    ? `<p class="adv"><a href="potato://action/proceed?url=${encodeURIComponent(url)}">Continue to ${esc(host)} anyway (unsafe)</a></p>`
+    ? `<p class="adv"><a href="potato://action/proceed?url=${encodeURIComponent(url)}&amp;t=${token}">Continue to ${esc(host)} anyway (unsafe)</a></p>`
     : c.allowChatbot
-      ? `<p class="adv"><a href="potato://action/allow-chatbot?url=${encodeURIComponent(url)}">Open ${esc(host)} this time</a></p>`
+      ? `<p class="adv"><a href="potato://action/allow-chatbot?url=${encodeURIComponent(url)}&amp;t=${token}">Open ${esc(host)} this time</a></p>`
       : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(host)}</title>
 <style>

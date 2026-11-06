@@ -36,11 +36,13 @@ function describe(permission: string, details: Record<string, any>): { kind: str
     return { kind, text: cam && mic ? 'use your camera and microphone' : cam ? 'use your camera' : mic ? 'use your microphone' : 'use media devices' };
   }
   if (permission === 'openExternal') {
-    let scheme = 'an external app';
+    let scheme = '';
     try {
-      scheme = new URL(details.externalURL).protocol.replace(':', '') + ' links';
+      scheme = new URL(details.externalURL).protocol.replace(':', '').toLowerCase();
     } catch {}
-    return { kind: 'openExternal', text: `open ${scheme} in another app` };
+    // Per scheme: allowing mailto: must not also allow every other app's links.
+    if (!/^[a-z][a-z0-9+.-]{0,30}$/.test(scheme)) return { kind: 'openExternal:unknown', text: 'open a link in another app' };
+    return { kind: `openExternal:${scheme}`, text: `open ${scheme} links in another app` };
   }
   const text: Record<string, string> = {
     geolocation: 'know your location',
@@ -195,6 +197,7 @@ export class PermissionManager {
         ['camera', 'microphone', 'geolocation', 'notifications', 'clipboard-read', 'midi', 'openExternal'].flatMap((k) =>
           ctx.db.siteSettingsByKey(`perm:${k}`).map((r) => ({ origin: r.site, kind: k, decision: r.value })),
         ),
+        ctx.db.siteSettingsByKeyPrefix('perm:openExternal:').map((r) => ({ origin: r.site, kind: r.key.slice(5), decision: r.value })),
       );
   }
 

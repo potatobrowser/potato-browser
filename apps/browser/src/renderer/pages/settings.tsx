@@ -162,7 +162,7 @@ function FlagsSection({ s, update }: { s: Settings; update: Update }) {
     <Card
       title="AI flags"
       id="flags"
-      hint="People flag posts they think are AI-generated. Flags are anonymous: no account, and the browser only sends short hash prefixes when it checks posts (hashed like the browns), so the service never learns what you read."
+      hint="People flag posts they think are AI-generated. Flags are anonymous: no account, and when the browser checks posts it sends only short hash prefixes that thousands of other posts share (hashed like the browns), never the posts or the page."
     >
       <div className="row column">
         <div className="row-label">
@@ -264,7 +264,9 @@ function PrivacySection({ s, update }: { s: Settings; update: Update }) {
             {perms.map((p) => (
               <li key={p.origin + p.kind}>
                 <span className="truncate">{p.origin.replace(/^https?:\/\//, '')}</span>
-                <span className="muted">{p.kind.replace('+', ' and ')}</span>
+                <span className="muted">
+                  {p.kind.startsWith('openExternal:') ? `open ${p.kind.slice(13)} links` : p.kind === 'openExternal' ? 'open links in other apps' : p.kind.replace('+', ' and ')}
+                </span>
                 <span className={`pill ${p.decision === 'allow' ? 'ok' : 'warn'}`}>{p.decision === 'allow' ? 'Allowed' : 'Blocked'}</span>
                 <button
                   className="btn small"
@@ -419,6 +421,11 @@ function About() {
         </ul>
       </div>
       <Row title="Engine" hint={`Electron ${info.electron} · V8 ${info.v8} · Node ${info.node}`} />
+      <Row title="Source code" hint="Open source under the MIT license. Every release is built in public from this repository.">
+        <button className="link-btn" onClick={() => void call('app.openSourcePage')} data-testid="about-source">
+          github.com/potatobrowser
+        </button>
+      </Row>
       <Row title="Anonymous flag id" hint="A random id used only to count your flags once. The server stores it as a keyed hash, scrambled beyond recognition.">
         <span className="mono muted">{info.installIdShort}...</span>
       </Row>

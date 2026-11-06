@@ -1,7 +1,8 @@
 import { env, exports } from 'cloudflare:workers';
 import { hashContentKey, hashPrefix } from '@potato/shared';
-import { describe, expect, it } from 'vitest';
-import { DAILY_FLAG_CAP, networkPrefix, voterId } from '../src/lib';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DAILY_FLAG_CAP, MAX_VOTES_PER_NETWORK, networkPrefix, rateLimitKey, voterId } from '../src/lib';
+import { resetManifestCache } from '../src/releases';
 
 const BASE = 'https://potatobrowser.test';
 const worker = (exports as unknown as { default: { fetch(r: Request): Promise<Response> } }).default;
@@ -138,6 +139,58 @@ describe('flags API', () => {
   });
 });
 
+describe('abuse limits', () => {
+  it('only takes exact application/json, so web pages cannot flag cross-site', async () => {
+    const h = await hashContentKey('reddit:t3_csrf');
+    for (const type of ['text/plain; x=application/json', 'text/plain', 'application/x-www-form-urlencoded']) {
+      const res = await worker.fetch(
+        new Request(BASE + '/api/v1/flags', {
+          method: 'POST',
+          headers: { 'content-type': type, 'cf-connecting-ip': '198.18.0.1' },
+          body: JSON.stringify({ h, platform: 'reddit', client: client(4000) }),
+        }),
+      );
+      expect(res.status).toBe(400);
+    }
+    const ok = await call('POST', '/api/v1/flags', { h, platform: 'reddit', client: client(4000) }, { 'content-type': 'application/json; charset=utf-8' });
+    expect(ok.json.n).toBe(1);
+  });
+
+  it('rejects oversized bodies, declared or streamed', async () => {
+    const big = JSON.stringify({ prefixes: ['00000'], pad: 'x'.repeat(20_000) });
+    expect((await call('POST', '/api/v1/lookup', JSON.parse(big))).status).toBe(400);
+    const stream = new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode(big));
+        c.close();
+      },
+    });
+    const res = await worker.fetch(new Request(BASE + '/api/v1/lookup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: stream, duplex: 'half' } as RequestInit));
+    expect(res.status).toBe(400);
+  });
+
+  it('keys rate limits on the IPv6 /64, not the address', () => {
+    expect(rateLimitKey('2001:db8:aa:1::5')).toBe('2001:db8:aa:1::/64');
+    expect(rateLimitKey('2001:db8:aa:1:ffff:1:2:3')).toBe('2001:db8:aa:1::/64');
+    expect(rateLimitKey('203.0.113.77')).toBe('203.0.113.77');
+    expect(rateLimitKey('::ffff:203.0.113.77')).toBe('203.0.113.77');
+  });
+
+  it('stores only a few votes per post and network, still counting it once', async () => {
+    const h = await hashContentKey('reddit:t3_pileup');
+    for (let i = 0; i < MAX_VOTES_PER_NETWORK + 4; i++) expect((await flag(h, client(5000 + i), 'reddit', '192.0.2.44')).json.n).toBe(1);
+    const row = await env.DB.prepare('SELECT COUNT(*) AS c FROM votes WHERE h = ?').bind(h).first<{ c: number }>();
+    expect(row?.c).toBe(MAX_VOTES_PER_NETWORK);
+  });
+
+  it('stores vote times to the hour', async () => {
+    const h = await hashContentKey('reddit:t3_hour');
+    await flag(h, client(6000));
+    const row = await env.DB.prepare('SELECT created_at FROM votes WHERE h = ?').bind(h).first<{ created_at: number }>();
+    expect((row?.created_at ?? 1) % 3_600_000).toBe(0);
+  });
+});
+
 describe('canonical host', () => {
   const get = (url: string) => worker.fetch(new Request(url, { redirect: 'manual' }));
 
@@ -163,44 +216,81 @@ describe('canonical host', () => {
 });
 
 describe('releases and downloads', () => {
-  it('404s before the first release', async () => {
+  const sha = (c: string) => c.repeat(64);
+  const manifest = {
+    version: '9.9.9',
+    date: '2026-11-05',
+    notes: 'Test',
+    commit: 'a'.repeat(40),
+    files: { arm64: 'Potato-Browser-9.9.9-arm64.dmg', x64: 'Potato-Browser-9.9.9-x64.dmg' },
+    sizes: { arm64: 1000, x64: 2000 },
+    sha256: { arm64: sha('1'), x64: sha('2') },
+  };
+  const repo = 'https://github.com/potatobrowser/potato-browser';
+  let served: { status: number; body: unknown } = { status: 404, body: 'Not Found' };
+  const requested: string[] = [];
+
+  beforeEach(() => {
+    resetManifestCache();
+    requested.length = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const u = input instanceof Request ? input.url : String(input);
+      requested.push(u);
+      const body = typeof served.body === 'string' ? served.body : JSON.stringify(served.body);
+      return new Response(body, { status: served.status });
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  const get = (path: string, init: RequestInit = {}) => worker.fetch(new Request(BASE + path, { redirect: 'manual', ...init }));
+
+  it('404s before the first release and sends downloads to the releases page', async () => {
+    served = { status: 404, body: 'Not Found' };
     expect((await call('GET', '/api/v1/releases/latest')).status).toBe(404);
-    expect((await call('GET', '/download/mac-arm64')).status).toBe(404);
+    const r = await get('/download/mac-arm64');
+    expect(r.status).toBe(302);
+    expect(r.headers.get('location')).toBe(`${repo}/releases/latest`);
+    expect(requested[0]).toBe(`${repo}/releases/latest/download/latest.json`);
   });
 
-  it('serves the latest DMG with ranges and counts downloads', async () => {
-    const dmg = new Uint8Array(1000).map((_, i) => i % 251);
-    await env.RELEASES.put('releases/9.9.9/Potato-Browser-9.9.9-arm64.dmg', dmg);
-    await env.RELEASES.put(
-      'latest.json',
-      JSON.stringify({
-        version: '9.9.9',
-        date: '2026-11-05',
-        notes: 'Test',
-        files: { arm64: 'releases/9.9.9/Potato-Browser-9.9.9-arm64.dmg', x64: 'releases/9.9.9/Potato-Browser-9.9.9-x64.dmg' },
-      }),
-    );
+  it('rejects a manifest whose fields could point elsewhere', async () => {
+    served = { status: 200, body: { ...manifest, files: { ...manifest.files, arm64: '../../evil/x.dmg' } } };
+    expect((await call('GET', '/api/v1/releases/latest')).status).toBe(404);
+    served = { status: 200, body: { ...manifest, version: '9.9.9/../../x' } };
+    expect((await call('GET', '/api/v1/releases/latest')).status).toBe(404);
+    served = { status: 200, body: '{not json' };
+    expect((await call('GET', '/api/v1/releases/latest')).status).toBe(404);
+  });
+
+  it('describes the latest GitHub release and redirects downloads to its assets', async () => {
+    served = { status: 200, body: manifest };
     const latest = await call('GET', '/api/v1/releases/latest');
-    expect(latest.json.version).toBe('9.9.9');
-    expect(latest.json.downloads.arm64).toBe(`${BASE}/download/mac-arm64`);
+    expect(latest.status).toBe(200);
+    expect(latest.json).toMatchObject({
+      version: '9.9.9',
+      downloads: { arm64: `${BASE}/download/mac-arm64`, x64: `${BASE}/download/mac-x64` },
+      sizes: manifest.sizes,
+      sha256: manifest.sha256,
+      source: { repo, tag: 'v9.9.9', commit: manifest.commit, release: `${repo}/releases/tag/v9.9.9` },
+    });
 
-    const full = await worker.fetch(new Request(BASE + '/download/mac-arm64'));
-    expect(full.status).toBe(200);
-    expect(full.headers.get('content-disposition')).toBe('attachment; filename="Potato-Browser-9.9.9-arm64.dmg"');
-    expect(full.headers.get('content-length')).toBe('1000');
-    expect(new Uint8Array(await full.arrayBuffer())).toEqual(dmg);
+    const arm = await get('/download/mac-arm64');
+    expect(arm.status).toBe(302);
+    expect(arm.headers.get('location')).toBe(`${repo}/releases/download/v9.9.9/Potato-Browser-9.9.9-arm64.dmg`);
+    expect((await get('/download/mac')).headers.get('location')).toContain('-arm64.dmg');
+    expect((await get('/download/mac-x64')).headers.get('location')).toBe(`${repo}/releases/download/v9.9.9/Potato-Browser-9.9.9-x64.dmg`);
+    expect((await get('/download/mac-arm64', { method: 'HEAD' })).status).toBe(302);
+    expect((await get('/download/linux')).status).toBe(404);
+    expect((await get('/download/mac-arm64', { method: 'POST' })).status).toBe(405);
+  });
 
-    const part = await worker.fetch(new Request(BASE + '/download/mac', { headers: { range: 'bytes=10-19' } }));
-    expect(part.status).toBe(206);
-    expect(part.headers.get('content-range')).toBe('bytes 10-19/1000');
-    expect(new Uint8Array(await part.arrayBuffer())).toEqual(dmg.slice(10, 20));
-
-    const head = await worker.fetch(new Request(BASE + '/download/mac-arm64', { method: 'HEAD' }));
-    expect(head.status).toBe(200);
-    expect(head.headers.get('content-length')).toBe('1000');
-
-    // The x64 file was never uploaded.
-    expect((await call('GET', '/download/mac-x64')).status).toBe(404);
-    expect((await call('GET', '/download/linux')).status).toBe(404);
+  it('keeps serving the last good release while GitHub is down', async () => {
+    served = { status: 200, body: manifest };
+    expect((await call('GET', '/api/v1/releases/latest')).status).toBe(200);
+    // Expire the per-isolate copy but keep it as the fallback.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10 * 60_000);
+    served = { status: 503, body: 'unavailable' };
+    await caches.default.delete(new Request('https://release-cache.potatobrowser.invalid/potatobrowser/potato-browser/latest.json'));
+    expect((await call('GET', '/api/v1/releases/latest')).json.version).toBe('9.9.9');
   });
 });

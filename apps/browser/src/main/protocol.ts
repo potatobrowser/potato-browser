@@ -36,6 +36,9 @@ export async function handleInternal(request: Request): Promise<Response> {
     if (!INTERNAL_PAGES.includes(host)) return notFound();
     rel = `/${host}.html`;
   }
+  // Only the host's own page and the shared build assets, so potato://newtab/settings.html
+  // cannot open another page under the new tab page's host.
+  if (!(rel === `/${host}.html` && INTERNAL_PAGES.includes(host)) && !rel.startsWith('/assets/')) return notFound();
   const root = paths.renderer;
   const file = path.normalize(path.join(root, rel));
   if (!file.startsWith(root + path.sep)) return notFound();

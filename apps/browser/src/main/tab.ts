@@ -1,6 +1,7 @@
+import crypto from 'node:crypto';
 import { dialog, WebContentsView, type WebContents, type WebPreferences, type Session } from 'electron';
 import type { FlagTabState, Security, ShieldTabState, TabState } from '../shared/types';
-import { isInternalUrl, isNewTabUrl, migrateLegacyUrl, NEW_TAB_URL, nextZoom, siteKey } from '../shared/urls';
+import { isInternalUrl, isNewTabUrl, migrateLegacyUrl, nextZoom, siteKey } from '../shared/urls';
 import { ctx } from './context';
 import { errorPageHtml } from './errorpage';
 import { paths } from './paths';
@@ -47,6 +48,7 @@ const faviconCache = new Map<string, string>();
 
 async function fetchFavicon(session: Session, url: string): Promise<string | null> {
   if (url.startsWith('data:image/')) return url;
+  if (!/^https?:/i.test(url)) return null;
   const hit = faviconCache.get(url);
   if (hit) return hit;
   try {
@@ -79,7 +81,8 @@ export class Tab {
   lastUrl = '';
   flags: FlagTabState = { platform: null, hidden: 0, labeled: 0 };
   private faviconUrl = '';
-  private errorPage: { url: string; code: number; desc: string } | null = null;
+  /** `token` is a secret only this error page's own links carry, so other pages cannot act for it. */
+  private errorPage: { url: string; code: number; desc: string; token: string } | null = null;
   private frameShield = new Map<string, { count: number; features: string[] }>();
   private lastCommitted = '';
   private typedPending = false;
@@ -166,7 +169,9 @@ export class Tab {
   security(): Security {
     const url = this.url;
     if (!url || isInternalUrl(url)) return 'internal';
-    if (url.startsWith('https:')) return this.errorPage ? 'insecure' : 'secure';
+    if (url.startsWith('https:')) {
+      return this.errorPage || this.win.manager.hasCertificateException(this.win.session, hostOf(url)) ? 'insecure' : 'secure';
+    }
     if (url.startsWith('http:')) return 'insecure';
     if (url.startsWith('file:')) return 'file';
     return 'none';
@@ -258,7 +263,8 @@ export class Tab {
       update();
     });
     wc.on('did-start-navigation', (details) => {
-      if (details.isMainFrame && !details.isSameDocument) {
+      // potato://action/ links are cancelled in will-navigate and must not clear the error page.
+      if (details.isMainFrame && !details.isSameDocument && !details.url.startsWith('potato://action/')) {
         this.errorPage = null;
         this.resetPageState();
         ctx.permissions.dropTab(this.id);
@@ -291,14 +297,14 @@ export class Tab {
     });
     wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
       if (!isMainFrame || code === -3) return; // -3: aborted (replaced navigation, download)
-      this.errorPage = { url, code, desc };
+      this.errorPage = { url, code, desc, token: crypto.randomBytes(16).toString('hex') };
       this.typedPending = false;
       update();
     });
     wc.on('did-finish-load', () => {
       const err = this.errorPage;
       if (!err) return;
-      const html = errorPageHtml(err.url, err.code, err.desc);
+      const html = errorPageHtml(err.url, err.code, err.desc, err.token);
       wc.executeJavaScript(
         `if (location.protocol === 'chrome-error:') { document.open(); document.write(${JSON.stringify(html)}); document.close(); }`,
       ).catch(() => {});
@@ -331,7 +337,16 @@ export class Tab {
       });
       if (choice === 0) event.preventDefault();
     });
-    wc.on('will-navigate', (event) => this.guardNavigation(event, event.url));
+    wc.on('will-navigate', (event) => this.guardNavigation(event, event.url, event.initiator));
+    // No device chooser yet, and Electron would otherwise connect the first nearby device.
+    wc.on('select-bluetooth-device', (event, _devices, callback) => {
+      event.preventDefault();
+      callback('');
+    });
+    // will-navigate does not see server redirects; no internal page is ever reached by one.
+    wc.on('will-redirect', (event) => {
+      if (event.url.startsWith('potato://')) event.preventDefault();
+    });
     wc.on('will-frame-navigate', (event) => {
       if (!event.isMainFrame && event.url.startsWith('potato://')) event.preventDefault();
     });
@@ -343,6 +358,9 @@ export class Tab {
       return {
         action: 'allow',
         outlivesOpener: true,
+        // Electron does not pass the opener's preload on, so without this a popup would run
+        // without the AI Shield and flags.
+        overrideBrowserWindowOptions: { webPreferences: webPreferencesFor(this.win.session) },
         createWindow: (options) => {
           const tab = this.win.createTab({
             webContents: (options as { webContents?: WebContents }).webContents,
@@ -357,14 +375,17 @@ export class Tab {
     });
   }
 
-  private guardNavigation(event: Electron.Event, url: string): void {
+  private guardNavigation(event: Electron.Event, url: string, initiator?: Electron.WebFrameMain | null): void {
     if (url.startsWith('potato://action/')) {
       event.preventDefault();
-      void this.handleAction(url);
+      // Any page, or a popup holding this tab as its opener, can navigate here: only this tab's
+      // own main frame counts, and handleAction checks the error page's token.
+      const main = this.wc.mainFrame;
+      if (initiator && initiator.frameToken === main.frameToken && initiator.processId === main.processId) void this.handleAction(url);
       return;
     }
     // Web pages may not navigate into privileged internal pages (except the new tab page).
-    if (url.startsWith('potato://') && !isInternalUrl(this.url) && !url.startsWith(NEW_TAB_URL)) {
+    if (url.startsWith('potato://') && !isInternalUrl(this.url) && !isNewTabUrl(url)) {
       event.preventDefault();
     }
   }
@@ -378,17 +399,23 @@ export class Tab {
       this.navigate(target);
     } else if (action === 'proceed') {
       const target = u.searchParams.get('url');
-      if (!target) return;
+      if (!target || !this.actionAllowed(u, target) || !this.errorPage!.desc.startsWith('ERR_CERT_')) return;
       this.win.manager.allowCertificateFor(this.wc, hostOf(target));
       this.errorPage = null;
       this.navigate(target);
     } else if (action === 'allow-chatbot') {
       const target = u.searchParams.get('url');
-      if (!target) return;
+      if (!target || !this.actionAllowed(u, target)) return;
       allowChatbotOnce(target);
       this.errorPage = null;
       this.navigate(target);
     }
+  }
+
+  /** The link came from the error page showing now (its token) and is about that page's host. */
+  private actionAllowed(u: URL, target: string): boolean {
+    const err = this.errorPage;
+    return !!err && u.searchParams.get('t') === err.token && hostOf(err.url) === hostOf(target);
   }
 
   siteKey(): string {

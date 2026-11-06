@@ -195,6 +195,12 @@ export class WindowManager {
     set.add(`${host}|${seen.fingerprint}`);
   }
 
+  /** Whether the user accepted a bad certificate for this host in this session. */
+  hasCertificateException(ses: Session, host: string): boolean {
+    for (const k of this.certAllowed.get(ses) ?? []) if (k.startsWith(`${host}|`)) return true;
+    return false;
+  }
+
   isCertificateAllowed(ses: Session, host: string, fingerprint: string): boolean {
     return this.certAllowed.get(ses)?.has(`${host}|${fingerprint}`) ?? false;
   }

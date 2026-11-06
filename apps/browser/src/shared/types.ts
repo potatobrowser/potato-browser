@@ -232,6 +232,8 @@ export interface ClearDataOptions {
 /** Config the web preload asks for at document start. */
 export interface PageConfig {
   isPrivate: boolean;
+  /** Only under the e2e suite: open shadow roots so tests can reach injected buttons. */
+  testHooks: boolean;
   shield: { enabled: boolean; disabledRules: string[] };
   flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean; disabledPlatforms: Platform[] };
 }

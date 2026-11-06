@@ -432,6 +432,14 @@ export class ProfileDb {
     return this.stmt('SELECT site, value FROM site_settings WHERE key = ? ORDER BY site').all(key) as { site: string; value: string }[];
   }
 
+  siteSettingsByKeyPrefix(prefix: string): { site: string; key: string; value: string }[] {
+    return this.stmt("SELECT site, key, value FROM site_settings WHERE key LIKE ? ESCAPE '\\' ORDER BY site, key").all(escapeLike(prefix) + '%') as {
+      site: string;
+      key: string;
+      value: string;
+    }[];
+  }
+
   clearSiteSettings(keyPrefix: string): void {
     this.stmt("DELETE FROM site_settings WHERE key LIKE ? ESCAPE '\\'").run(escapeLike(keyPrefix) + '%');
   }

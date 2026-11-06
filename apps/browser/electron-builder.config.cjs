@@ -1,6 +1,8 @@
 // electron-builder configuration. POTATO_TEST_BUILD=1 keeps the Node inspector fuse on so the
 // e2e suite (Playwright) can drive the packaged app; release builds turn it off.
 const testBuild = process.env.POTATO_TEST_BUILD === '1';
+// POTATO_ARCH=arm64 or x64 builds one DMG (scripts/dist.mjs --arch); releases build both.
+const archs = ['arm64', 'x64'].includes(process.env.POTATO_ARCH) ? [process.env.POTATO_ARCH] : ['arm64', 'x64'];
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
@@ -15,7 +17,7 @@ module.exports = {
   mac: {
     category: 'public.app-category.productivity',
     icon: 'build/icon.icns',
-    target: testBuild ? [{ target: 'dir', arch: ['arm64'] }] : [{ target: 'dmg', arch: ['arm64', 'x64'] }],
+    target: testBuild ? [{ target: 'dir', arch: ['arm64'] }] : [{ target: 'dmg', arch: archs }],
     minimumSystemVersion: '13.0',
     // Ad-hoc signature: no Developer ID certificate is available for notarization yet.
     identity: '-',

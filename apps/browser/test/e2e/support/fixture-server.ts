@@ -51,6 +51,11 @@ function dynamic(host: string, url: URL, res: http.ServerResponse): boolean {
     res.end(`<!doctype html><title>${t.replace(/[<>&]/g, '')}</title><h1>${t.replace(/[<>&]/g, '')}</h1><p>Generated page.</p>`);
     return true;
   }
+  if (p === '/to-internal') {
+    res.writeHead(302, { location: url.searchParams.get('to') ?? 'potato://settings/' });
+    res.end();
+    return true;
+  }
   if (p === '/slow') {
     setTimeout(() => {
       res.writeHead(200, { 'content-type': 'text/html' });

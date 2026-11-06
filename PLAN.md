@@ -106,5 +106,13 @@ All nine milestones are done and committed.
   a light potato voice ("Grown, not generated."). 0.3.0 carries the new copy and calls the API
   on potatobrowser.com; it is published (both DMGs, checksums on the site).
 
+- 0.4.0 makes the project open source (MIT) at https://github.com/potatobrowser/potato-browser.
+  The development repository's main is mirrored there by srv-deploy (`scripts/mirror-public.sh`),
+  which also pushes the `v<version>` tag; the release workflow on GitHub Actions builds, attests
+  and publishes the DMGs, and the site reads releases from there instead of R2. A code review
+  before publishing fixed a certificate warning bypass through potato://action links,
+  cross-site flagging through the API, forged clicks on the flag button and private-window
+  flag linkage (see CHANGELOG).
+
 Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
 account, extensions and a password manager.

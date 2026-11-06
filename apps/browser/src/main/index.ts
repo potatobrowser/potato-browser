@@ -1,4 +1,4 @@
-import { app, nativeTheme } from 'electron';
+import { app, dialog, nativeTheme } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { commands, openInternal } from './commands';
@@ -60,7 +60,7 @@ app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (event) => event.preventDefault());
 });
 
-app.on('certificate-error', (event, wc, url, _error, cert, callback) => {
+app.on('certificate-error', (event, wc, url, _error, cert, callback, isMainFrame) => {
   let host = '';
   try {
     host = new URL(url).hostname;
@@ -70,8 +70,31 @@ app.on('certificate-error', (event, wc, url, _error, cert, callback) => {
     callback(true);
     return;
   }
-  if (host) ctx.windows?.noteCertificateError(wc, host, cert.fingerprint);
+  // Only the page itself: a subresource error is not what the warning page shows the user.
+  if (host && isMainFrame) ctx.windows?.noteCertificateError(wc, host, cert.fingerprint);
   callback(false);
+});
+
+// Electron would otherwise send the first matching identity to any site that asks, unasked.
+app.on('select-client-certificate', (event, _wc, url, list, callback) => {
+  event.preventDefault();
+  if (!list.length) return callback();
+  let host = url;
+  try {
+    host = new URL(url).host;
+  } catch {}
+  const shown = list.slice(0, 5);
+  void dialog
+    .showMessageBox({
+      type: 'question',
+      message: `${host} asks for a certificate to identify you`,
+      detail: 'Choose one to send, or Cancel to send none.',
+      buttons: [...shown.map((c) => c.subjectName || c.issuerName || 'Certificate'), 'Cancel'],
+      cancelId: shown.length,
+      defaultId: shown.length,
+    })
+    .then(({ response }) => callback(shown[response]))
+    .catch(() => callback());
 });
 
 app.whenReady().then(() => {

@@ -69,6 +69,13 @@ function styleEl(css: string): HTMLStyleElement {
 
 export type ButtonState = 'idle' | 'mine' | 'flagged' | 'busy' | 'error';
 
+// Closed, so page scripts cannot read which posts the user flagged. The e2e suite needs open
+// roots to reach the buttons and turns this on through PageConfig.testHooks.
+let shadowMode: ShadowRootMode = 'closed';
+export function setOpenShadowRoots(open: boolean): void {
+  shadowMode = open ? 'open' : 'closed';
+}
+
 export interface FlagButton {
   host: HTMLElement;
   set(state: ButtonState, n: number, threshold: number): void;
@@ -76,7 +83,7 @@ export interface FlagButton {
 
 export function createButton(onClick: () => void): FlagButton {
   const host = document.createElement(BUTTON_TAG);
-  const root = host.attachShadow({ mode: 'open' });
+  const root = host.attachShadow({ mode: shadowMode });
   const button = document.createElement('button');
   button.type = 'button';
   button.dataset.state = 'idle';
@@ -89,6 +96,8 @@ export function createButton(onClick: () => void): FlagButton {
   }
   button.addEventListener('click', (e) => {
     e.preventDefault();
+    // Only the user's own clicks: a page script calling click() must not flag as the user.
+    if (!e.isTrusted) return;
     if (button.dataset.state !== 'busy') onClick();
   });
   return {
@@ -118,7 +127,7 @@ export function createButton(onClick: () => void): FlagButton {
 
 export function createPlaceholder(n: number, mine: boolean, onShow: () => void): HTMLElement {
   const host = document.createElement(PLACEHOLDER_TAG);
-  const root = host.attachShadow({ mode: 'open' });
+  const root = host.attachShadow({ mode: shadowMode });
   const who = mine && n <= 1 ? 'you' : `${n} ${n === 1 ? 'person' : 'people'}`;
   const box = document.createElement('div');
   box.setAttribute('role', 'note');
@@ -132,7 +141,7 @@ export function createPlaceholder(n: number, mine: boolean, onShow: () => void):
   for (const type of ['click', 'mousedown', 'pointerdown'] as const) host.addEventListener(type, (e) => e.stopPropagation());
   show.addEventListener('click', (e) => {
     e.preventDefault();
-    onShow();
+    if (e.isTrusted) onShow();
   });
   return host;
 }

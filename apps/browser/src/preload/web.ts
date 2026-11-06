@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'ele
 import { adapterFor } from '../content/flags/adapters';
 import { facebookPageWorldHelper, FB_HELPER_ARGS } from '../content/flags/adapters/facebook';
 import { FlagsEngine } from '../content/flags/engine';
+import { setOpenShadowRoots } from '../content/flags/ui';
 import type { FlagsBridge } from '../content/flags/types';
 import { ShieldEngine } from '../content/shield/engine';
 import { GOOGLE_SIGNIN_HOSTS, GOOGLE_SIGNIN_UA } from '../shared/constants';
@@ -47,6 +48,7 @@ function startWebPage(): void {
   }
   if (!config) return;
   let current: PageConfig = config;
+  setOpenShadowRoots(config.testHooks);
 
   if (GOOGLE_SIGNIN_HOSTS.includes(location.hostname)) spoofFirefoxNavigator();
 
@@ -59,7 +61,10 @@ function startWebPage(): void {
     location.hostname,
     location.pathname,
   );
-  if (shield.active) shield.apply(current.shield);
+  // A failure here must not stop the config listener below from being registered.
+  try {
+    if (shield.active) shield.apply(current.shield);
+  } catch {}
 
   const isTop = window === window.top;
   const adapter = isTop ? adapterFor(location.hostname) : null;
@@ -83,7 +88,9 @@ function startWebPage(): void {
       contextBridge.executeInMainWorld({ func: facebookPageWorldHelper, args: [...FB_HELPER_ARGS] });
     }
   };
-  startFlags();
+  try {
+    startFlags();
+  } catch {}
 
   ipcRenderer.on('page:config', (_e, next: PageConfig) => {
     current = next;

@@ -31,6 +31,20 @@ test('Reddit: flag buttons on posts and comments; flagging and undo reach the se
   expect(await flagCount(key)).toBe(before);
 });
 
+test('page scripts cannot press the flag button for the user', async () => {
+  b = await TestBrowser.launch({ settings: flagMode('label') });
+  const page = await b.goto('https://www.reddit.com/r/test/');
+  const btn = button(page, '#a1');
+  await expect(btn).toHaveText('AI?');
+  const key = 'reddit:t3_1xdbx8o';
+  const before = await flagCount(key);
+  // Test runs open the shadow root; real ones keep it closed. Either way a synthetic click is ignored.
+  await page.evaluate(() => (document.querySelector('#a1 potato-flag')!.shadowRoot!.querySelector('button') as HTMLButtonElement).click());
+  await page.waitForTimeout(800);
+  await expect(btn).toHaveText('AI?');
+  expect(await flagCount(key)).toBe(before);
+});
+
 test('label mode marks posts that reached the threshold', async () => {
   await flagAsOthers('reddit:t3_1xabc22', 3);
   b = await TestBrowser.launch({ settings: flagMode('label', 3) });
