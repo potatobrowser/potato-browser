@@ -1,6 +1,7 @@
-# Builds the DMGs for a version tag, attests where they came from and publishes the GitHub
-# Release that potatobrowser.com and the in-app update check read. Tags are pushed as v<version>
-# of apps/browser/package.json.
+# Builds the DMGs for a version tag, signs them with the Developer ID, has Apple notarize them,
+# attests where they came from and publishes the GitHub Release that potatobrowser.com, the
+# in-app update check and the Homebrew cask read. Tags are pushed as v<version> of
+# apps/browser/package.json. Secrets live in the "release" environment, which only v* tags reach.
 name: Release
 
 on:
@@ -22,7 +23,8 @@ concurrency:
 jobs:
   release:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
+    environment: release
     permissions:
       contents: write
       id-token: write
@@ -47,12 +49,47 @@ jobs:
           test "$TAG" = "v$version" || { echo "::error::tag $TAG does not match version $version"; exit 1; }
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
+      - name: Check the signing secrets
+        env:
+          MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          for v in MAC_CERT_P12 MAC_CERT_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER; do
+            [ -n "${!v}" ] || { echo "::error::secret $v is missing from the release environment"; exit 1; }
+          done
+          key="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s\n' "$APPLE_API_KEY" > "$key"
+          echo "APPLE_API_KEY_FILE=$key" >> "$GITHUB_ENV"
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
 
-      - name: Build both DMGs
+      - name: Build, sign and notarize both apps
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY_FILE }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: node apps/browser/scripts/dist.mjs
+
+      - name: Notarize and staple both DMGs
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          for arch in arm64 x64; do
+            dmg="apps/browser/release/Potato-Browser-$VERSION-$arch.dmg"
+            xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY_FILE" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait --timeout 45m
+            xcrun stapler staple "$dmg"
+          done
+
+      - name: Check Gatekeeper accepts them and the app starts
+        run: apps/browser/scripts/verify-release.sh apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.dmg
 
       - name: Write latest.json, SHA256SUMS and notes
         run: node apps/browser/scripts/release-manifest.mjs --commit "$(git rev-parse HEAD)"
@@ -75,3 +112,22 @@ jobs:
           else
             gh release create "$TAG" "${assets[@]}" --verify-tag --title "Potato Browser $VERSION" --notes-file notes.md
           fi
+
+      # The deploy key can write to potatobrowser/homebrew-tap only.
+      - name: Update the Homebrew cask
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+        run: |
+          if [ -z "$TAP_DEPLOY_KEY" ]; then echo "::warning::no TAP_DEPLOY_KEY in the release environment; cask not updated"; exit 0; fi
+          mkdir -p ~/.ssh
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
+          key="$RUNNER_TEMP/tap_key"
+          printf '%s\n' "$TAP_DEPLOY_KEY" > "$key" && chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes"
+          tap="$RUNNER_TEMP/tap"
+          git clone --depth 1 git@github.com:potatobrowser/homebrew-tap.git "$tap"
+          node apps/browser/scripts/homebrew-cask.mjs apps/browser/release/latest.json > "$tap/Casks/potato-browser.rb"
+          cd "$tap"
+          if git diff --quiet; then echo "cask already at $VERSION"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qam "potato-browser $VERSION"
+          git push origin HEAD:main

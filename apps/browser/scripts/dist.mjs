@@ -11,7 +11,8 @@ const arch = archArg === 'host' ? process.arch : archArg;
 if (arch !== undefined && arch !== 'arm64' && arch !== 'x64') throw new Error(`--arch must be arm64, x64 or host, not ${archArg}`);
 const env = {
   ...process.env,
-  CSC_IDENTITY_AUTO_DISCOVERY: 'false',
+  // Without a Developer ID in CSC_LINK, never pick up a certificate from the keychain.
+  ...(process.env.CSC_LINK ? {} : { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }),
   ...(test ? { POTATO_TEST_BUILD: '1' } : {}),
   ...(arch ? { POTATO_ARCH: arch } : {}),
 };

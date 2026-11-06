@@ -2,6 +2,11 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.4.1
+
+- Signed with an Apple Developer ID and notarized by Apple, so macOS opens it like any other app, without the Open Anyway step.
+- Install it with Homebrew: brew install --cask potatobrowser/tap/potato-browser.
+
 ## 0.4.0
 
 - Potato Browser is open source under the MIT license, at github.com/potatobrowser/potato-browser. Releases are now built in public by GitHub Actions from the tagged source, with SHA-256 checksums and signed build provenance.
