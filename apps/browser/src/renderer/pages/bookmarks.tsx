@@ -107,7 +107,7 @@ function Bookmarks() {
           )}
           <Card>
             {list.length === 0 ? (
-              <div className="empty">{q ? 'No matching bookmarks.' : 'This folder is empty.'}</div>
+              <div className="empty">{q ? 'No matching bookmarks.' : 'This folder is empty. Plant something.'}</div>
             ) : (
               <ul className="list" data-testid="bookmark-list">
                 {list.map((n) => (

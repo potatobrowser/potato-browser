@@ -62,11 +62,11 @@ function NewTab() {
       <footer className="ntp-foot" data-testid="ntp-stats">
         {stats && stats.hiddenTotal > 0 ? (
           <span>
-            <strong>{stats.hiddenToday.toLocaleString()}</strong> AI features hidden today ·{' '}
+            <strong>{stats.hiddenToday.toLocaleString()}</strong> AI features peeled off today ·{' '}
             <strong>{stats.hiddenTotal.toLocaleString()}</strong> in total
           </span>
         ) : (
-          <span>AI features of the sites you visit are hidden. The web, as people made it.</span>
+          <span>AI features get peeled off the sites you visit. The web, the way people grew it.</span>
         )}
       </footer>
     </main>

@@ -8,7 +8,7 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const web = path.resolve(root, '../web');
-const site = process.env.POTATO_SITE || 'https://noaibrowser.laszlo-kiss27.workers.dev';
+const site = process.env.POTATO_SITE || 'https://potatobrowser.com';
 const bucket = 'noaibrowser-releases';
 const args = process.argv.slice(2);
 const notesIdx = args.indexOf('--notes');

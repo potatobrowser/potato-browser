@@ -7,7 +7,7 @@ export function BookmarksBar({ items }: { items: BookmarkNode[] }) {
   if (!items.length) {
     return (
       <div className="bookmarks-bar empty" data-testid="bookmarks-bar">
-        <span>Bookmarks you add appear here.</span>
+        <span>Your bookmarks will sprout here.</span>
         <button className="link" onClick={() => chrome().send({ type: 'command', name: 'showImport' })}>
           Import bookmarks from another browser
         </button>

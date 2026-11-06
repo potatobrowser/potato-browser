@@ -23,7 +23,7 @@ export function ShieldPanel({ tab, globallyEnabled }: { tab: TabState | null; gl
           <label className="switch-row">
             <span>
               <strong>Hide AI on this site</strong>
-              <small>{s!.enabled ? 'AI features are hidden.' : 'AI features are shown on this site.'}</small>
+              <small>{s!.enabled ? 'AI features are peeled off.' : 'AI features are shown on this site.'}</small>
             </span>
             <input
               type="checkbox"
@@ -39,7 +39,7 @@ export function ShieldPanel({ tab, globallyEnabled }: { tab: TabState | null; gl
             {s!.enabled && s!.hiddenCount > 0 ? (
               <>
                 <p>
-                  <strong data-testid="shield-count">{s!.hiddenCount}</strong> AI {s!.hiddenCount === 1 ? 'element' : 'elements'} hidden on this page
+                  <strong data-testid="shield-count">{s!.hiddenCount}</strong> AI {s!.hiddenCount === 1 ? 'bit' : 'bits'} peeled off this page
                 </p>
                 <ul className="feature-list">
                   {s!.features.map((name) => (
@@ -48,21 +48,21 @@ export function ShieldPanel({ tab, globallyEnabled }: { tab: TabState | null; gl
                 </ul>
               </>
             ) : s!.supported ? (
-              <p>{s!.enabled ? 'Nothing AI-made is showing on this page right now.' : 'Known AI features of this site are visible.'}</p>
+              <p>{s!.enabled ? 'Nothing artificial on this page right now.' : 'Known AI features of this site are visible.'}</p>
             ) : (
-              <p>No known AI features on this site.</p>
+              <p>No known AI features on this site. Fresh from the field.</p>
             )}
           </div>
           {f?.platform ? (
             <div className="panel-section">
               <p className="flag-line">
-                <Flag size={14} /> {PLATFORM_LABELS[f.platform]}: {f.hidden} flagged {f.hidden === 1 ? 'post' : 'posts'} hidden, {f.labeled} labeled
+                <Flag size={14} /> {PLATFORM_LABELS[f.platform]}: {f.hidden} flagged {f.hidden === 1 ? 'post' : 'posts'} buried, {f.labeled} labeled
               </p>
             </div>
           ) : null}
         </>
       ) : (
-        <p className="panel-section">Open a website to see and control its AI features.</p>
+        <p className="panel-section">Open a website to see what's growing on it and peel off its AI features.</p>
       )}
       <div className="panel-foot">
         <button className="link" onClick={() => chrome().send({ type: 'shield.openSettings' })}>

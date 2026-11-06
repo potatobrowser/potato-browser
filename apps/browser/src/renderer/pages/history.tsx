@@ -67,7 +67,7 @@ function History() {
       <Card>
         {items.length === 0 ? (
           <div className="empty" data-testid="history-empty">
-            {q ? 'No matching pages.' : 'Pages you visit appear here. Private windows are never recorded.'}
+            {q ? 'No matching pages. Not even a small fry.' : 'Pages you visit pile up here, like spuds in a sack. Private windows are never recorded.'}
           </div>
         ) : (
           groups.map((g) => (

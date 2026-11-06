@@ -216,10 +216,22 @@ async function api(req: Request, env: Env, url: URL): Promise<Response> {
   }
 }
 
+const SITE = 'https://potatobrowser.com';
+
+/** www and the old workers.dev pages move to the apex; the API and downloads still answer everywhere. */
+function canonicalRedirect(url: URL): Response | null {
+  const host = url.hostname;
+  const legacy = host.endsWith('.workers.dev') && !url.pathname.startsWith('/api/') && !url.pathname.startsWith('/download/');
+  if (host !== 'www.potatobrowser.com' && !legacy) return null;
+  return Response.redirect(SITE + url.pathname + url.search, 301);
+}
+
 export default {
   async fetch(req, env, ctx): Promise<Response> {
     const url = new URL(req.url);
     try {
+      const redirect = canonicalRedirect(url);
+      if (redirect) return redirect;
       if (url.pathname.startsWith('/api/')) return await api(req, env, url);
       if (url.pathname.startsWith('/download/')) return await download(req, env, url, ctx);
       return env.ASSETS.fetch(req);

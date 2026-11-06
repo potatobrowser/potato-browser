@@ -1,4 +1,5 @@
 import { app, clipboard, Menu, shell, type ContextMenuParams, type MenuItemConstructorOptions } from 'electron';
+import { SITE_URL } from '../shared/constants';
 import { getSearchEngine, searchUrl } from '../shared/urls';
 import { commands, openInternal } from './commands';
 import { ctx } from './context';
@@ -135,7 +136,7 @@ export function buildAppMenu(): void {
     { role: 'windowMenu' },
     {
       role: 'help',
-      submenu: [{ label: 'Potato Browser Website', click: () => void shell.openExternal('https://noaibrowser.laszlo-kiss27.workers.dev') }],
+      submenu: [{ label: 'Potato Browser Website', click: () => void shell.openExternal(SITE_URL) }],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

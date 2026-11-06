@@ -13,7 +13,7 @@ fs.rmSync(path.join(root, 'dist'), { recursive: true, force: true });
 const define = {
   'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
   __APP_VERSION__: JSON.stringify(pkg.version),
-  __API_BASE__: JSON.stringify(process.env.POTATO_API_BASE_BUILD || 'https://noaibrowser.laszlo-kiss27.workers.dev'),
+  __API_BASE__: JSON.stringify(process.env.POTATO_API_BASE_BUILD || 'https://potatobrowser.com'),
 };
 
 const common = {

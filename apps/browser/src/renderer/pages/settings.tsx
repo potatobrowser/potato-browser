@@ -29,7 +29,7 @@ function General({ s, update }: { s: Settings; update: Update }) {
   useEffect(() => void call<boolean>('app.isDefaultBrowser').then(setDefault), []);
   return (
     <Card title="General" id="general">
-      <Row title="Default browser" hint={isDefault ? 'Potato Browser opens your links.' : 'Open links from other apps in Potato Browser.'}>
+      <Row title="Default browser" hint={isDefault ? 'The potato opens your links.' : 'Send links from other apps straight to the potato.'}>
         {isDefault ? (
           <span className="pill ok">Default</span>
         ) : (
@@ -98,7 +98,7 @@ function ShieldSection({ s, update }: { s: Settings; update: Update }) {
     <Card
       title="AI Shield"
       id="shield"
-      hint="Hides the AI features of the websites you visit: AI summaries, chat assistants, AI writing buttons and AI search modes. Use the shield button in the toolbar to show them on a single site."
+      hint="Peels the AI features off the websites you visit: AI summaries, chat assistants, AI writing buttons and AI search modes. The shield button in the toolbar brings them back on a single site."
     >
       <Row title="Hide AI features on websites" testId="shield-global">
         <Toggle label="Hide AI features on websites" testId="shield-global-toggle" checked={s.shield.enabled} onChange={(v) => void update({ shield: { enabled: v } })} />
@@ -124,7 +124,7 @@ function ShieldSection({ s, update }: { s: Settings; update: Update }) {
             ))}
           </ul>
         ) : (
-          <span className="muted small">None. AI is hidden everywhere we know how.</span>
+          <span className="muted small">None. Every AI feature we know of is peeled off, everywhere.</span>
         )}
       </div>
       <details className="rules">
@@ -162,7 +162,7 @@ function FlagsSection({ s, update }: { s: Settings; update: Update }) {
     <Card
       title="AI flags"
       id="flags"
-      hint="People flag posts they believe are AI-generated. Flags are anonymous: no account, and the browser only sends short hash prefixes when it checks posts, so the service never learns what you read."
+      hint="People flag posts they think are AI-generated. Flags are anonymous: no account, and the browser only sends short hash prefixes when it checks posts (hashed like the browns), so the service never learns what you read."
     >
       <div className="row column">
         <div className="row-label">
@@ -179,7 +179,7 @@ function FlagsSection({ s, update }: { s: Settings; update: Update }) {
           ))}
         </select>
       </Row>
-      <Row title="Show flag buttons on posts" hint={`You have flagged ${mine} ${mine === 1 ? 'post' : 'posts'}.`}>
+      <Row title="Show flag buttons on posts" hint={mine ? `You have flagged ${mine} ${mine === 1 ? 'post' : 'posts'}. Sharp eyes.` : 'No flags from you yet. Keep your eyes peeled.'}>
         <Toggle label="Show flag buttons" checked={s.flags.showButtons} onChange={(v) => void update({ flags: { showButtons: v } })} />
       </Row>
       <div className="row column">
@@ -291,11 +291,11 @@ function ImportSection() {
   const [what, setWhat] = useState<Record<string, What>>({});
   const busy = Object.values(states).includes('busy');
   return (
-    <Card title="Import from another browser" id="import" hint="Bring your bookmarks and history. Passwords and cookies stay where they are.">
+    <Card title="Import from another browser" id="import" hint="Replant your bookmarks and history here. Passwords and cookies stay where they are.">
       {sources === null ? (
-        <div className="empty">Looking for browsers...</div>
+        <div className="empty">Digging for browsers...</div>
       ) : sources.length === 0 ? (
-        <div className="empty">No other browsers found on this Mac.</div>
+        <div className="empty">No other browsers on this Mac. A fresh field!</div>
       ) : (
         <ul className="list" data-testid="import-sources">
           {sources.map((src) => {
@@ -332,7 +332,7 @@ function ImportSection() {
                   disabled={busy || st === 'access' || (!w.bookmarks && !w.history)}
                   onClick={() => void run(src, w)}
                 >
-                  {st === 'busy' ? 'Importing...' : 'Import'}
+                  {st === 'busy' ? 'Harvesting...' : 'Import'}
                 </button>
               </li>
             );
@@ -366,7 +366,7 @@ function DownloadsSection({ s, update }: { s: Settings; update: Update }) {
 
 function About() {
   const [info, setInfo] = useState<AppInfo | null>(null);
-  const [update, setUpdate] = useState<string>('');
+  const [update, setUpdate] = useState<{ text: string; available?: boolean } | null>(null);
   useEffect(() => void call<AppInfo>('app.info').then(setInfo), []);
   if (!info) return null;
   return (
@@ -382,9 +382,13 @@ function About() {
         <button
           className="btn"
           onClick={async () => {
-            setUpdate('Checking...');
+            setUpdate({ text: 'Checking the cellar...' });
             const r = await call<{ available: string | null; current: string; latest: unknown }>('app.checkUpdates');
-            setUpdate(r.available ? `Version ${r.available} is available.` : r.latest ? 'You are up to date.' : 'Could not check for updates.');
+            setUpdate(
+              r.available
+                ? { text: `Version ${r.available} is fresh out of the ground.`, available: true }
+                : { text: r.latest ? 'You are up to date. Fresh as a new potato.' : 'Could not check for updates. Try again in a bit.' },
+            );
           }}
         >
           Check for updates
@@ -392,8 +396,8 @@ function About() {
       </div>
       {update && (
         <p className="about-update">
-          {update}{' '}
-          {update.includes('available') ? (
+          {update.text}{' '}
+          {update.available ? (
             <button className="link-btn" onClick={() => void call('app.openDownloadPage')}>
               Download
             </button>
@@ -404,7 +408,7 @@ function About() {
         <div className="row-label">
           <span>No AI in the engine</span>
           <small>
-            This browser is built on Chromium {info.chromium.split('.')[0]} without Chrome's AI layer: no Gemini Nano, no on-device model downloads, no AI
+            This spud grows on Chromium {info.chromium.split('.')[0]} without Chrome's AI layer: no Gemini Nano, no on-device model downloads, no AI
             writing or tab features. These built-in AI web APIs are switched off for every page and worker:
           </small>
         </div>
@@ -415,7 +419,7 @@ function About() {
         </ul>
       </div>
       <Row title="Engine" hint={`Electron ${info.electron} · V8 ${info.v8} · Node ${info.node}`} />
-      <Row title="Anonymous flag id" hint="A random id used only to count your flags once. It is stored on the server as a keyed hash.">
+      <Row title="Anonymous flag id" hint="A random id used only to count your flags once. The server stores it as a keyed hash, scrambled beyond recognition.">
         <span className="mono muted">{info.installIdShort}...</span>
       </Row>
     </Card>

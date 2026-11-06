@@ -1,6 +1,7 @@
 import { app, dialog, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron';
 import { isPlatform } from '@potato/shared';
 import type { ClearDataOptions, SettingsPatch } from '../shared/types';
+import { SITE_URL } from '../shared/constants';
 import { NEW_TAB_URL, resolveInput, SEARCH_ENGINES } from '../shared/urls';
 import { commands, openInternal } from './commands';
 import { ctx } from './context';
@@ -256,7 +257,7 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
     const info = await ctx.updates.check();
     return { latest: info, available: ctx.updates.available(), current: APP_VERSION };
   },
-  'app.openDownloadPage': () => void shell.openExternal(apiBase() + '/#download'),
+  'app.openDownloadPage': () => void shell.openExternal(SITE_URL + '/#download'),
   'app.chooseDownloadsDir': async () => {
     const win = ctx.windows.focused();
     const opts = { defaultPath: ctx.settings.get().downloadsDir, properties: ['openDirectory', 'createDirectory'] as ('openDirectory' | 'createDirectory')[] };

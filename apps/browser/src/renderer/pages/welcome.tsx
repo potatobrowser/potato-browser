@@ -10,14 +10,14 @@ import '../shared/pages.css';
 import './welcome.css';
 
 const ENGINES: { id: SearchEngineId; name: string; text: string }[] = [
-  { id: 'duckduckgo', name: 'DuckDuckGo', text: 'The no-AI version: no AI answers, no chat.' },
-  { id: 'google', name: 'Google', text: 'AI Overviews and AI Mode hidden by the AI Shield.' },
+  { id: 'duckduckgo', name: 'DuckDuckGo', text: 'The no-AI version. Plain results, like a plain baked potato.' },
+  { id: 'google', name: 'Google', text: 'AI Overviews and AI Mode get peeled off by the AI Shield.' },
 ];
 
 const FEATURES = [
-  { icon: <Shield size={18} />, title: 'AI Shield', text: 'Hides AI on major sites' },
-  { icon: <NoAi size={18} />, title: 'No AI in the engine', text: 'No models, no AI web APIs' },
-  { icon: <Flag size={18} />, title: 'Community flags', text: 'Flag AI posts anonymously' },
+  { icon: <Shield size={18} />, title: 'AI Shield', text: 'Peels the AI off major sites' },
+  { icon: <NoAi size={18} />, title: 'No AI in the engine', text: 'Nothing artificial under the skin' },
+  { icon: <Flag size={18} />, title: 'Community flags', text: 'Many eyes, all anonymous' },
 ];
 
 const SHOWN_SOURCES = 4;
@@ -46,8 +46,8 @@ function ImportList() {
   const [showAll, setShowAll] = useState(false);
   useEffect(() => void call<string | null>('app.defaultBrowserName').then(setDefaultName), []);
 
-  if (sources === null) return <div className="empty small">Looking for other browsers...</div>;
-  if (sources.length === 0) return <div className="empty small">No other browsers found on this Mac.</div>;
+  if (sources === null) return <div className="empty small">Digging for other browsers...</div>;
+  if (sources.length === 0) return <div className="empty small">No other browsers on this Mac. A fresh field!</div>;
 
   const isDefault = (s: ImportSource) => !!defaultName && s.browser === defaultName;
   // The browser people use today comes first.
@@ -80,7 +80,7 @@ function ImportList() {
                   </span>
                 ) : (
                   <button className="btn" data-testid="welcome-import" disabled={st === 'busy' || st === 'access'} onClick={() => void run(s)}>
-                    {st === 'busy' ? 'Importing...' : st === 'access' ? 'Waiting for access' : done ? 'Try again' : 'Import'}
+                    {st === 'busy' ? 'Harvesting...' : st === 'access' ? 'Waiting for access' : done ? 'Try again' : 'Import'}
                   </button>
                 )}
               </div>
@@ -159,12 +159,12 @@ function Welcome() {
       <main className="welcome">
         <header className="hero">
           <BrandMark size={56} />
-          <h1>The web, without the AI.</h1>
-          <p className="lede">A fast Chromium browser that keeps AI features and AI content out of your way.</p>
+          <h1>No artificial ingredients.</h1>
+          <p className="lede">A fast Chromium browser that keeps AI features and AI content off your plate. Just the web, the way people grew it.</p>
         </header>
 
         <p className="eyebrow" id="already-on">
-          <Check size={13} strokeWidth={2.2} /> Already on
+          <Check size={13} strokeWidth={2.2} /> Already baked in
         </p>
         <ul className="features" aria-labelledby="already-on">
           {FEATURES.map((f) => (
@@ -178,7 +178,7 @@ function Welcome() {
           ))}
         </ul>
 
-        <Step n={1} title="Search engine" hint="Used when you search from the address bar.">
+        <Step n={1} title="Search engine" hint="Where the address bar goes digging when you search.">
           <div className="engines" role="radiogroup" aria-label="Search engine">
             {ENGINES.map((e) => (
               <button
@@ -200,20 +200,20 @@ function Welcome() {
           </div>
         </Step>
 
-        <Step n={2} title="Posts flagged as AI" hint="People flag AI-generated posts on Reddit, X, YouTube and more. Choose what you see.">
+        <Step n={2} title="Posts flagged as AI" hint="Fellow spuds flag AI-generated posts on Reddit, X, YouTube and more. Choose what happens to them.">
           <FlagModePicker value={settings?.flags.mode} onChange={(mode) => void update({ flags: { mode } })} testIdPrefix="welcome-mode" />
         </Step>
 
-        <Step n={3} title="Bookmarks and history" hint="Bring them over from the browser you use now. Passwords stay where they are.">
+        <Step n={3} title="Bookmarks and history" hint="Replant them from the browser you use now. Passwords stay where they are.">
           <ImportList />
         </Step>
 
-        <Step n={4} title="Default browser" hint="Open links from Mail, Slack and other apps in Potato Browser." aside={<DefaultBrowserButton />} />
+        <Step n={4} title="Default browser" hint="Send links from Mail, Slack and other apps straight to the potato." aside={<DefaultBrowserButton />} />
       </main>
 
       <footer className="finish">
         <div className="finish-inner">
-          <span className="muted">You can change all of this later in Settings.</span>
+          <span className="muted">Nothing here is set in stone. Or soil. Change it anytime in Settings.</span>
           <button className="btn primary big" data-testid="welcome-start" onClick={() => void finish()}>
             Start browsing <ArrowRight size={16} strokeWidth={1.8} />
           </button>

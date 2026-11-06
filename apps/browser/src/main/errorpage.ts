@@ -12,10 +12,10 @@ interface ErrorCopy {
 
 function copyFor(code: number, desc: string, host: string): ErrorCopy {
   const h = `<strong>${esc(host)}</strong>`;
-  if (desc === 'ERR_NAME_NOT_RESOLVED') return { title: "This site can't be reached", body: `We couldn't find the server for ${h}. Check the address for typos.` };
-  if (desc === 'ERR_INTERNET_DISCONNECTED') return { title: "You're offline", body: 'Check your Wi-Fi or network cable, then try again.' };
-  if (desc === 'ERR_CONNECTION_REFUSED') return { title: "This site can't be reached", body: `${h} refused to connect.` };
-  if (desc === 'ERR_CONNECTION_TIMED_OUT' || desc === 'ERR_TIMED_OUT') return { title: "This site can't be reached", body: `${h} took too long to respond.` };
+  if (desc === 'ERR_NAME_NOT_RESOLVED') return { title: "This site can't be reached", body: `We dug around, but couldn't find the server for ${h}. Check the address for typos.` };
+  if (desc === 'ERR_INTERNET_DISCONNECTED') return { title: "You're offline", body: 'Check your Wi-Fi or network cable, then try again. Until then, enjoy being a couch potato.' };
+  if (desc === 'ERR_CONNECTION_REFUSED') return { title: "This site can't be reached", body: `${h} refused to connect. Hot potato.` };
+  if (desc === 'ERR_CONNECTION_TIMED_OUT' || desc === 'ERR_TIMED_OUT') return { title: "This site can't be reached", body: `${h} took too long to respond. Slower than a potato in a cold oven.` };
   if (desc === 'ERR_CONNECTION_RESET' || desc === 'ERR_CONNECTION_CLOSED') return { title: "This site can't be reached", body: `The connection to ${h} was interrupted.` };
   if (desc.startsWith('ERR_CERT_') || desc === 'ERR_SSL_PROTOCOL_ERROR' || desc.includes('SSL')) {
     return {
@@ -27,12 +27,12 @@ function copyFor(code: number, desc: string, host: string): ErrorCopy {
   if (desc === 'ERR_BLOCKED_BY_CLIENT') {
     return {
       title: 'AI chatbot blocked',
-      body: `${h} is an AI chatbot. You chose to block AI chatbot sites in Settings.`,
+      body: `${h} is an AI chatbot, and you asked to keep those out of the pantry in Settings. This is a no-artificial-ingredients zone.`,
       allowChatbot: true,
     };
   }
   if (desc === 'ERR_TOO_MANY_REDIRECTS') return { title: "This page isn't working", body: `${h} redirected you too many times.` };
-  if (code === -1000) return { title: 'This tab crashed', body: 'Something went wrong while showing this page.' };
+  if (code === -1000) return { title: 'This tab got mashed', body: 'Something went wrong while showing this page. Trying again usually un-mashes it.' };
   return { title: "This page isn't working", body: `${h} could not be loaded.` };
 }
 

@@ -71,7 +71,7 @@ test('imported history powers omnibox suggestions', async () => {
 test('first run shows the welcome page with search engine, flag mode and import choices', async () => {
   b = await TestBrowser.launch({ firstRun: true, importHome: makeFakeHome() });
   const welcome = await b.tabPage('potato://welcome/');
-  await expect(welcome.getByRole('heading', { name: 'The web, without the AI.' })).toBeVisible();
+  await expect(welcome.getByRole('heading', { name: 'No artificial ingredients.' })).toBeVisible();
 
   await expect(welcome.getByTestId('welcome-engine-duckduckgo')).toHaveAttribute('aria-checked', 'true');
   await welcome.getByTestId('welcome-engine-google').click();

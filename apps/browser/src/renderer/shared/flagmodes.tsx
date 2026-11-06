@@ -3,9 +3,9 @@ import { Flag } from './icons';
 import './flagmodes.css';
 
 export const FLAG_MODES: { id: FlagMode; title: string; text: string }[] = [
-  { id: 'hide', title: 'Hide them', text: 'Folded away behind a notice. One click shows them.' },
-  { id: 'label', title: 'Label them', text: 'Shown with an amber outline and an AI tag.' },
-  { id: 'ignore', title: 'Leave them', text: 'Shown as usual. You can still flag posts.' },
+  { id: 'hide', title: 'Bury them', text: 'Tucked behind a notice. One click digs them up.' },
+  { id: 'label', title: 'Label them', text: 'Shown with an amber outline and an AI tag, like a sticker on the sack.' },
+  { id: 'ignore', title: 'Leave them', text: 'Shown as usual. You can still flag posts for everyone else.' },
 ];
 
 function Pill({ flagged }: { flagged?: boolean }) {
@@ -39,7 +39,7 @@ export function FlagModePreview({ mode }: { mode: FlagMode }) {
       {mode === 'hide' ? (
         <div className="mp-hidden">
           <Flag size={10} strokeWidth={1.8} />
-          <span>Hidden: flagged as AI by 4 people.</span>
+          <span>Buried: flagged as AI by 4 people.</span>
           <u>Show</u>
         </div>
       ) : (

@@ -8,7 +8,7 @@
   let timer = 0;
   const setShield = (on) => {
     shield.setAttribute('aria-pressed', String(on));
-    label.textContent = on ? 'AI hidden' : 'Hide AI';
+    label.textContent = on ? 'AI peeled' : 'Peel the AI';
   };
   const hideAi = (animate) => {
     clearTimeout(timer);
@@ -34,8 +34,8 @@
 
   // Flag modes.
   const notes = {
-    label: 'Flagged posts stay in your feed with a visible AI label.',
-    hide: 'Flagged posts fold away behind a one-line notice you can open.',
+    label: 'Flagged posts stay in your feed with an AI label, like a sticker on the sack.',
+    hide: 'Flagged posts get buried behind a one-line notice. One click digs them up.',
     ignore: 'Nothing changes for you. You can still flag posts for everyone else.',
   };
   const stage = document.querySelector('.post-stage');
@@ -55,7 +55,7 @@
     .then((info) => {
       if (!info || !info.version) return;
       const sizes = info.sizes || {};
-      const parts = [`Free. Version ${info.version}.`];
+      const parts = [`Free, like dirt. Version ${info.version}.`];
       if (sizes.arm64) parts.push(`${mb(sizes.arm64)} download.`);
       parts.push('For Apple Silicon and Intel Macs running macOS 13 Ventura or later.');
       const fine = document.querySelector('[data-release]');
@@ -77,7 +77,7 @@
     .then((s) => {
       const el = document.querySelector('[data-stats]');
       if (el && s && s.flaggedPosts > 0) {
-        el.textContent = `${s.flaggedPosts.toLocaleString('en-US')} posts flagged as AI-generated so far.`;
+        el.textContent = `${s.flaggedPosts.toLocaleString('en-US')} AI-generated ${s.flaggedPosts === 1 ? 'post' : 'posts'} spotted and flagged so far.`;
       }
     })
     .catch(() => {});

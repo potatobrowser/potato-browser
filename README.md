@@ -13,7 +13,7 @@ A Chromium-based browser for macOS for people who want the web without AI.
   LinkedIn, YouTube, Bluesky and TikTok posts. Flagged posts are hidden, labelled or left alone,
   as the user chooses.
 
-Website and downloads: https://noaibrowser.laszlo-kiss27.workers.dev
+Website and downloads: https://potatobrowser.com
 
 ## Repository
 
@@ -85,9 +85,10 @@ Pushing `main` deploys `apps/web` through srv-deploy (`deploy.json`): tests, D1 
 
 The project was called No-AI Browser until 0.2.0. Some identifiers keep that name on purpose:
 
-- the `noaibrowser` Worker and its workers.dev URL (every shipped build calls it, and its
-  `VOTER_SALT` secret cannot be copied to a new Worker), the `noaibrowser` D1 database and the
-  `noaibrowser-releases` R2 bucket;
+- the `noaibrowser` Worker (its `VOTER_SALT` secret cannot be copied to a new Worker), the
+  `noaibrowser` D1 database and the `noaibrowser-releases` R2 bucket. The Worker serves
+  potatobrowser.com; its workers.dev URL stays up because builds before 0.3.0 call the API
+  there, and its pages redirect to potatobrowser.com;
 - the flag hash domain `noai-flag:v1:`, since every stored flag is keyed by it.
 
 On first launch, Potato Browser moves an existing `~/Library/Application Support/No-AI Browser`

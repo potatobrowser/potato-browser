@@ -138,6 +138,30 @@ describe('flags API', () => {
   });
 });
 
+describe('canonical host', () => {
+  const get = (url: string) => worker.fetch(new Request(url, { redirect: 'manual' }));
+
+  it('sends www to the apex', async () => {
+    const r = await get('https://www.potatobrowser.com/download/mac-arm64?x=1');
+    expect(r.status).toBe(301);
+    expect(r.headers.get('location')).toBe('https://potatobrowser.com/download/mac-arm64?x=1');
+  });
+
+  it('sends workers.dev pages to the apex but keeps its API and downloads', async () => {
+    const page = await get('https://noaibrowser.example.workers.dev/');
+    expect(page.status).toBe(301);
+    expect(page.headers.get('location')).toBe('https://potatobrowser.com/');
+    const api = await get('https://noaibrowser.example.workers.dev/api/v1/health');
+    expect(api.status).toBe(200);
+  });
+
+  it('serves the landing page on the apex', async () => {
+    const r = await get('https://potatobrowser.com/');
+    expect(r.status).toBe(200);
+    expect(await r.text()).toContain('Grown,');
+  });
+});
+
 describe('releases and downloads', () => {
   it('404s before the first release', async () => {
     expect((await call('GET', '/api/v1/releases/latest')).status).toBe(404);

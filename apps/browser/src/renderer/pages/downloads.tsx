@@ -40,7 +40,7 @@ function Downloads() {
       </div>
       <Card>
         {items.length === 0 ? (
-          <div className="empty">Files you download appear here.</div>
+          <div className="empty">Files you download land here, fresh from the field.</div>
         ) : (
           <ul className="list" data-testid="downloads-list">
             {items.map((d) => (

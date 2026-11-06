@@ -3,13 +3,19 @@
   "name": "noaibrowser",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-15",
+  // workers.dev stays on: shipped builds before 0.3.0 call the API there.
   "workers_dev": true,
   "preview_urls": false,
+  "routes": [
+    { "pattern": "potatobrowser.com", "custom_domain": true },
+    { "pattern": "www.potatobrowser.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/api/*", "/download/*"]
+    // The Worker sees every request so it can send www and workers.dev pages to the apex.
+    "run_worker_first": true
   },
   "d1_databases": [
     {
