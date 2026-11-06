@@ -15,15 +15,21 @@ A Chromium-based browser for macOS for people who want the web without AI. Grown
 
 Website: https://potatobrowser.com. Free and open source under the [MIT license](LICENSE).
 
-## Download
+## Install
 
-Get the DMG for Apple Silicon or Intel from https://potatobrowser.com or from
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask potatobrowser/tap/potato-browser
+```
+
+Or get the DMG for Apple Silicon or Intel from https://potatobrowser.com or from
 [Releases](https://github.com/potatobrowser/potato-browser/releases). It needs macOS 13 Ventura or
 later.
 
 Every release is built by [GitHub Actions](.github/workflows/release.yml) from the tagged commit
-in this repository, so the build log is public. The builds are ad-hoc signed and not notarized
-yet, so macOS asks once: open the app, then System Settings, Privacy & Security, Open Anyway.
+in this repository, so the build log is public. Releases are signed with an Apple Developer ID and
+notarized by Apple, so macOS opens them like any other app.
 
 ### Verify a download
 
@@ -32,7 +38,8 @@ to the workflow run and the commit it was built from:
 
 ```sh
 shasum -a 256 -c SHA256SUMS --ignore-missing
-gh attestation verify Potato-Browser-0.4.0-arm64.dmg --repo potatobrowser/potato-browser
+gh attestation verify Potato-Browser-0.4.2-arm64.dmg --repo potatobrowser/potato-browser
+spctl --assess -vv "/Applications/Potato Browser.app"   # source=Notarized Developer ID
 ```
 
 ## Build it yourself
@@ -43,15 +50,16 @@ You need a Mac with macOS 13 or later, [Node.js](https://nodejs.org) 22 or later
 ```sh
 git clone https://github.com/potatobrowser/potato-browser
 cd potato-browser
-git checkout v0.4.0                                   # optional: a released version
+git checkout v0.4.2                                   # optional: a released version
 pnpm install
 pnpm --filter @potato/browser dist --arch host        # DMG for this Mac
 open apps/browser/release
 ```
 
 `--arch arm64` or `--arch x64` picks the architecture; without `--arch` it builds both, as the
-release does. An app you build yourself is not quarantined, so it opens without the Open Anyway
-step. To run the browser without packaging it, use `pnpm --filter @potato/browser dev`.
+release does. Your build is ad-hoc signed instead of Developer ID signed, but it is not
+quarantined, so it opens without a warning too. To run the browser without packaging it, use
+`pnpm --filter @potato/browser dev`.
 
 Your build uses the public flags service at potatobrowser.com. To point it at your own (see
 [The site and flags service](#the-site-and-flags-service)), set `POTATO_API_BASE_BUILD` when
@@ -111,15 +119,21 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how changes and releases land.
 1. Bump `version` in `apps/browser/package.json` and add a `## <version>` section to
    [CHANGELOG.md](CHANGELOG.md).
 2. Push the tag `v<version>`. The [release workflow](.github/workflows/release.yml) runs the
-   tests, builds both DMGs on a GitHub macOS runner, writes `latest.json` and `SHA256SUMS`,
-   attests the build and publishes the GitHub Release with the changelog section as notes.
+   tests, builds both DMGs on a GitHub macOS runner, signs them with the Developer ID, has Apple
+   notarize the apps and the DMGs, checks that Gatekeeper accepts them and that the app starts,
+   writes `latest.json` and `SHA256SUMS`, attests the build, publishes the GitHub Release with the
+   changelog section as notes, and updates the cask in
+   [potatobrowser/homebrew-tap](https://github.com/potatobrowser/homebrew-tap).
 
 potatobrowser.com reads `latest.json` from the latest release to show the version and checksums,
 and `/download/mac-arm64` and `/download/mac-x64` redirect to that release's DMGs. The app's
 daily update check asks the same endpoint and never downloads anything itself.
 
-With a Developer ID Application certificate, set `mac.identity` and enable notarization in
-`apps/browser/electron-builder.config.cjs`.
+The workflow reads its secrets from the `release` environment, which only `v*` tags can use:
+`MAC_CERT_P12` (the Developer ID Application certificate as a base64 .p12), `MAC_CERT_PASSWORD`,
+`APPLE_API_KEY` (an App Store Connect .p8 key), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and
+`TAP_DEPLOY_KEY` (a deploy key that can write to the tap). Builds without `CSC_LINK`, such as a
+build from source, are ad-hoc signed.
 
 ## The site and flags service
 

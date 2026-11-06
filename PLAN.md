@@ -75,9 +75,8 @@ Key decisions:
 
 ## Release constraints
 
-- Only an Apple Development certificate is available, so builds are ad-hoc signed and not
-  notarized. The landing page explains the one-time "Open Anyway" step. Notarization needs a
-  Developer ID Application certificate.
+- Releases are signed with the Developer ID Application certificate and notarized in the release
+  workflow; builds from source are ad-hoc signed.
 
 ## Status (2026-11-06)
 
@@ -114,5 +113,12 @@ All nine milestones are done and committed.
   cross-site flagging through the API, forged clicks on the flag button and private-window
   flag linkage (see CHANGELOG).
 
-Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
-account, extensions and a password manager.
+- 0.4.2 is the first signed release: Developer ID signature, hardened runtime, apps and DMGs
+  notarized and stapled by the release workflow, which also checks Gatekeeper accepts them and
+  launches the app before publishing. `brew install --cask potatobrowser/tap/potato-browser`
+  installs it; the workflow updates github.com/potatobrowser/homebrew-tap on each release.
+  0.4.1 was tagged but never published (Apple's ticket service dropped connections from the
+  runner; stapling now retries).
+
+Open items: Google sign-in check with a real account, extensions and a password manager,
+cookie encryption (possible now that releases are Developer ID signed).

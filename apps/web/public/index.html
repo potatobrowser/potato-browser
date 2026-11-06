@@ -167,7 +167,7 @@
 cd potato-browser
 pnpm install
 pnpm --filter @potato/browser dist --arch host</code></pre>
-        <p class="fine">The DMG for your Mac lands in apps/browser/release. A potato you grew yourself opens without the Open Anyway step.</p>
+        <p class="fine">The DMG for your Mac lands in apps/browser/release. A potato you grew yourself opens without a warning too.</p>
       </div>
     </section>
 
@@ -180,10 +180,11 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
       <p class="fine" data-release-detail>Free. macOS 13 Ventura or later. Not sure which Mac you have? Apple menu, About This Mac: "Apple M" means Apple Silicon.</p>
       <p class="fine">Downloads come straight from the project's <a href="https://github.com/potatobrowser/potato-browser/releases">GitHub Releases</a>, built in public from the source.</p>
       <p class="fine sums" data-checksums hidden></p>
+      <p class="fine">Prefer Homebrew? <code>brew install --cask potatobrowser/tap/potato-browser</code></p>
       <ol class="steps">
         <li><b>Open the downloaded file</b> and drag the potato into Applications.</li>
-        <li><b>Open the app.</b> macOS is wary of unfamiliar potatoes and says it can't verify the developer, because the app isn't notarized by Apple yet.</li>
-        <li><b>Allow it once:</b> open System Settings, go to Privacy &amp; Security, scroll down and click Open Anyway. From then on it opens like any app.</li>
+        <li><b>Open the app</b> from Applications or Launchpad.</li>
+        <li><b>That's it.</b> It is signed by its grower and checked by Apple, so macOS opens it like any app, no warnings.</li>
       </ol>
     </section>
 
@@ -214,8 +215,8 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
         <p>So you can check them. Each release is built by GitHub Actions from the public source, and GitHub keeps the build log and a signed record of the commit it came from. Run <code>gh attestation verify</code> on the file to confirm it. GitHub serves the file, so it sees the download like any website would. This site only counts downloads per day.</p>
       </details>
       <details>
-        <summary>Why does macOS warn me the first time?</summary>
-        <p>Apple asks developers to send apps through its notarization service. This spud hasn't been through that yet, so macOS asks you to confirm once in System Settings. Notarized builds are planned.</p>
+        <summary>Is the app signed?</summary>
+        <p>Yes. Every release is signed with an Apple Developer ID and notarized by Apple, so macOS opens it without a warning. Check it yourself with <code>spctl --assess -vv "/Applications/Potato Browser.app"</code>: it should say Notarized Developer ID.</p>
       </details>
       <details>
         <summary>Does it support extensions and saved passwords?</summary>

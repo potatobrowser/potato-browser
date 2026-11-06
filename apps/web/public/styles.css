@@ -809,7 +809,9 @@ main > section.hero {
   font: 15px/1.6 ui-monospace, 'SF Mono', Menlo, monospace;
   color: var(--ink);
 }
-.faq code {
+.faq code,
+.fine code {
+  overflow-wrap: anywhere;
   font: 0.9em ui-monospace, 'SF Mono', Menlo, monospace;
   background: var(--wash);
   padding: 1px 5px;
