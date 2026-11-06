@@ -84,7 +84,7 @@ Key decisions:
 All nine milestones are done and committed.
 
 - Version 0.2.0 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
-  from https://noaibrowser.laszlo-kiss27.workers.dev with SHA-256 checksums.
+  from https://potatobrowser.com with SHA-256 checksums.
 - Tests: 64 unit tests (shared 4, worker 11, browser 49) and 52 e2e tests, also run against the
   packaged app. The AI Shield was additionally checked on live Google (saved real SERP DOM),
   Bing, DuckDuckGo, YouTube, Amazon and Instagram; flag adapters on live Reddit, YouTube,
@@ -101,6 +101,10 @@ All nine milestones are done and committed.
   `potato://` internal pages, `@potato/*` packages. Existing profiles move to the new folder on
   first launch. The Worker, its URL, D1, R2 and the flag hash domain keep the old name (see
   README, Former name).
+- The site moved to https://potatobrowser.com (Worker custom domain; www and the workers.dev
+  pages redirect there, the workers.dev API keeps serving older builds). Site and app copy got
+  a light potato voice ("Grown, not generated."). 0.3.0 carries the new copy and calls the API
+  on potatobrowser.com; it is built but not yet published to R2.
 
 Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
 account, extensions and a password manager.

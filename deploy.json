@@ -6,7 +6,7 @@
       "install": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile --filter @potato/web...",
       "run": "pnpm test && pnpm run deploy",
       "paths": ["apps/web", "packages/shared", "pnpm-lock.yaml", "pnpm-workspace.yaml", "deploy.json"],
-      "url": "https://noaibrowser.laszlo-kiss27.workers.dev/api/v1/health"
+      "url": "https://potatobrowser.com/api/v1/health"
     }
   ]
 }
