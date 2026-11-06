@@ -20,8 +20,7 @@ cask "potato-browser" do
   sha256 arm:   "${m.sha256.arm64}",
          intel: "${m.sha256.x64}"
 
-  url "https://github.com/${repo}/releases/download/v#{version}/Potato-Browser-#{version}-#{arch}.dmg",
-      verified: "github.com/${repo}/"
+  url "https://github.com/${repo}/releases/download/v#{version}/Potato-Browser-#{version}-#{arch}.dmg"
   name "Potato Browser"
   desc "Chromium-based browser that hides the AI features of websites"
   homepage "https://potatobrowser.com/"
@@ -31,7 +30,7 @@ cask "potato-browser" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   app "Potato Browser.app"
 
