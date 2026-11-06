@@ -4,6 +4,16 @@
 # Usage: scripts/verify-release.sh release/Potato-Browser-<version>-<arch>.dmg...
 set -euo pipefail
 
+# stapler and spctl ask Apple's ticket service online; retry when the network drops.
+retry() {
+  local i
+  for i in 1 2 3 4; do
+    "$@" && return 0
+    [ "$i" = 4 ] || { echo "retrying in $((i * 15))s: $*"; sleep $((i * 15)); }
+  done
+  return 1
+}
+
 # Prints a command's output and fails unless it contains the expected text.
 expect() {
   local want=$1 out; shift
@@ -15,15 +25,15 @@ expect() {
 host=$(uname -m); [ "$host" = x86_64 ] && host=x64
 for dmg in "$@"; do
   echo "== $dmg"
-  xcrun stapler validate "$dmg"
-  expect 'source=Notarized Developer ID' spctl --assess --type open --context context:primary-signature -vv "$dmg"
+  retry xcrun stapler validate "$dmg"
+  retry expect 'source=Notarized Developer ID' spctl --assess --type open --context context:primary-signature -vv "$dmg"
   mnt=$(mktemp -d)
   hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg" >/dev/null
   app="$mnt/Potato Browser.app"
   codesign --verify --deep --strict -vv "$app"
   expect 'com.apple.security.cs.allow-jit' codesign -d --entitlements - "$app"
-  xcrun stapler validate "$app"
-  expect 'source=Notarized Developer ID' spctl --assess --type execute -vv "$app"
+  retry xcrun stapler validate "$app"
+  retry expect 'source=Notarized Developer ID' spctl --assess --type execute -vv "$app"
   if [[ "$dmg" == *"-$host.dmg" ]]; then
     # Hardened runtime without the right entitlements kills the renderer at once.
     profile=$(mktemp -d)

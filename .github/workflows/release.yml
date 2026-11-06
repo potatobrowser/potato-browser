@@ -79,14 +79,10 @@ jobs:
 
       - name: Notarize and staple both DMGs
         env:
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY_FILE }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-        run: |
-          for arch in arm64 x64; do
-            dmg="apps/browser/release/Potato-Browser-$VERSION-$arch.dmg"
-            xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY_FILE" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait --timeout 45m
-            xcrun stapler staple "$dmg"
-          done
+        run: node apps/browser/scripts/notarize.cjs apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.dmg
 
       - name: Check Gatekeeper accepts them and the app starts
         run: apps/browser/scripts/verify-release.sh apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.dmg
