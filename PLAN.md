@@ -83,7 +83,7 @@ Key decisions:
 
 All nine milestones are done and committed.
 
-- Version 0.2.0 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
+- Version 0.3.0 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
   from https://potatobrowser.com with SHA-256 checksums.
 - Tests: 64 unit tests (shared 4, worker 11, browser 49) and 52 e2e tests, also run against the
   packaged app. The AI Shield was additionally checked on live Google (saved real SERP DOM),
@@ -104,7 +104,7 @@ All nine milestones are done and committed.
 - The site moved to https://potatobrowser.com (Worker custom domain; www and the workers.dev
   pages redirect there, the workers.dev API keeps serving older builds). Site and app copy got
   a light potato voice ("Grown, not generated."). 0.3.0 carries the new copy and calls the API
-  on potatobrowser.com; it is built but not yet published to R2.
+  on potatobrowser.com; it is published (both DMGs, checksums on the site).
 
 Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
 account, extensions and a password manager.
