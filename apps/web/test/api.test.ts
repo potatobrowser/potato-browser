@@ -1,9 +1,9 @@
 import { env, exports } from 'cloudflare:workers';
-import { hashContentKey, hashPrefix } from '@noai/shared';
+import { hashContentKey, hashPrefix } from '@potato/shared';
 import { describe, expect, it } from 'vitest';
 import { DAILY_FLAG_CAP, networkPrefix, voterId } from '../src/lib';
 
-const BASE = 'https://noaibrowser.test';
+const BASE = 'https://potatobrowser.test';
 const worker = (exports as unknown as { default: { fetch(r: Request): Promise<Response> } }).default;
 
 function client(n: number): string {
@@ -146,14 +146,14 @@ describe('releases and downloads', () => {
 
   it('serves the latest DMG with ranges and counts downloads', async () => {
     const dmg = new Uint8Array(1000).map((_, i) => i % 251);
-    await env.RELEASES.put('releases/9.9.9/No-AI-Browser-9.9.9-arm64.dmg', dmg);
+    await env.RELEASES.put('releases/9.9.9/Potato-Browser-9.9.9-arm64.dmg', dmg);
     await env.RELEASES.put(
       'latest.json',
       JSON.stringify({
         version: '9.9.9',
         date: '2026-11-05',
         notes: 'Test',
-        files: { arm64: 'releases/9.9.9/No-AI-Browser-9.9.9-arm64.dmg', x64: 'releases/9.9.9/No-AI-Browser-9.9.9-x64.dmg' },
+        files: { arm64: 'releases/9.9.9/Potato-Browser-9.9.9-arm64.dmg', x64: 'releases/9.9.9/Potato-Browser-9.9.9-x64.dmg' },
       }),
     );
     const latest = await call('GET', '/api/v1/releases/latest');
@@ -162,7 +162,7 @@ describe('releases and downloads', () => {
 
     const full = await worker.fetch(new Request(BASE + '/download/mac-arm64'));
     expect(full.status).toBe(200);
-    expect(full.headers.get('content-disposition')).toBe('attachment; filename="No-AI-Browser-9.9.9-arm64.dmg"');
+    expect(full.headers.get('content-disposition')).toBe('attachment; filename="Potato-Browser-9.9.9-arm64.dmg"');
     expect(full.headers.get('content-length')).toBe('1000');
     expect(new Uint8Array(await full.arrayBuffer())).toEqual(dmg);
 

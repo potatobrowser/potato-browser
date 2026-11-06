@@ -43,9 +43,9 @@ export function errorPageHtml(url: string, code: number, desc: string): string {
   } catch {}
   const c = copyFor(code, desc, host);
   const proceed = c.proceed
-    ? `<p class="adv"><a href="noai://action/proceed?url=${encodeURIComponent(url)}">Continue to ${esc(host)} anyway (unsafe)</a></p>`
+    ? `<p class="adv"><a href="potato://action/proceed?url=${encodeURIComponent(url)}">Continue to ${esc(host)} anyway (unsafe)</a></p>`
     : c.allowChatbot
-      ? `<p class="adv"><a href="noai://action/allow-chatbot?url=${encodeURIComponent(url)}">Open ${esc(host)} this time</a></p>`
+      ? `<p class="adv"><a href="potato://action/allow-chatbot?url=${encodeURIComponent(url)}">Open ${esc(host)} this time</a></p>`
       : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(host)}</title>
 <style>
@@ -65,7 +65,7 @@ a.btn{background:var(--btn);color:var(--btnfg);text-decoration:none;padding:9px 
 <h1>${esc(c.title)}</h1>
 <p>${c.body}</p>
 <p><code>${esc(desc || String(code))}</code></p>
-<div class="row"><a class="btn" href="noai://action/retry">Try again</a></div>
+<div class="row"><a class="btn" href="potato://action/retry">Try again</a></div>
 ${proceed}
 </main></body></html>`;
 }

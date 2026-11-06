@@ -99,7 +99,7 @@ test('closing the last tab closes the window', async () => {
   b = await TestBrowser.launch();
   const ui = await b.uiPage();
   await b.cmd('closeTab');
-  await expect.poll(() => b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.windows.length)).toBe(0);
+  await expect.poll(() => b.app.evaluate(() => (globalThis as any).__potato.ctx.windows.windows.length)).toBe(0);
   await expect.poll(() => ui.isClosed()).toBe(true);
 });
 
@@ -175,12 +175,12 @@ test('internal pages are reachable and web pages cannot navigate into them', asy
   b = await TestBrowser.launch();
   const ui = await b.uiPage();
   await b.cmd('showSettings');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   await expect(settings.getByRole('heading', { name: 'General' })).toBeVisible();
   await b.cmd('newTab');
   const page = await b.goto('https://site.test/', ui);
   await page.evaluate(() => {
-    location.href = 'noai://settings/';
+    location.href = 'potato://settings/';
   });
   await page.waitForTimeout(800);
   expect(await b.activeTabUrl()).toBe('https://site.test/');

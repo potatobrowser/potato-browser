@@ -7,14 +7,14 @@ import { makeFakeHome } from './support/fake-profiles';
 let b: TestBrowser;
 test.afterEach(async () => b?.close());
 
-const tree = () => b.app.evaluate(() => (globalThis as any).__noai.ctx.db.bookmarkTree());
-const historyUrls = () => b.app.evaluate(() => (globalThis as any).__noai.ctx.db.queryHistory('', 500).map((h: any) => h.url));
+const tree = () => b.app.evaluate(() => (globalThis as any).__potato.ctx.db.bookmarkTree());
+const historyUrls = () => b.app.evaluate(() => (globalThis as any).__potato.ctx.db.queryHistory('', 500).map((h: any) => h.url));
 
 test('detects browsers and imports bookmarks and history from Chrome, Firefox and Safari', async () => {
   b = await TestBrowser.launch({ importHome: makeFakeHome() });
   const ui = await b.uiPage();
   await b.cmd('showImport');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   const sources = settings.getByTestId('import-source');
   await expect(sources).toHaveCount(4);
   await expect(settings.getByTestId('import-sources')).toContainText('Google Chrome');
@@ -58,7 +58,7 @@ test('imported history powers omnibox suggestions', async () => {
   b = await TestBrowser.launch({ importHome: makeFakeHome() });
   const ui = await b.uiPage();
   await b.cmd('showImport');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   const firefox = settings.locator('[data-source-id^="firefox:"]');
   await firefox.getByTestId('import-run').click();
   await expect(firefox.getByTestId('import-result')).toBeVisible();
@@ -70,7 +70,7 @@ test('imported history powers omnibox suggestions', async () => {
 
 test('first run shows the welcome page with search engine, flag mode and import choices', async () => {
   b = await TestBrowser.launch({ firstRun: true, importHome: makeFakeHome() });
-  const welcome = await b.tabPage('noai://welcome/');
+  const welcome = await b.tabPage('potato://welcome/');
   await expect(welcome.getByRole('heading', { name: 'The web, without the AI.' })).toBeVisible();
 
   await expect(welcome.getByTestId('welcome-engine-duckduckgo')).toHaveAttribute('aria-checked', 'true');
@@ -86,7 +86,7 @@ test('first run shows the welcome page with search engine, flag mode and import 
   await firefox.getByTestId('welcome-import').click();
   await expect(firefox.getByTestId('welcome-import-result')).toHaveText('2 bookmarks, 2 pages');
   await welcome.getByTestId('welcome-start').click();
-  await expect.poll(() => b.activeTabUrl()).toBe('noai://newtab/');
+  await expect.poll(() => b.activeTabUrl()).toBe('potato://newtab/');
   expect((await b.settings()).firstRunDone).toBe(true);
 });
 
@@ -108,7 +108,7 @@ test('welcome: importing blocked Safari opens Full Disk Access and resumes once 
   try {
     b = await TestBrowser.launch({ firstRun: true, importHome: home });
     await stubOpenExternal();
-    const welcome = await b.tabPage('noai://welcome/');
+    const welcome = await b.tabPage('potato://welcome/');
     const safari = welcome.locator('[data-testid=welcome-source][data-source-id="safari"]');
     await expect(safari).toContainText('macOS asks for access first');
     await safari.getByTestId('welcome-import').click();
@@ -139,7 +139,7 @@ test('welcome: a Safari import waiting for access finishes after the app is reop
   try {
     b = await TestBrowser.launch({ firstRun: true, importHome: home });
     await stubOpenExternal();
-    let welcome = await b.tabPage('noai://welcome/');
+    let welcome = await b.tabPage('potato://welcome/');
     await welcome.locator('[data-source-id="safari"]').getByTestId('welcome-import').click();
     await expect(welcome.getByTestId('import-access')).toBeVisible();
     const userData = b.userData;
@@ -147,7 +147,7 @@ test('welcome: a Safari import waiting for access finishes after the app is reop
 
     setSafariAccess(home, true);
     b = await TestBrowser.launch({ firstRun: true, importHome: home, userData });
-    welcome = await b.tabPage('noai://welcome/');
+    welcome = await b.tabPage('potato://welcome/');
     await expect(welcome.locator('[data-source-id="safari"]').getByTestId('welcome-import-result')).toHaveText('3 bookmarks, 1 page');
   } finally {
     setSafariAccess(home, true);
@@ -161,7 +161,7 @@ test('settings: importing blocked Safari waits for access and then imports', asy
     b = await TestBrowser.launch({ importHome: home });
     await stubOpenExternal();
     await b.cmd('showImport');
-    const settings = await b.tabPage('noai://settings/');
+    const settings = await b.tabPage('potato://settings/');
     const safari = settings.locator('[data-source-id="safari"]');
     await expect(safari).toContainText('Import opens System Settings');
     await safari.getByTestId('import-run').click();

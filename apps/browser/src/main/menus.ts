@@ -135,7 +135,7 @@ export function buildAppMenu(): void {
     { role: 'windowMenu' },
     {
       role: 'help',
-      submenu: [{ label: 'No-AI Browser Website', click: () => void shell.openExternal('https://noaibrowser.laszlo-kiss27.workers.dev') }],
+      submenu: [{ label: 'Potato Browser Website', click: () => void shell.openExternal('https://noaibrowser.laszlo-kiss27.workers.dev') }],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -275,7 +275,7 @@ export function showOverflowMenu(win: BrowserWindowController, x: number, y: num
     sep,
     { label: 'Import Bookmarks and History...', click: commands.showImport },
     { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: commands.showSettings },
-    { label: 'About No-AI Browser', click: commands.showAbout },
+    { label: 'About Potato Browser', click: commands.showAbout },
   ]).popup({ window: win.base, x: Math.round(x), y: Math.round(y) });
 }
 

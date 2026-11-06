@@ -27,7 +27,7 @@ export interface ImportedHistoryItem {
 export const HISTORY_LIMIT = 25_000;
 
 export function homeDir(): string {
-  return process.env.NOAI_IMPORT_HOME || os.homedir();
+  return process.env.POTATO_IMPORT_HOME || os.homedir();
 }
 
 export function appSupport(...parts: string[]): string {
@@ -61,7 +61,7 @@ export function accessState(p: string): 'ok' | 'missing' | 'blocked' {
  * copying the WAL/journal alongside keeps the latest writes.
  */
 export function withDbCopy<T>(file: string, fn: (db: DatabaseSync) => T): T {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'noai-import-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-import-'));
   const copy = path.join(dir, path.basename(file));
   try {
     fs.copyFileSync(file, copy);

@@ -16,7 +16,7 @@ test('private windows keep cookies and history separate and forget them on close
   await b.cmd('newPrivateWindow');
   const pui = await b.uiPage();
   await expect(pui.getByTestId('private-indicator')).toBeVisible();
-  expect(await b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.focused().isPrivate)).toBe(true);
+  expect(await b.app.evaluate(() => (globalThis as any).__potato.ctx.windows.focused().isPrivate)).toBe(true);
   const priv = await b.goto('https://site.test/cookie?private=1', pui);
   await expect(priv.locator('#before')).toHaveText('none');
   await expect(priv.locator('#storage-before')).toHaveText('none');
@@ -24,13 +24,13 @@ test('private windows keep cookies and history separate and forget them on close
   await expect(priv.locator('#before')).toHaveText('visited=yes');
 
   // Private visits never reach history.
-  const urls: string[] = await b.app.evaluate(() => (globalThis as any).__noai.ctx.db.queryHistory('', 100).map((h: any) => h.url));
+  const urls: string[] = await b.app.evaluate(() => (globalThis as any).__potato.ctx.db.queryHistory('', 100).map((h: any) => h.url));
   expect(urls.some((u) => u.includes('private=1'))).toBe(false);
   expect(urls.some((u) => u === 'https://site.test/cookie')).toBe(true);
 
   // Closing the last private window wipes the private session.
   await b.cmd('closeWindow');
-  await expect.poll(() => b.app.evaluate(() => (globalThis as any).__noai.ctx.windows.windows.filter((w: any) => w.isPrivate).length)).toBe(0);
+  await expect.poll(() => b.app.evaluate(() => (globalThis as any).__potato.ctx.windows.windows.filter((w: any) => w.isPrivate).length)).toBe(0);
   await b.cmd('newPrivateWindow');
   const pui2 = await b.uiPage();
   const priv2 = await b.goto('https://site.test/cookie?again=1', pui2);
@@ -44,7 +44,7 @@ test('history page lists, searches and deletes visits', async () => {
   await b.goto('https://site.test/title?t=Apple%20pie', ui);
   await b.goto('https://site.test/title?t=Banana%20bread', ui);
   await b.cmd('showHistory');
-  const history = await b.tabPage('noai://history/');
+  const history = await b.tabPage('potato://history/');
   await expect(history.getByTestId('history-item')).toHaveCount(2);
   await expect(history.getByTestId('history-item').first()).toContainText('Banana bread');
   await history.getByTestId('history-search').fill('apple');
@@ -69,7 +69,7 @@ test('bookmark star, bookmarks bar and bookmark manager', async () => {
   await expect.poll(() => b.activeTabUrl()).toBe('https://site.test/page2');
 
   await b.cmd('showBookmarks');
-  const manager = await b.tabPage('noai://bookmarks/');
+  const manager = await b.tabPage('potato://bookmarks/');
   await expect(manager.getByTestId('bookmark-row')).toHaveCount(1);
   await manager.getByTestId('bookmark-delete').click();
   await expect(manager.getByTestId('bookmark-row')).toHaveCount(0);
@@ -100,7 +100,7 @@ test('downloads save to the downloads folder and show in the toolbar and page', 
   await ui.keyboard.press('Escape');
 
   await b.cmd('showDownloads');
-  const downloads = await b.tabPage('noai://downloads/');
+  const downloads = await b.tabPage('potato://downloads/');
   await expect(downloads.getByTestId('download-row')).toHaveCount(2);
   await expect(downloads.getByTestId('download-row').first()).toHaveAttribute('data-state', 'completed');
 });
@@ -126,12 +126,12 @@ test('clearing browsing data removes history', async () => {
   const ui = await b.uiPage();
   await b.goto('https://site.test/title?t=Secret', ui);
   await b.cmd('showSettings');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   await settings.evaluate(() => {
     location.hash = '#privacy';
   });
   await settings.getByTestId('clear-data').click();
   await expect(settings.getByTestId('clear-data')).toHaveText('Cleared');
-  const count = await b.app.evaluate(() => (globalThis as any).__noai.ctx.db.historyCount());
+  const count = await b.app.evaluate(() => (globalThis as any).__potato.ctx.db.historyCount());
   expect(count).toBe(0);
 });

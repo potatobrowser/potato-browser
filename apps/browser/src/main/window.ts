@@ -55,7 +55,7 @@ export class BrowserWindowController {
       minWidth: 500,
       minHeight: 320,
       show: false,
-      title: 'No-AI Browser',
+      title: 'Potato Browser',
       titleBarStyle: 'hiddenInset',
       trafficLightPosition: { x: 14, y: 13 },
       backgroundColor: this.isPrivate ? '#202024' : '#e8e8eb',
@@ -78,7 +78,7 @@ export class BrowserWindowController {
     this.ui.webContents.on('did-finish-load', () => {
       this.uiReady = true;
       this.sendState();
-      if (!this.base.isVisible() && !process.env.NOAI_HIDE_WINDOWS) this.base.show();
+      if (!this.base.isVisible() && !process.env.POTATO_HIDE_WINDOWS) this.base.show();
       if (this.activeTab && isNewTabUrl(this.activeTab.url || NEW_TAB_URL)) this.focusOmnibox();
     });
     this.ui.webContents.on('render-process-gone', () => {
@@ -86,7 +86,7 @@ export class BrowserWindowController {
       this.uiReady = false;
       setTimeout(() => !this.ui.webContents.isDestroyed() && this.ui.webContents.reload(), 300);
     });
-    void this.ui.webContents.loadURL(`noai://ui/?window=${this.id}${this.isPrivate ? '&private=1' : ''}`);
+    void this.ui.webContents.loadURL(`potato://ui/?window=${this.id}${this.isPrivate ? '&private=1' : ''}`);
 
     this.base.on('resize', () => this.layout());
     this.base.on('focus', () => manager.onWindowFocused(this));
@@ -357,7 +357,7 @@ export class BrowserWindowController {
     if (!this.uiReady || this.base.isDestroyed()) return;
     this.send('ui:state', this.state());
     const title = this.activeTab?.state().title;
-    this.base.setTitle(title ? `${title}${this.isPrivate ? ' (Private)' : ''}` : 'No-AI Browser');
+    this.base.setTitle(title ? `${title}${this.isPrivate ? ' (Private)' : ''}` : 'Potato Browser');
   }
 
   focus(): void {

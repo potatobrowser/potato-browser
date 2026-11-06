@@ -10,7 +10,7 @@ const ALIASES: Record<string, string> = { about: 'settings', import: 'settings',
 export function registerSchemes(): void {
   protocol.registerSchemesAsPrivileged([
     {
-      scheme: 'noai',
+      scheme: 'potato',
       privileges: { standard: true, secure: true, supportFetchAPI: true, codeCache: true },
     },
   ]);
@@ -26,7 +26,7 @@ function notFound(): Response {
   });
 }
 
-/** Serves the internal pages (`noai://settings/`, ...) from the bundled renderer build. */
+/** Serves the internal pages (`potato://settings/`, ...) from the bundled renderer build. */
 export async function handleInternal(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const host = ALIASES[url.hostname] ?? url.hostname;
@@ -51,7 +51,7 @@ export async function handleInternal(request: Request): Promise<Response> {
 }
 
 export function installInternalProtocol(ses: Session): void {
-  if (!ses.protocol.isProtocolHandled('noai')) ses.protocol.handle('noai', handleInternal);
+  if (!ses.protocol.isProtocolHandled('potato')) ses.protocol.handle('potato', handleInternal);
 }
 
 /**
@@ -59,8 +59,8 @@ export function installInternalProtocol(ses: Session): void {
  * e2e tests exercise real hostnames (www.google.com, www.reddit.com, ...) fully offline.
  */
 export function installFixtureProxy(ses: Session): void {
-  const proxy = process.env.NOAI_FIXTURE_PROXY;
-  const entries = (process.env.NOAI_FIXTURE_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean);
+  const proxy = process.env.POTATO_FIXTURE_PROXY;
+  const entries = (process.env.POTATO_FIXTURE_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean);
   if (!proxy || !entries.length) return;
   // "-host" entries always use the real network (e.g. to test DNS failures).
   const excluded = entries.filter((h) => h.startsWith('-')).map((h) => h.slice(1));

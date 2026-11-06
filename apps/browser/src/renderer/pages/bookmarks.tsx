@@ -79,7 +79,7 @@ function Bookmarks() {
               </button>
             </form>
           )}
-          <a className="btn" href="noai://settings/#import">
+          <a className="btn" href="potato://settings/#import">
             Import
           </a>
         </div>

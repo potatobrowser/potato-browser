@@ -59,7 +59,7 @@ function sources(): SourceImpl[] {
       kind: 'safari',
       hasBookmarks: safari.bookmarks !== 'missing',
       hasHistory: safari.history !== 'missing',
-      blocked: blocked ? 'macOS protects Safari data. Allow Full Disk Access for No-AI Browser, then try again.' : null,
+      blocked: blocked ? 'macOS protects Safari data. Allow Full Disk Access for Potato Browser, then try again.' : null,
       readBookmarks: readSafariBookmarks,
       readHistory: readSafariHistory,
     });
@@ -151,7 +151,7 @@ export async function runImport(sourceId: string, what: { bookmarks: boolean; hi
 
 function describe(err: unknown): string {
   const e = err as NodeJS.ErrnoException;
-  if (e?.code === 'EPERM' || e?.code === 'EACCES') return 'macOS blocked access. Allow Full Disk Access for No-AI Browser in System Settings.';
+  if (e?.code === 'EPERM' || e?.code === 'EACCES') return 'macOS blocked access. Allow Full Disk Access for Potato Browser in System Settings.';
   if (e?.code === 'ENOENT') return 'file not found';
   return e?.message || String(err);
 }

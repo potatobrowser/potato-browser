@@ -36,7 +36,7 @@ export class DownloadManager {
       fs.mkdirSync(dir, { recursive: true });
     } catch {}
     const reserved = new Set([...this.live.values()].filter((l) => l.state.state === 'progressing').map((l) => l.state.path));
-    if (settings.askWhereToSave && process.env.NOAI_TEST !== '1') {
+    if (settings.askWhereToSave && process.env.POTATO_TEST !== '1') {
       item.setSaveDialogOptions({ defaultPath: path.join(dir, item.getFilename()) });
     } else {
       item.setSavePath(uniquePath(dir, item.getFilename(), reserved));

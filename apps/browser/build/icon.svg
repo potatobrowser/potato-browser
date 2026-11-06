@@ -4,17 +4,31 @@
       <stop offset="0" stop-color="#26262a"/>
       <stop offset="1" stop-color="#0e0e10"/>
     </linearGradient>
-    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#e9e6dd"/>
+    <linearGradient id="skin" x1="0.15" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#F2CB8C"/>
+      <stop offset="0.55" stop-color="#D9A35E"/>
+      <stop offset="1" stop-color="#B07938"/>
     </linearGradient>
-    <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
-      <rect width="1024" height="1024" fill="#fff"/>
-      <line x1="312" y1="712" x2="712" y2="312" stroke="#000" stroke-width="120" stroke-linecap="round"/>
-    </mask>
+    <radialGradient id="shine" cx="0.32" cy="0.3" r="0.45">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+    <path id="potato" d="M12 52C10 34 26 22 44 23C52 23.5 56 27 64 25C80 21 92 34 90 50C88 68 74 78 54 77C42 76.5 38 79 28 77C16 74 13 64 12 52Z"/>
   </defs>
   <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
   <rect x="100.5" y="100.5" width="823" height="823" rx="185.5" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
-  <path mask="url(#cut)" d="M512 262c20 145 105 230 250 250c-145 20-230 105-250 250c-20-145-105-230-250-250c145-20 230-105 250-250z" fill="url(#spark)"/>
-  <line x1="312" y1="712" x2="712" y2="312" stroke="#E5322D" stroke-width="64" stroke-linecap="round"/>
+  <g transform="translate(512 512) scale(6.4) rotate(-24) translate(-51 -50)">
+    <use href="#potato" fill="#000" opacity="0.6" filter="url(#shadow)" transform="translate(1 4)"/>
+    <use href="#potato" fill="url(#skin)"/>
+    <use href="#potato" fill="url(#shine)"/>
+    <g fill="none" stroke="#7A4E20" stroke-width="1.8" stroke-linecap="round" opacity="0.85">
+      <path d="M30.5 41.5q2.5 1.6 5 0"/>
+      <path d="M59.5 36.5q2.5 1.6 5 0"/>
+      <path d="M69.5 58q2.5 1.6 5 0"/>
+      <path d="M41.5 63q2.5 1.6 5 0"/>
+    </g>
+  </g>
 </svg>

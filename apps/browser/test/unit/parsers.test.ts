@@ -75,14 +75,14 @@ describe('settings and error pages', () => {
   it('escapes hostile URLs on error pages', () => {
     const html = errorPageHtml('https://x.test/"><script>alert(1)</script>', -105, 'ERR_NAME_NOT_RESOLVED');
     expect(html).not.toContain('<script>alert(1)</script>');
-    expect(html).toContain('noai://action/retry');
+    expect(html).toContain('potato://action/retry');
   });
 });
 
 describe('downloads', () => {
   it('picks a free file name', async () => {
     const { uniquePath } = await import('../../src/main/downloads');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'noai-dl-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-dl-'));
     fs.writeFileSync(path.join(dir, 'a.pdf'), '');
     fs.writeFileSync(path.join(dir, 'a (1).pdf'), '');
     expect(uniquePath(dir, 'a.pdf')).toBe(path.join(dir, 'a (2).pdf'));

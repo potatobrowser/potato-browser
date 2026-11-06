@@ -4,7 +4,7 @@ import type { ImportSource, SearchEngineId } from '../../shared/types';
 import { call, onInternalEvent } from '../shared/api';
 import { useSettings } from '../shared/components';
 import { FlagModePicker } from '../shared/flagmodes';
-import { ArrowRight, BrandMark, Check, Flag, Globe, Shield } from '../shared/icons';
+import { ArrowRight, BrandMark, Check, Flag, Globe, NoAi, Shield } from '../shared/icons';
 import { AccessSteps, useImporter } from '../shared/importer';
 import '../shared/pages.css';
 import './welcome.css';
@@ -16,7 +16,7 @@ const ENGINES: { id: SearchEngineId; name: string; text: string }[] = [
 
 const FEATURES = [
   { icon: <Shield size={18} />, title: 'AI Shield', text: 'Hides AI on major sites' },
-  { icon: <BrandMark size={18} color="currentColor" />, title: 'No AI in the engine', text: 'No models, no AI web APIs' },
+  { icon: <NoAi size={18} />, title: 'No AI in the engine', text: 'No models, no AI web APIs' },
   { icon: <Flag size={18} />, title: 'Community flags', text: 'Flag AI posts anonymously' },
 ];
 
@@ -151,14 +151,14 @@ function Welcome() {
 
   const finish = async () => {
     await call('app.finishWelcome');
-    location.href = 'noai://newtab/';
+    location.href = 'potato://newtab/';
   };
 
   return (
     <>
       <main className="welcome">
         <header className="hero">
-          <BrandMark size={56} color="var(--ink)" />
+          <BrandMark size={56} />
           <h1>The web, without the AI.</h1>
           <p className="lede">A fast Chromium browser that keeps AI features and AI content out of your way.</p>
         </header>
@@ -208,7 +208,7 @@ function Welcome() {
           <ImportList />
         </Step>
 
-        <Step n={4} title="Default browser" hint="Open links from Mail, Slack and other apps in No-AI Browser." aside={<DefaultBrowserButton />} />
+        <Step n={4} title="Default browser" hint="Open links from Mail, Slack and other apps in Potato Browser." aside={<DefaultBrowserButton />} />
       </main>
 
       <footer className="finish">

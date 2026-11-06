@@ -35,7 +35,7 @@ test('identifies as a plain Chromium browser', async () => {
   const page = await b.goto('https://site.test/');
   const ua = await page.evaluate(() => navigator.userAgent);
   expect(ua).toMatch(/Chrome\/\d+\.0\.0\.0 Safari\/537\.36$/);
-  expect(ua).not.toMatch(/Electron|No-AI/i);
+  expect(ua).not.toMatch(/Electron|Potato/i);
   const brands = await page.evaluate(() => (navigator as any).userAgentData?.brands.map((x: any) => x.brand).join(','));
   expect(brands).not.toMatch(/Electron/);
 });
@@ -43,7 +43,7 @@ test('identifies as a plain Chromium browser', async () => {
 test('the About page reports the engine and what is switched off', async () => {
   b = await TestBrowser.launch();
   await b.cmd('showAbout');
-  const about = await b.tabPage('noai://settings/');
+  const about = await b.tabPage('potato://settings/');
   await expect(about.getByTestId('about-version')).toContainText(/Version \d+\.\d+\.\d+ · Chromium \d+/);
   const report = about.getByTestId('engine-report');
   for (const f of ['AIPromptAPI', 'AISummarizationAPI', 'TranslationAPI', 'LanguageDetectionAPI', 'AIWriterAPI', 'AIRewriterAPI']) {
@@ -54,10 +54,10 @@ test('the About page reports the engine and what is switched off', async () => {
 test('internal pages expose their API only to themselves', async () => {
   b = await TestBrowser.launch();
   const web = await b.goto('https://site.test/');
-  expect(await web.evaluate(() => typeof (window as any).noai)).toBe('undefined');
+  expect(await web.evaluate(() => typeof (window as any).potato)).toBe('undefined');
   await b.cmd('showHistory');
-  const history = await b.tabPage('noai://history/');
-  expect(await history.evaluate(() => typeof (window as any).noai?.call)).toBe('function');
+  const history = await b.tabPage('potato://history/');
+  expect(await history.evaluate(() => typeof (window as any).potato?.call)).toBe('function');
 });
 
 test('every AI Shield selector is valid CSS in this Chromium', async () => {

@@ -1,6 +1,6 @@
 import { dialog, WebContentsView, type WebContents, type WebPreferences, type Session } from 'electron';
 import type { FlagTabState, Security, ShieldTabState, TabState } from '../shared/types';
-import { isInternalUrl, isNewTabUrl, NEW_TAB_URL, nextZoom, siteKey } from '../shared/urls';
+import { isInternalUrl, isNewTabUrl, migrateLegacyUrl, NEW_TAB_URL, nextZoom, siteKey } from '../shared/urls';
 import { ctx } from './context';
 import { errorPageHtml } from './errorpage';
 import { paths } from './paths';
@@ -111,6 +111,7 @@ export class Tab {
   }
 
   navigate(url: string, opts: { typed?: boolean } = {}): void {
+    url = migrateLegacyUrl(url);
     this.typedPending = !!opts.typed;
     this.crashed = false;
     if (!this.lastUrl) this.lastUrl = url;
@@ -310,7 +311,7 @@ export class Tab {
       // A new renderer shows the crash page; its button reloads the original URL.
       const failed = this.lastUrl;
       setTimeout(() => {
-        if (!this.wc.isDestroyed()) this.navigate(`noai://error/?reason=crashed&url=${encodeURIComponent(failed)}`);
+        if (!this.wc.isDestroyed()) this.navigate(`potato://error/?reason=crashed&url=${encodeURIComponent(failed)}`);
       }, 50);
     });
     wc.on('audio-state-changed', update);
@@ -332,12 +333,12 @@ export class Tab {
     });
     wc.on('will-navigate', (event) => this.guardNavigation(event, event.url));
     wc.on('will-frame-navigate', (event) => {
-      if (!event.isMainFrame && event.url.startsWith('noai://')) event.preventDefault();
+      if (!event.isMainFrame && event.url.startsWith('potato://')) event.preventDefault();
     });
     wc.setWindowOpenHandler((details) => {
       const { url, disposition } = details;
       const opener = this.url;
-      if (url.startsWith('noai://') && !isInternalUrl(opener)) return { action: 'deny' };
+      if (url.startsWith('potato://') && !isInternalUrl(opener)) return { action: 'deny' };
       if (/^(javascript|file|chrome|devtools|view-source):/i.test(url)) return { action: 'deny' };
       return {
         action: 'allow',
@@ -357,13 +358,13 @@ export class Tab {
   }
 
   private guardNavigation(event: Electron.Event, url: string): void {
-    if (url.startsWith('noai://action/')) {
+    if (url.startsWith('potato://action/')) {
       event.preventDefault();
       void this.handleAction(url);
       return;
     }
     // Web pages may not navigate into privileged internal pages (except the new tab page).
-    if (url.startsWith('noai://') && !isInternalUrl(this.url) && !url.startsWith(NEW_TAB_URL)) {
+    if (url.startsWith('potato://') && !isInternalUrl(this.url) && !url.startsWith(NEW_TAB_URL)) {
       event.preventDefault();
     }
   }

@@ -77,7 +77,7 @@ const KNOWN_SCHEMES = new Set([
   'http:',
   'https:',
   'file:',
-  'noai:',
+  'potato:',
   'about:',
   'data:',
   'view-source:',
@@ -153,14 +153,19 @@ export function resolveInput(raw: string, engine: SearchEngineId): string | null
   return t.type === 'url' ? t.url : searchUrl(engine, t.query);
 }
 
-export const NEW_TAB_URL = 'noai://newtab/';
+export const NEW_TAB_URL = 'potato://newtab/';
 
 export function isNewTabUrl(url: string): boolean {
-  return url === NEW_TAB_URL || url === 'noai://newtab' || url === 'about:blank#newtab';
+  return url === NEW_TAB_URL || url === 'potato://newtab' || url === 'about:blank#newtab';
+}
+
+/** Internal URLs saved before the rename (noai://) open as their potato:// equivalent. */
+export function migrateLegacyUrl(url: string): string {
+  return url.startsWith('noai://') ? `potato://${url.slice('noai://'.length)}` : url;
 }
 
 export function isInternalUrl(url: string): boolean {
-  return url.startsWith('noai://');
+  return url.startsWith('potato://');
 }
 
 /** URL shown in the omnibox: empty for the new tab page, otherwise the full URL. */

@@ -1,4 +1,4 @@
-import type { Platform } from '@noai/shared';
+import type { Platform } from '@potato/shared';
 
 export type FlagMode = 'hide' | 'label' | 'ignore';
 export type Theme = 'system' | 'light' | 'dark';

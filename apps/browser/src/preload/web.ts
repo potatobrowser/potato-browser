@@ -7,14 +7,14 @@ import { ShieldEngine } from '../content/shield/engine';
 import { GOOGLE_SIGNIN_HOSTS, GOOGLE_SIGNIN_UA } from '../shared/constants';
 import type { PageConfig } from '../shared/types';
 
-/** Internal noai:// pages get a small promise-based API; everything is validated in main. */
+/** Internal potato:// pages get a small promise-based API; everything is validated in main. */
 function exposeInternalApi(): void {
-  contextBridge.exposeInMainWorld('noai', {
-    call: (method: string, ...args: unknown[]) => ipcRenderer.invoke('noai:api', method, ...args),
+  contextBridge.exposeInMainWorld('potato', {
+    call: (method: string, ...args: unknown[]) => ipcRenderer.invoke('potato:api', method, ...args),
     onEvent: (cb: (e: { type: string }) => void) => {
       const l = (_e: IpcRendererEvent, ev: { type: string }) => cb(ev);
-      ipcRenderer.on('noai:event', l);
-      return () => ipcRenderer.off('noai:event', l);
+      ipcRenderer.on('potato:event', l);
+      return () => ipcRenderer.off('potato:event', l);
     },
   });
 }
@@ -99,7 +99,7 @@ function startWebPage(): void {
   });
 }
 
-if (location.protocol === 'noai:') {
+if (location.protocol === 'potato:') {
   if (window === window.top) exposeInternalApi();
 } else if (location.protocol === 'http:' || location.protocol === 'https:') {
   startWebPage();

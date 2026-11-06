@@ -8,7 +8,7 @@ import {
   type FlagResponse,
   type LookupItem,
   type ReleaseInfo,
-} from '@noai/shared';
+} from '@potato/shared';
 import { DAILY_FLAG_CAP, networkBucket, voterId } from './lib';
 
 export interface Env {

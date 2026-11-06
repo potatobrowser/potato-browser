@@ -1,10 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="262 262 500 500">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="9 8 100 100">
   <defs>
-    <mask id="m" maskUnits="userSpaceOnUse" x="262" y="262" width="500" height="500">
-      <rect x="262" y="262" width="500" height="500" fill="#fff"/>
-      <line x1="312" y1="712" x2="712" y2="312" stroke="#000" stroke-width="120" stroke-linecap="round"/>
-    </mask>
+    <linearGradient id="skin" x1="0.15" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#EDC384"/>
+      <stop offset="1" stop-color="#C38B44"/>
+    </linearGradient>
   </defs>
-  <path mask="url(#m)" d="M512 262c20 145 105 230 250 250c-145 20-230 105-250 250c-20-145-105-230-250-250c145-20 230-105 250-250z" fill="#000"/>
-  <line x1="312" y1="712" x2="712" y2="312" stroke="#E5322D" stroke-width="64" stroke-linecap="round"/>
+  <g transform="rotate(-24 50 50)">
+    <path d="M12 52C10 34 26 22 44 23C52 23.5 56 27 64 25C80 21 92 34 90 50C88 68 74 78 54 77C42 76.5 38 79 28 77C16 74 13 64 12 52Z" fill="url(#skin)" stroke="#8A5B26" stroke-width="3.5" stroke-linejoin="round"/>
+    <g fill="#7A4E20">
+      <ellipse cx="32" cy="43" rx="3.4" ry="2.4"/>
+      <ellipse cx="62" cy="36" rx="3.4" ry="2.4"/>
+      <ellipse cx="71" cy="59" rx="3.4" ry="2.4"/>
+      <ellipse cx="44" cy="64" rx="3.4" ry="2.4"/>
+    </g>
+  </g>
 </svg>

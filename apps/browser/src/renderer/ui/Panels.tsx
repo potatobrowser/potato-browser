@@ -1,4 +1,4 @@
-import { PLATFORM_LABELS } from '@noai/shared';
+import { PLATFORM_LABELS } from '@potato/shared';
 import type { DownloadItemState, TabState } from '../../shared/types';
 import { chrome, formatBytes } from '../shared/api';
 import { Download, File, Flag, Shield } from '../shared/icons';

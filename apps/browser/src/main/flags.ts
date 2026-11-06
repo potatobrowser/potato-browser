@@ -6,7 +6,7 @@ import {
   parseContentKey,
   type FlagResponse,
   type LookupResponse,
-} from '@noai/shared';
+} from '@potato/shared';
 import type { FlagStatus } from '../shared/types';
 import { ctx } from './context';
 import { apiBase } from './paths';

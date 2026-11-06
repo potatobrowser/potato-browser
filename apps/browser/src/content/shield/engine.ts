@@ -2,8 +2,8 @@ import { RULES } from './rules';
 import { ruleMatchesHost, ruleMatchesPath } from './match';
 import type { HideTarget, Matcher, PlaceholderRewrite, ShieldFeature, ShieldRule } from './types';
 
-export const HIDDEN_ATTR = 'data-noai-hidden';
-const PLACEHOLDER_ATTR = 'data-noai-placeholder';
+export const HIDDEN_ATTR = 'data-potato-hidden';
+const PLACEHOLDER_ATTR = 'data-potato-placeholder';
 
 export interface ShieldReport {
   count: number;

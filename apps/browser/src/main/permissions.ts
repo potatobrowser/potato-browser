@@ -74,7 +74,7 @@ export class PermissionManager {
       if (ALWAYS_ALLOW.has(permission)) return callback(true);
       if (!PROMPTABLE.has(permission)) return callback(false);
       const origin = originOf((details as any).requestingUrl ?? wc?.getURL());
-      if (!origin || origin.startsWith('noai:')) return callback(permission !== 'openExternal' && origin.startsWith('noai:'));
+      if (!origin || origin.startsWith('potato:')) return callback(permission !== 'openExternal' && origin.startsWith('potato:'));
       const { kind, text } = describe(permission, details as Record<string, any>);
       const key = `perm:${kind}`;
       const stored = this.decision(origin, key, isPrivate);
@@ -99,7 +99,7 @@ export class PermissionManager {
     ses.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) => {
       if (ALWAYS_ALLOW.has(permission)) return true;
       const origin = originOf(requestingOrigin);
-      if (origin.startsWith('noai:')) return true;
+      if (origin.startsWith('potato:')) return true;
       if (permission === 'media') {
         // A combined grant covers both devices; single grants cover their own device.
         const single = details.mediaType === 'video' ? 'perm:camera' : details.mediaType === 'audio' ? 'perm:microphone' : null;
@@ -144,7 +144,7 @@ export class PermissionManager {
   }
 
   private async ensureSystemMediaAccess(types: string[]): Promise<boolean> {
-    if (process.platform !== 'darwin' || process.env.NOAI_TEST === '1') return true;
+    if (process.platform !== 'darwin' || process.env.POTATO_TEST === '1') return true;
     for (const t of types) {
       const media = t === 'video' ? 'camera' : t === 'audio' ? 'microphone' : null;
       if (!media) continue;

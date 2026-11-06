@@ -1,4 +1,4 @@
-import type { Platform } from '@noai/shared';
+import type { Platform } from '@potato/shared';
 
 export interface MountPoint {
   parent: Element;

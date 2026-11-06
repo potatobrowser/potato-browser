@@ -80,7 +80,7 @@ function safariProfile(dir: string): void {
 
 /** Builds a fake home directory with Chrome (two profiles), Firefox and Safari data. */
 export function makeFakeHome(): string {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'noai-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-home-'));
   const chrome = path.join(home, 'Library', 'Application Support', 'Google', 'Chrome');
   fs.mkdirSync(chrome, { recursive: true });
   fs.writeFileSync(

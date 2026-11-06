@@ -1,9 +1,9 @@
 {
-  "name": "@noai/browser",
-  "productName": "No-AI Browser",
-  "version": "0.1.2",
+  "name": "@potato/browser",
+  "productName": "Potato Browser",
+  "version": "0.2.0",
   "description": "A Chromium-based browser for the human web. AI features hidden, no AI in the engine.",
-  "author": "No-AI Browser",
+  "author": "Potato Browser",
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "release": "node scripts/release.mjs"
   },
   "devDependencies": {
-    "@noai/shared": "workspace:*",
+    "@potato/shared": "workspace:*",
     "@electron/fuses": "2.1.3",
     "@playwright/test": "1.65.0",
     "@types/node": "24.19.2",

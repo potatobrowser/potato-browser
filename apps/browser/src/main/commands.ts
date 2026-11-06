@@ -15,8 +15,8 @@ function tab() {
 /** Opens an internal page, reusing a tab that already shows it. */
 export function openInternal(page: string, hash = ''): void {
   const w = win() ?? ctx.windows.createWindow();
-  const url = `noai://${page}/${hash}`;
-  const existing = w.tabs.find((t) => t.url.startsWith(`noai://${page}/`));
+  const url = `potato://${page}/${hash}`;
+  const existing = w.tabs.find((t) => t.url.startsWith(`potato://${page}/`));
   if (existing) {
     w.activate(existing);
     if (hash && existing.url !== url) existing.navigate(url);
@@ -81,7 +81,7 @@ export const commands = {
   },
   bookmarkPage: () => {
     const t = tab();
-    if (!t || !t.url || t.url.startsWith('noai://newtab')) return;
+    if (!t || !t.url || t.url.startsWith('potato://newtab')) return;
     if (ctx.db.isBookmarked(t.url)) ctx.db.removeBookmarksByUrl(t.url);
     else ctx.db.addBookmark({ title: t.title || t.url, url: t.url });
     bookmarksChanged();

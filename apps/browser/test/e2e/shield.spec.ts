@@ -149,7 +149,7 @@ test('the global switch in Settings shows everything again', async () => {
   await hidden(page, ['#aio-css']);
 
   await b.cmd('showSettings');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   await settings.getByTestId('shield-global-toggle').click();
   expect((await b.settings()).shield.enabled).toBe(false);
 
@@ -162,7 +162,7 @@ test('the global switch in Settings shows everything again', async () => {
 test('settings list per-site exceptions and can remove them', async () => {
   b = await TestBrowser.launch({ settings: { shield: { enabled: true, disabledSites: ['bing.com', 'google.com'], disabledRules: [] } } });
   await b.cmd('showSettings');
-  const settings = await b.tabPage('noai://settings/');
+  const settings = await b.tabPage('potato://settings/');
   const list = settings.getByTestId('shield-exceptions');
   await expect(list).toContainText('bing.com');
   await list.getByRole('button', { name: 'Hide AI on bing.com again' }).click();

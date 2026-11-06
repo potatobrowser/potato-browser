@@ -1,7 +1,7 @@
 /** Injected UI for flags: a button per post and a placeholder for hidden posts (shadow DOM). */
 
-export const BUTTON_TAG = 'noai-flag';
-export const PLACEHOLDER_TAG = 'noai-flag-hidden';
+export const BUTTON_TAG = 'potato-flag';
+export const PLACEHOLDER_TAG = 'potato-flag-hidden';
 
 const BUTTON_CSS = `
 :host { all: initial; display: inline-flex; vertical-align: middle; margin: 0 4px; z-index: 1; position: relative; }

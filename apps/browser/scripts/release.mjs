@@ -8,7 +8,7 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const web = path.resolve(root, '../web');
-const site = process.env.NOAI_SITE || 'https://noaibrowser.laszlo-kiss27.workers.dev';
+const site = process.env.POTATO_SITE || 'https://noaibrowser.laszlo-kiss27.workers.dev';
 const bucket = 'noaibrowser-releases';
 const args = process.argv.slice(2);
 const notesIdx = args.indexOf('--notes');
@@ -26,7 +26,7 @@ const files = {};
 const sizes = {};
 const sha256 = {};
 for (const arch of ['arm64', 'x64']) {
-  const name = `No-AI-Browser-${version}-${arch}.dmg`;
+  const name = `Potato-Browser-${version}-${arch}.dmg`;
   const file = path.join(root, 'release', name);
   if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
   const buf = fs.readFileSync(file);
@@ -38,7 +38,7 @@ for (const arch of ['arm64', 'x64']) {
 }
 
 const manifest = { version, date: new Date().toISOString().slice(0, 10), notes, files, sizes, sha256 };
-const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'noai-release-')), 'latest.json');
+const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'potato-release-')), 'latest.json');
 fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2));
 wrangler('r2', 'object', 'put', `${bucket}/latest.json`, '--file', tmp, '--content-type', 'application/json', '--cache-control', 'no-cache', '--remote');
 

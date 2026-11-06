@@ -1,5 +1,5 @@
 import { net } from 'electron';
-import { compareVersions, type ReleaseInfo } from '@noai/shared';
+import { compareVersions, type ReleaseInfo } from '@potato/shared';
 import { ctx } from './context';
 import { apiBase, APP_VERSION, isTest } from './paths';
 

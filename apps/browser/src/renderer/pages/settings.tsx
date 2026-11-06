@@ -1,4 +1,4 @@
-import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@noai/shared';
+import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@potato/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
@@ -29,7 +29,7 @@ function General({ s, update }: { s: Settings; update: Update }) {
   useEffect(() => void call<boolean>('app.isDefaultBrowser').then(setDefault), []);
   return (
     <Card title="General" id="general">
-      <Row title="Default browser" hint={isDefault ? 'No-AI Browser opens your links.' : 'Open links from other apps in No-AI Browser.'}>
+      <Row title="Default browser" hint={isDefault ? 'Potato Browser opens your links.' : 'Open links from other apps in Potato Browser.'}>
         {isDefault ? (
           <span className="pill ok">Default</span>
         ) : (
@@ -53,7 +53,7 @@ function General({ s, update }: { s: Settings; update: Update }) {
       </Row>
       {s.startup === 'homepage' && (
         <Row title="Home page">
-          <input className="input wide" defaultValue={s.homepage} onBlur={(e) => void update({ homepage: e.target.value.trim() || 'noai://newtab/' })} />
+          <input className="input wide" defaultValue={s.homepage} onBlur={(e) => void update({ homepage: e.target.value.trim() || 'potato://newtab/' })} />
         </Row>
       )}
       <Row title="Search engine" hint={engine?.note}>
@@ -370,11 +370,11 @@ function About() {
   useEffect(() => void call<AppInfo>('app.info').then(setInfo), []);
   if (!info) return null;
   return (
-    <Card title="About No-AI Browser" id="about">
+    <Card title="About Potato Browser" id="about">
       <div className="about-head">
-        <BrandMark size={52} color="var(--ink)" />
+        <BrandMark size={52} />
         <div>
-          <h3>No-AI Browser</h3>
+          <h3>Potato Browser</h3>
           <p className="muted" data-testid="about-version">
             Version {info.version} · Chromium {info.chromium}
           </p>
@@ -445,7 +445,7 @@ function SettingsPage() {
     <div className="settings">
       <nav className="side" aria-label="Settings sections">
         <div className="side-brand">
-          <BrandMark size={22} color="var(--ink)" /> Settings
+          <BrandMark size={22} /> Settings
         </div>
         {SECTIONS.map(([id, label]) => (
           <a key={id} href={`#${id}`} className={active === id ? 'on' : ''}>

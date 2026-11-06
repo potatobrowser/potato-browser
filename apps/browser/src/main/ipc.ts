@@ -1,5 +1,5 @@
 import { app, dialog, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron';
-import { isPlatform } from '@noai/shared';
+import { isPlatform } from '@potato/shared';
 import type { ClearDataOptions, SettingsPatch } from '../shared/types';
 import { NEW_TAB_URL, resolveInput, SEARCH_ENGINES } from '../shared/urls';
 import { commands, openInternal } from './commands';
@@ -69,7 +69,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
     }
     case 'nav.open': {
       const url = str(cmd.url);
-      if (!/^(https?|noai|file|about|view-source|data):/i.test(url)) break;
+      if (!/^(https?|potato|file|about|view-source|data):/i.test(url)) break;
       if (cmd.newTab || !active) win.newTab(url, { typed: true, background: !!cmd.background });
       else {
         active.navigate(url, { typed: true });
@@ -164,7 +164,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
   }
 }
 
-/** Methods available to internal noai:// pages through `window.noai.call(method, ...args)`. */
+/** Methods available to internal potato:// pages through `window.potato.call(method, ...args)`. */
 const internalApi: Record<string, (...args: any[]) => unknown> = {
   'settings.get': () => {
     const s = ctx.settings.get();
@@ -287,7 +287,7 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
 
 function isInternalSender(e: IpcMainInvokeEvent | IpcMainEvent): boolean {
   const frame = e.senderFrame;
-  return !!frame && frame.parent === null && frame.url.startsWith('noai://') && !!ctx.windows.tabFor(e.sender);
+  return !!frame && frame.parent === null && frame.url.startsWith('potato://') && !!ctx.windows.tabFor(e.sender);
 }
 
 export function registerIpc(): void {
@@ -300,7 +300,7 @@ export function registerIpc(): void {
     return suggest(str(text, 2000));
   });
 
-  ipcMain.handle('noai:api', async (e, method: unknown, ...args: unknown[]) => {
+  ipcMain.handle('potato:api', async (e, method: unknown, ...args: unknown[]) => {
     if (!isInternalSender(e) || typeof method !== 'string' || !(method in internalApi)) {
       throw new Error('Not allowed');
     }

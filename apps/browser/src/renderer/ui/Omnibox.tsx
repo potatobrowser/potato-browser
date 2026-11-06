@@ -142,7 +142,7 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
   };
 
   const pretty = prettyUrl(url);
-  const showPretty = !editing && !!url && !url.startsWith('noai://');
+  const showPretty = !editing && !!url && !url.startsWith('potato://');
   const security = tab?.security ?? 'none';
 
   return (
@@ -194,7 +194,7 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
           {Math.round(tab.zoom * 100)}%
         </button>
       ) : null}
-      {tab && tab.url && !tab.url.startsWith('noai://') ? (
+      {tab && tab.url && !tab.url.startsWith('potato://') ? (
         <button
           className={`omni-btn${tab.bookmarked ? ' active' : ''}`}
           data-testid="bookmark-star"

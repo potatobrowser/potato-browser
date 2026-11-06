@@ -151,8 +151,38 @@ export const File = (p: P) => (
   </Svg>
 );
 
-/** The brand mark: an AI "sparkle" struck through (same drawing as the app icon). */
-export function BrandMark({ size = 24, strike = '#E5322D', color = 'currentColor' }: { size?: number; strike?: string; color?: string }) {
+/** The brand mark: a potato (same drawing as the app icon). */
+export function BrandMark({ size = 24 }: { size?: number }) {
+  const id = useId().replace(/:/g, '');
+  return (
+    <svg width={size} height={size} viewBox="9 8 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id={`p${id}`} x1="0.15" y1="0.1" x2="0.85" y2="0.95">
+          <stop offset="0" stopColor="#EDC384" />
+          <stop offset="1" stopColor="#C38B44" />
+        </linearGradient>
+      </defs>
+      <g transform="rotate(-24 50 50)">
+        <path
+          d="M12 52C10 34 26 22 44 23C52 23.5 56 27 64 25C80 21 92 34 90 50C88 68 74 78 54 77C42 76.5 38 79 28 77C16 74 13 64 12 52Z"
+          fill={`url(#p${id})`}
+          stroke="#8A5B26"
+          strokeWidth="3.5"
+          strokeLinejoin="round"
+        />
+        <g fill="#7A4E20">
+          <ellipse cx="32" cy="43" rx="3.4" ry="2.4" />
+          <ellipse cx="62" cy="36" rx="3.4" ry="2.4" />
+          <ellipse cx="71" cy="59" rx="3.4" ry="2.4" />
+          <ellipse cx="44" cy="64" rx="3.4" ry="2.4" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/** An AI "sparkle" struck through. */
+export function NoAi({ size = 16, strike = '#E5322D', color = 'currentColor' }: { size?: number; strike?: string; color?: string }) {
   const id = useId().replace(/:/g, '');
   return (
     <svg width={size} height={size} viewBox="262 262 500 500" aria-hidden="true">

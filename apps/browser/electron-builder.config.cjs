@@ -1,12 +1,12 @@
-// electron-builder configuration. NOAI_TEST_BUILD=1 keeps the Node inspector fuse on so the
+// electron-builder configuration. POTATO_TEST_BUILD=1 keeps the Node inspector fuse on so the
 // e2e suite (Playwright) can drive the packaged app; release builds turn it off.
-const testBuild = process.env.NOAI_TEST_BUILD === '1';
+const testBuild = process.env.POTATO_TEST_BUILD === '1';
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
-  appId: 'com.noaibrowser.app',
-  productName: 'No-AI Browser',
-  copyright: 'No-AI Browser',
+  appId: 'com.potatobrowser.app',
+  productName: 'Potato Browser',
+  copyright: 'Potato Browser',
   directories: { output: testBuild ? 'release/test' : 'release', buildResources: 'build' },
   files: ['dist/**/*', 'package.json', '!**/*.map'],
   extraResources: [{ from: '../../THIRD_PARTY_NOTICES.md', to: 'THIRD_PARTY_NOTICES.md' }],
@@ -41,8 +41,8 @@ module.exports = {
     },
   },
   dmg: {
-    title: 'No-AI Browser ${version}',
-    artifactName: 'No-AI-Browser-${version}-${arch}.${ext}',
+    title: 'Potato Browser ${version}',
+    artifactName: 'Potato-Browser-${version}-${arch}.${ext}',
     background: 'build/dmg-background.png',
     window: { width: 540, height: 380 },
     iconSize: 96,

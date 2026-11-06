@@ -2,16 +2,16 @@ import { EventEmitter } from 'node:events';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { isPlatform } from '@noai/shared';
+import { isPlatform } from '@potato/shared';
 import type { FlagMode, SearchEngineId, Settings, SettingsPatch, StartupMode, Theme } from '../shared/types';
-import { SEARCH_ENGINES } from '../shared/urls';
+import { migrateLegacyUrl, SEARCH_ENGINES } from '../shared/urls';
 import { JsonFile } from './store';
 
 export function defaultSettings(): Settings {
   return {
     version: 1,
     startup: 'restore',
-    homepage: 'noai://newtab/',
+    homepage: 'potato://newtab/',
     searchEngine: 'duckduckgo',
     searchSuggestions: true,
     showBookmarksBar: true,
@@ -41,7 +41,7 @@ export function sanitizeSettings(raw: unknown): Settings {
   return {
     version: 1,
     startup: oneOf<StartupMode>(r.startup, ['restore', 'newtab', 'homepage'], d.startup),
-    homepage: str(r.homepage, d.homepage),
+    homepage: migrateLegacyUrl(str(r.homepage, d.homepage)),
     searchEngine: oneOf<SearchEngineId>(r.searchEngine, engines, d.searchEngine),
     searchSuggestions: bool(r.searchSuggestions, d.searchSuggestions),
     showBookmarksBar: bool(r.showBookmarksBar, d.showBookmarksBar),

@@ -7,7 +7,7 @@ import { BOOKMARKS_BAR_ID, OTHER_BOOKMARKS_ID, ProfileDb } from '../../src/main/
 let db: ProfileDb;
 let dir: string;
 beforeEach(() => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'noai-db-'));
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-db-'));
   db = new ProfileDb(path.join(dir, 'Profile.sqlite'));
 });
 afterEach(() => {

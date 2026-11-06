@@ -6,7 +6,7 @@ export type What = { bookmarks: boolean; history: boolean };
 /** 'access': waiting for the user to allow Full Disk Access in System Settings. */
 export type ImportState = 'busy' | 'access' | ImportResult;
 
-const PENDING_KEY = 'noai.pendingImport';
+const PENDING_KEY = 'potato.pendingImport';
 
 function readPending(): { id: string; what: What } | null {
   try {
@@ -100,7 +100,7 @@ export function AccessSteps({ browser, onRecheck, onCancel }: { browser: string;
       <p className="access-title">System Settings opened on Full Disk Access</p>
       <ol>
         <li>
-          Switch on <strong>No-AI Browser</strong>. Not in the list? Click <strong>+</strong> and pick it in Applications.
+          Switch on <strong>Potato Browser</strong>. Not in the list? Click <strong>+</strong> and pick it in Applications.
         </li>
         <li>Come back here. The {browser} import starts on its own.</li>
       </ol>

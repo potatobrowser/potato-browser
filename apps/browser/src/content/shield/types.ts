@@ -5,7 +5,7 @@
  *  - `css`: selectors hidden with a user-origin `display:none !important` stylesheet injected at
  *    document start (user !important beats any page style, so nothing flashes), and/or
  *  - `match`: JS heuristics for things without stable selectors (visible text, aria-labels).
- *    Matches mark an ancestor with `data-noai-hidden`, which the same stylesheet hides, so turning
+ *    Matches mark an ancestor with `data-potato-hidden`, which the same stylesheet hides, so turning
  *    the shield off for a site is a single stylesheet removal.
  * Rules may also rewrite AI search placeholders and block requests that only serve AI answers
  * (the latter is applied by the main process).

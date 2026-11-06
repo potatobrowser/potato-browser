@@ -24,7 +24,7 @@ function NewTab() {
   return (
     <main className="ntp">
       <div className="ntp-brand">
-        <BrandMark size={44} color="var(--ink)" />
+        <BrandMark size={44} />
       </div>
       <form
         className="ntp-search search"

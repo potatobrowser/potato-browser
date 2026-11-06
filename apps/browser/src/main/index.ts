@@ -19,7 +19,7 @@ import { UpdateChecker } from './updates';
 import { WindowManager } from './windows';
 
 // ---- before ready: identity, engine switches, schemes -----------------------------------------
-app.setName('No-AI Browser');
+app.setName('Potato Browser');
 configureUserData();
 applyEngineSwitches();
 app.userAgentFallback = chromeUserAgent();
@@ -99,14 +99,14 @@ app.whenReady().then(() => {
   // Internal pages re-check permissions (Full Disk Access, default browser) when the user returns.
   app.on('did-become-active', () => notifyInternalPages({ type: 'app-active' }));
 
-  const firstRun = !ctx.settings.get().firstRunDone && process.env.NOAI_SKIP_WELCOME !== '1';
+  const firstRun = !ctx.settings.get().firstRunDone && process.env.POTATO_SKIP_WELCOME !== '1';
   ready = true;
   ctx.windows.restoreOrOpen(firstRun, pendingUrls.splice(0));
   ctx.updates.start();
 
   if (isTest()) {
     // Lets Playwright drive the same code paths as menus and shortcuts.
-    (globalThis as Record<string, unknown>).__noai = { ctx, commands, openInternal };
+    (globalThis as Record<string, unknown>).__potato = { ctx, commands, openInternal };
   }
 });
 

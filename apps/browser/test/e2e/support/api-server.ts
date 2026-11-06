@@ -24,7 +24,7 @@ export interface ApiServer {
 
 /** Runs the real flags Worker under `wrangler dev` with a throwaway local D1. */
 export async function startApiServer(): Promise<ApiServer> {
-  const persist = fs.mkdtempSync(path.join(os.tmpdir(), 'noai-d1-'));
+  const persist = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-d1-'));
   const wrangler = path.join(WEB, 'node_modules', '.bin', 'wrangler');
   const migrate = spawnSync(wrangler, ['d1', 'migrations', 'apply', 'noaibrowser', '--local', '--persist-to', persist], {
     cwd: WEB,

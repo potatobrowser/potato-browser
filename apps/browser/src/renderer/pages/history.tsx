@@ -55,7 +55,7 @@ function History() {
               Delete {selected.size} selected
             </button>
           )}
-          <a className="btn" href="noai://settings/#privacy">
+          <a className="btn" href="potato://settings/#privacy">
             Clear browsing data
           </a>
         </div>

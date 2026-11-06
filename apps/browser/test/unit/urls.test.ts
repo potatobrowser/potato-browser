@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyInput, displayUrl, hostMatches, nextZoom, prettyUrl, resolveInput, searchUrl, siteKey } from '../../src/shared/urls';
+import { classifyInput, displayUrl, hostMatches, migrateLegacyUrl, nextZoom, prettyUrl, resolveInput, searchUrl, siteKey } from '../../src/shared/urls';
 
 describe('classifyInput', () => {
   it.each([
@@ -13,7 +13,7 @@ describe('classifyInput', () => {
     ['192.168.1.10:8080/admin', 'http://192.168.1.10:8080/admin'],
     ['myhost:8080', 'http://myhost:8080/'],
     ['xn--bcher-kva.example', 'https://xn--bcher-kva.example/'],
-    ['noai://settings', 'noai://settings'],
+    ['potato://settings', 'potato://settings'],
     ['about:blank', 'about:blank'],
     ['file:///Users/me/a.html', 'file:///Users/me/a.html'],
   ])('%s is a URL', (input, url) => {
@@ -41,7 +41,12 @@ describe('url helpers', () => {
   it('formats URLs for the omnibox', () => {
     expect(prettyUrl('https://www.example.com/a%20b?x=1')).toEqual({ host: 'example.com', rest: '/a b?x=1', scheme: 'https:' });
     expect(prettyUrl('https://example.com/')).toEqual({ host: 'example.com', rest: '', scheme: 'https:' });
-    expect(displayUrl('noai://newtab/')).toBe('');
+    expect(displayUrl('potato://newtab/')).toBe('');
+  });
+
+  it('opens internal URLs saved before the rename', () => {
+    expect(migrateLegacyUrl('noai://settings/#privacy')).toBe('potato://settings/#privacy');
+    expect(migrateLegacyUrl('https://noai.duckduckgo.com/')).toBe('https://noai.duckduckgo.com/');
   });
 
   it('matches sites for per-site exceptions', () => {

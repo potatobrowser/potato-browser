@@ -239,7 +239,7 @@ export class WindowManager {
       return;
     }
     if (firstRun) {
-      this.createWindow({ urls: ['noai://welcome/', ...links] });
+      this.createWindow({ urls: ['potato://welcome/', ...links] });
       return;
     }
     if (settings.startup === 'restore') {

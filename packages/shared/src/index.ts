@@ -37,6 +37,7 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
 export const PREFIX_HEX_LENGTH = 5;
 /** Max prefixes per lookup request (D1 binds at most 100 parameters per statement). */
 export const MAX_LOOKUP_PREFIXES = 100;
+/** Keeps the project's former name: every stored flag is keyed by it. */
 export const HASH_DOMAIN = 'noai-flag:v1:';
 
 export function isPlatform(value: unknown): value is Platform {

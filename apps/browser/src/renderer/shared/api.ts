@@ -15,7 +15,7 @@ export interface InternalApi {
 declare global {
   interface Window {
     chromeApi: ChromeApi;
-    noai: InternalApi;
+    potato: InternalApi;
   }
 }
 
@@ -23,11 +23,11 @@ export const chrome = () => window.chromeApi;
 
 /** Calls the main process from internal pages. */
 export function call<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
-  return window.noai.call<T>(method, ...args);
+  return window.potato.call<T>(method, ...args);
 }
 
 export function onInternalEvent(cb: (e: { type: string }) => void): () => void {
-  return window.noai?.onEvent(cb) ?? (() => {});
+  return window.potato?.onEvent(cb) ?? (() => {});
 }
 
 export function formatBytes(n: number): string {

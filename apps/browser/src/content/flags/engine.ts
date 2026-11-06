@@ -1,9 +1,9 @@
-import { contentKey } from '@noai/shared';
+import { contentKey } from '@potato/shared';
 import type { FlagMode } from '../../shared/types';
 import { BUTTON_TAG, createButton, createPlaceholder, PLACEHOLDER_TAG, type FlagButton } from './ui';
 import type { FlagAdapter, FlagsBridge, FlagStatus } from './types';
 
-export const FLAG_ATTR = 'data-noai-flag';
+export const FLAG_ATTR = 'data-potato-flag';
 
 export interface FlagsConfig {
   mode: FlagMode;
@@ -68,7 +68,7 @@ export class FlagsEngine {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['href', 'id', 'thingid', 'data-thingid', 'componentkey', 'video-id', 'data-noai-fbid'],
+        attributeFilter: ['href', 'id', 'thingid', 'data-thingid', 'componentkey', 'video-id', 'data-potato-fbid'],
       });
       this.scheduleScan(0);
     };

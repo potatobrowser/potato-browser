@@ -1,5 +1,5 @@
 {
-  "name": "@noai/web",
+  "name": "@potato/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.6.0",
     "@cloudflare/workers-types": "5.20261104.1",
-    "@noai/shared": "workspace:*",
+    "@potato/shared": "workspace:*",
     "typescript": "7.0.2",
     "vitest": "5.1.0",
     "wrangler": "4.158.0"

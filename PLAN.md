@@ -1,4 +1,4 @@
-# No-AI Browser: MVP plan
+# Potato Browser: MVP plan
 
 A macOS Chromium-based browser for people who want the web without AI.
 
@@ -29,9 +29,9 @@ A macOS Chromium-based browser for people who want the web without AI.
 ```
 apps/browser      Electron 45 (Chromium 156) app, TypeScript
   src/main        main process: windows, tabs, sessions, sqlite profile db, importers, flags client
-  src/preload     ui.ts (browser chrome), web.ts (every tab frame: shield + flags + noai:// pages API)
+  src/preload     ui.ts (browser chrome), web.ts (every tab frame: shield + flags + potato:// pages API)
   src/content     in-page engines: shield rules + heuristics, flag adapters + injected UI
-  src/renderer    React UI: chrome (tab strip, toolbar, popovers) and internal noai:// pages
+  src/renderer    React UI: chrome (tab strip, toolbar, popovers) and internal potato:// pages
   test            vitest unit tests, Playwright e2e (fixture sites served via https interception)
 apps/web          Cloudflare Worker: landing page (static assets), flags API (D1), downloads (R2)
 packages/shared   flag key format, hashing spec, API types shared by browser and worker
@@ -83,9 +83,9 @@ Key decisions:
 
 All nine milestones are done and committed.
 
-- Version 0.1.2 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
+- Version 0.2.0 is published: DMGs for Apple Silicon and Intel, ad-hoc signed, downloadable
   from https://noaibrowser.laszlo-kiss27.workers.dev with SHA-256 checksums.
-- Tests: 63 unit tests (shared 4, worker 11, browser 48) and 52 e2e tests, also run against the
+- Tests: 64 unit tests (shared 4, worker 11, browser 49) and 52 e2e tests, also run against the
   packaged app. The AI Shield was additionally checked on live Google (saved real SERP DOM),
   Bing, DuckDuckGo, YouTube, Amazon and Instagram; flag adapters on live Reddit, YouTube,
   Bluesky and Threads.
@@ -97,6 +97,10 @@ All nine milestones are done and committed.
 - 0.1.2 reworked the welcome page: search engine choice (DuckDuckGo or Google), flag modes
   shown as miniature feeds, numbered setup steps, a sticky Start browsing bar, and a guided
   Safari import that opens Full Disk Access and resumes on its own (also after a relaunch).
+- 0.2.0 renamed No-AI Browser to Potato Browser: name, potato app icon and brand mark,
+  `potato://` internal pages, `@potato/*` packages. Existing profiles move to the new folder on
+  first launch. The Worker, its URL, D1, R2 and the flag hash domain keep the old name (see
+  README, Former name).
 
 Open items: notarization (needs a Developer ID certificate), Google sign-in check with a real
 account, extensions and a password manager.

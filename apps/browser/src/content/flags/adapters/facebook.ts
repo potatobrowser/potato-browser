@@ -1,7 +1,7 @@
 import type { FlagAdapter } from '../types';
 import { all, linkUrl, outermost } from './util';
 
-export const FB_ID_ATTR = 'data-noai-fbid';
+export const FB_ID_ATTR = 'data-potato-fbid';
 
 const ACTION = '[data-ad-rendering-role="like_button"], [data-ad-rendering-role="comment_button"], [data-ad-rendering-role="share_button"]';
 const POST_CONTAINER = '[aria-posinset], [data-virtualized] > div, [role="article"]:not([aria-label]), [role="dialog"]';
@@ -104,12 +104,12 @@ export const facebook: FlagAdapter = {
 
 /**
  * Runs in the page's main world (React props are invisible to isolated scripts): walks each
- * post's React fiber to find its numeric post_id and writes it to `data-noai-fbid`.
+ * post's React fiber to find its numeric post_id and writes it to `data-potato-fbid`.
  */
 export function facebookPageWorldHelper(attr: string, actionSelector: string, containerSelector: string): void {
-  const w = window as unknown as { __noaiFb?: boolean };
-  if (w.__noaiFb) return;
-  w.__noaiFb = true;
+  const w = window as unknown as { __potatoFb?: boolean };
+  if (w.__potatoFb) return;
+  w.__potatoFb = true;
   const findId = (obj: unknown, depth: number, seen: Set<unknown>): string | null => {
     if (!obj || typeof obj !== 'object' || depth > 4 || seen.has(obj)) return null;
     seen.add(obj);
