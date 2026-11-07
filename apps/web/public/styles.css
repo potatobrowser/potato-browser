@@ -456,6 +456,141 @@ main > section.hero {
   max-width: var(--measure);
 }
 
+/* ---- ad blocker -------------------------------------------------------------------------------- */
+.ads {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: start;
+}
+.ads-copy {
+  display: grid;
+  gap: 22px;
+}
+.ads-copy p {
+  max-width: var(--measure);
+}
+.ads-copy .off {
+  margin: 4px 0 0;
+}
+.ads-demo {
+  margin: 0;
+}
+.ads-demo figcaption {
+  margin-top: 22px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.article .kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pen);
+}
+.article .headline {
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 800;
+  font-stretch: var(--semi);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 4px 0 10px;
+}
+.article .body-text {
+  font-size: 15.5px;
+  margin-bottom: 14px;
+}
+.ad-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.45s cubic-bezier(0.3, 0.7, 0.2, 1), margin 0.45s;
+  margin-bottom: 18px;
+}
+.ad-box {
+  position: relative;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 15px;
+}
+.ad-banner {
+  background: repeating-linear-gradient(135deg, #fff3b0 0 14px, #ffe680 14px 28px);
+  color: #4a3b00;
+  text-align: center;
+}
+.ad-inline {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 4px 14px;
+  align-items: center;
+  background: #f1f4f9;
+  color: #2c3a52;
+}
+.ad-inline .ad-tag {
+  grid-column: 1 / -1;
+}
+.ad-thumb {
+  width: 56px;
+  height: 42px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #ffd9a8 0%, #ff9bb3 60%, #9d8bff 100%);
+}
+.ad-tag {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.ad-head {
+  font-size: 21px;
+  font-weight: 800;
+  font-stretch: var(--semi);
+  letter-spacing: -0.01em;
+}
+.ad-head.small {
+  font-size: 16px;
+  line-height: 1.3;
+}
+.ad-sub {
+  font-size: 14px;
+}
+.trackers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+}
+.trackers s {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration-color: var(--pen);
+  text-decoration-thickness: 2px;
+}
+/* Ad boxes are wider than the AI box: longer dashes, or the undrawn stroke peeks through. */
+.ads-demo .pen path {
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+}
+.ads-demo.striking .pen path {
+  animation: strike 0.42s cubic-bezier(0.5, 0, 0.3, 1) forwards;
+}
+.ads-demo.striking .pen path + path {
+  animation-delay: 0.32s;
+}
+.ads-demo[data-ads='hidden'] .ad-wrap {
+  grid-template-rows: 0fr;
+  margin-bottom: 0;
+}
+.ads-demo[data-ads='hidden'] .pen path {
+  stroke-dashoffset: 0;
+}
+
 /* ---- engine ------------------------------------------------------------------------------------ */
 .engine {
   display: grid;
@@ -706,6 +841,7 @@ main > section.hero {
 /* ---- responsive --------------------------------------------------------------------------------- */
 @media (max-width: 960px) {
   .hero,
+  .ads,
   .engine,
   .flags,
   .section-head {
@@ -755,9 +891,11 @@ main > section.hero {
     scroll-behavior: auto;
   }
   .ai-wrap,
+  .ad-wrap,
   .post {
     transition: none;
   }
+  .ads-demo.striking .pen path,
   .demo.striking .pen path {
     animation: none;
     stroke-dashoffset: 0;

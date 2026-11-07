@@ -32,6 +32,44 @@
     else setTimeout(() => hideAi(true), 1100);
   }
 
+  // Ad blocker demo: the pen strikes each ad, then it folds away. Runs when scrolled into view.
+  const ads = document.querySelector('.ads-demo');
+  const mash = document.querySelector('[data-mash]');
+  const mashLabel = document.querySelector('[data-mash-label]');
+  let adsTimer = 0;
+  const setMash = (on) => {
+    mash.setAttribute('aria-pressed', String(on));
+    mashLabel.textContent = on ? 'Ads mashed' : 'Mash the ads';
+  };
+  const hideAds = (animate) => {
+    clearTimeout(adsTimer);
+    setMash(true);
+    if (!animate) {
+      ads.dataset.ads = 'hidden';
+      return;
+    }
+    ads.classList.add('striking');
+    adsTimer = setTimeout(() => (ads.dataset.ads = 'hidden'), 900);
+  };
+  const showAds = () => {
+    clearTimeout(adsTimer);
+    ads.classList.remove('striking');
+    ads.dataset.ads = 'shown';
+    setMash(false);
+  };
+  if (ads && mash) {
+    mash.addEventListener('click', () => (ads.dataset.ads === 'hidden' ? showAds() : hideAds(!reduce)));
+    if (reduce || !('IntersectionObserver' in window)) hideAds(false);
+    else {
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        if (mash.getAttribute('aria-pressed') === 'false') adsTimer = setTimeout(() => hideAds(true), 700);
+      }, { threshold: 0.6 });
+      io.observe(ads);
+    }
+  }
+
   // Flag modes.
   const notes = {
     label: 'Flagged posts stay in your feed with an AI label, like a sticker on the sack.',

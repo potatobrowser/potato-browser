@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Potato Browser: the web, no artificial ingredients</title>
-  <meta name="description" content="A fast Chromium browser for Mac that peels AI Overviews, chatbots and AI buttons off major sites, grows without AI in the engine, and lets people flag AI-generated posts. Grown, not generated.">
+  <meta name="description" content="A fast Chromium browser for Mac that peels AI Overviews, chatbots and AI buttons off major sites, mashes ads and trackers before they load, grows without AI in the engine, and lets people flag AI-generated posts. Grown, not generated.">
   <meta name="theme-color" content="#ffffff">
   <link rel="canonical" href="https://potatobrowser.com/">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta property="og:title" content="Potato Browser">
-  <meta property="og:description" content="Grown, not generated. A Mac browser that peels the AI off the web and lets people flag AI-generated posts.">
+  <meta property="og:description" content="Grown, not generated. A Mac browser that peels the AI off the web, mashes the ads and trackers, and lets people flag AI-generated posts.">
   <meta property="og:url" content="https://potatobrowser.com/">
   <meta property="og:image" content="https://potatobrowser.com/og.png">
   <meta property="og:type" content="website">
@@ -28,6 +28,7 @@
     </a>
     <nav aria-label="Primary">
       <a href="#hidden">What gets peeled</a>
+      <a href="#ads">Ad blocker</a>
       <a href="#flags">Flags</a>
       <a href="#source">Source</a>
       <a href="#faq">Questions</a>
@@ -39,7 +40,7 @@
     <section class="hero" aria-labelledby="hero-title">
       <h1 id="hero-title"><span>Grown,</span> <span>not generated.</span></h1>
       <div class="hero-copy">
-        <p class="lede">A fast Chromium browser for Mac that peels AI Overviews, chatbots and "help me write" buttons off the sites you use, and lets people flag AI-generated posts for each other. The web, with no artificial ingredients.</p>
+        <p class="lede">A fast Chromium browser for Mac that peels AI Overviews, chatbots and "help me write" buttons off the sites you use, mashes ads and trackers before they load, and lets people flag AI-generated posts for each other. The web, with no artificial ingredients.</p>
         <div class="cta-row">
           <a class="btn primary" href="/download/mac-arm64" data-download="arm64">Download for Mac</a>
           <a class="btn quiet" href="/download/mac-x64" data-download="x64">Intel Mac</a>
@@ -101,6 +102,61 @@
         <div><dt>GitHub, Stack Overflow, Notion</dt><dd><s>Copilot</s> <s>AI Assist</s> <s>Notion AI</s></dd></div>
       </dl>
       <p class="aside">The default search engine is DuckDuckGo with its AI switched off: plain results, like a plain baked potato. Prefer Google? Its plain web results are one click away in Settings.</p>
+    </section>
+
+    <section class="ads" id="ads" aria-labelledby="ads-title">
+      <div class="ads-copy">
+        <h2 id="ads-title">Ads and trackers, mashed</h2>
+        <p>Potato Browser comes with an ad blocker, switched on from the first page. Banners, pop-ups, video ads and the tracking scripts that follow you from site to site never load, so pages come up lighter and faster and nobody keeps notes on what you read.</p>
+        <p>It runs on the same open filter lists as uBlock Origin: EasyList, EasyPrivacy and uBlock's own, including the fixes that keep video ads off YouTube. Nothing to install, nothing to set up.</p>
+        <ul class="off" aria-label="What the ad blocker stops">
+          <li>Banner ads</li>
+          <li>Video ads</li>
+          <li>Pop-ups</li>
+          <li>Tracking pixels</li>
+          <li>Analytics scripts</li>
+        </ul>
+        <p class="fine">Want to support a site? The ad blocker button in the toolbar lets its ads through, there and nowhere else. Cookie banners and newsletter pop-ups can go too, one switch each in Settings. The lists freshen up daily through this site; the request names the lists, never you or the pages you visit.</p>
+      </div>
+
+      <figure class="ads-demo" data-ads="shown" aria-label="Example: a news article whose ads get struck out and mashed away">
+        <div class="win">
+          <div class="win-bar">
+            <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="win-url">the-daily-spud.example/record-potato</span>
+            <button class="shield" type="button" aria-pressed="false" data-mash>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.6 1.9h4.8l3.7 3.7v4.8l-3.7 3.7H5.6l-3.7-3.7V5.6z"/></svg>
+              <span data-mash-label>Mash the ads</span>
+            </button>
+          </div>
+          <div class="page article">
+            <div class="ad-wrap"><div class="ai-clip"><div class="ad-box ad-banner">
+              <span class="ad-tag">Advertisement</span>
+              <p class="ad-head">Buy 2 sacks, get 1 free!</p>
+              <p class="ad-sub">Limited time. Act now. Hurry. Seriously, hurry.</p>
+              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
+                <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
+              </svg>
+            </div></div></div>
+            <p class="kicker">Local news</p>
+            <p class="headline">Farmer grows an eleven pound potato</p>
+            <p class="body-text">The tuber broke the county record by two pounds. "I just kept hilling the rows," she said, holding it with both hands.</p>
+            <div class="ad-wrap"><div class="ai-clip"><div class="ad-box ad-inline">
+              <span class="ad-tag">Sponsored</span>
+              <span class="ad-thumb" aria-hidden="true"></span>
+              <p class="ad-head small">7 potato hacks doctors don't want you to know</p>
+              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
+                <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
+              </svg>
+            </div></div></div>
+            <p class="body-text">Judges will weigh the next contenders at the fair on Saturday.</p>
+            <p class="trackers"><span>Never loaded:</span> <s>doubleclick.net</s> <s>google-analytics.com</s> <s>facebook.net</s> <s>taboola.com</s></p>
+          </div>
+        </div>
+        <figcaption>Press the button to watch the ads get mashed. In the browser it happens before the page even loads.</figcaption>
+      </figure>
     </section>
 
     <section class="engine" aria-labelledby="engine-title">
@@ -196,11 +252,23 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
       </details>
       <details>
         <summary>Is it free?</summary>
-        <p>Yes, and open source under the MIT license. No account, no subscription, no ads. Cheaper than a sack of spuds.</p>
+        <p>Yes, and open source under the MIT license. No account, no subscription, and no ads (we block those). Cheaper than a sack of spuds.</p>
       </details>
       <details>
         <summary>Can I see the AI on a site when I actually want it?</summary>
         <p>Yes, and we won't judge. Click the shield in the toolbar and switch it off for that site. Everything comes back right away, on that site only. Settings has the full list of covered sites and features if you'd like to keep a few of them.</p>
+      </details>
+      <details>
+        <summary>Why block ads in a no-AI browser?</summary>
+        <p>Because they grow in the same patch. A lot of the generated filler on the web exists only to show ads, and the ad networks are the trackers that follow you from site to site. Keeping the web human means keeping those off your plate too.</p>
+      </details>
+      <details>
+        <summary>Will the ad blocker break sites?</summary>
+        <p>Rarely. It uses uBlock Origin's lists, which carry fixes for sites that misbehave and update every day. If a site still acts up, press the ad blocker button in the toolbar and switch it off for that site. The page reloads with everything back, on that site only.</p>
+      </details>
+      <details>
+        <summary>What does the ad blocker send?</summary>
+        <p>Nothing about you. All matching happens on your Mac. Once a day the browser asks this site which version of each filter list is current and downloads the ones that changed. The request names the lists, never you or the pages you visit. You can turn updates off in Settings.</p>
       </details>
       <details>
         <summary>Can't people just flag everything?</summary>
@@ -220,7 +288,7 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
       </details>
       <details>
         <summary>Does it support extensions and saved passwords?</summary>
-        <p>Not yet, they're still sprouting. Your password manager's own app works alongside it in the meantime.</p>
+        <p>Not yet, they're still sprouting. You won't miss an ad blocker extension, since one is built in. Your password manager's own app works alongside it in the meantime.</p>
       </details>
       <details>
         <summary>Windows or Linux?</summary>
