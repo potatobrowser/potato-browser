@@ -1,0 +1,115 @@
+name: PotatoBrowser
+options:
+  bundleIdPrefix: com.potatobrowser
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: G482FZWRVW
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.5.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+targets:
+  PotatoBrowser:
+    type: application
+    platform: iOS
+    sources:
+      - path: PotatoBrowser
+        type: syncedFolder
+      - path: WebResources
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.potatobrowser.app
+        PRODUCT_NAME: PotatoBrowser
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_FILE: Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Potato
+        CFBundleName: Potato Browser
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsInWebContent: true
+        NSCameraUsageDescription: Websites you allow can use the camera, for example for a video call.
+        NSMicrophoneUsageDescription: Websites you allow can use the microphone, for example for a video call.
+        NSLocationWhenInUseUsageDescription: Websites you allow can see your location, for example a map.
+        NSPhotoLibraryAddUsageDescription: Lets you save images from websites to your photos.
+  PotatoBrowserTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PotatoBrowserTests
+        type: syncedFolder
+    dependencies:
+      - target: PotatoBrowser
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.potatobrowser.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/PotatoBrowser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PotatoBrowser
+        BUNDLE_LOADER: $(TEST_HOST)
+  PotatoBrowserUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: PotatoBrowserUITests
+        type: syncedFolder
+    dependencies:
+      - target: PotatoBrowser
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.potatobrowser.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: PotatoBrowser
+schemes:
+  PotatoBrowser:
+    build:
+      targets:
+        PotatoBrowser: all
+        PotatoBrowserTests: [test]
+        PotatoBrowserUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - PotatoBrowserTests
+        - PotatoBrowserUITests
+    archive:
+      config: Release

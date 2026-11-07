@@ -192,3 +192,69 @@ All nine milestones are done and committed.
 
 Open items: Google sign-in check with a real account, extensions and a password manager,
 cookie encryption (possible now that releases are Developer ID signed).
+
+## iOS app (plan, 2026-11-07)
+
+Goal: Potato Browser for iPhone (and iPad) on TestFlight with the same four features as the Mac
+app: AI Shield, no AI in the engine, the ad blocker and community flags, inside a complete
+browser.
+
+Constraints that shape it:
+
+- **WebKit, not Chromium.** Outside the EU and Japan every iOS browser must use WebKit, and even
+  there Electron does not run on iOS. The app is native Swift (SwiftUI) around `WKWebView`.
+- **Reused as is**: the in-page code (`apps/browser/src/content`: shield rules and engine, flag
+  engine and adapters, ad blocker cosmetics), `packages/shared` and the Worker. It is bundled
+  with esbuild and injected as `WKUserScript`s.
+- **No synchronous IPC.** WKWebView has async messages only, so the per-page config (which the
+  Mac preload reads with `sendSync`) is computed in `decidePolicyFor navigationAction` and
+  installed as a document-start user script before the navigation proceeds. Each tab has its own
+  `WKUserContentController` for that.
+- **No request hook.** Network blocking goes through `WKContentRuleList`s (WebKit's content
+  blocker), compiled on the device from rules converted at build time.
+
+Design:
+
+- **AI Shield**: the content world script runs `ShieldEngine` unchanged. Its CSS goes into a
+  `<style>` at document start (no public user stylesheet API on iOS). The rules' blocked AI
+  request paths become a small rule list built at runtime; Google AI Mode redirects and the AI
+  chatbot block happen in the navigation policy.
+- **No AI in the engine**: WebKit has no switches, so: Writing Tools off
+  (`writingToolsBehavior = .none`), inline predictions off, Genmoji off, no speech recognition
+  usage description (WebKit then denies `SpeechRecognition`), and a page world document-start
+  script deletes the AI globals in every frame. Settings runs the Mac app's purity check
+  (`FORBIDDEN_GLOBALS`, window and worker) on the device and shows the result.
+- **Ad blocker**: a build step converts the pinned lists (filters/lock.json) per group (ads,
+  trackers, cookie notices, annoyances) into WebKit rule lists: `block` for network filters,
+  `redirect` to uBlock's stand-ins where WebKit allows it, exceptions as
+  `ignore-previous-rules`. Groups are separate lists, so a settings change adds or removes a
+  list instead of recompiling. Cosmetics, scriptlets and procedural selectors come from the same
+  Ghostery engine as on the Mac, run in JavaScriptCore inside the app: per navigation it gives the
+  page's styles and scriptlets (scriptlets run as page world user scripts, before page scripts),
+  and it answers the generic rules for ids and classes as the page changes. Ads allowed on a
+  site: that tab's controller drops the lists for the navigation. Daily list updates and the
+  user's own filters reuse the converter and the engine in JavaScriptCore.
+- **Flags**: the flag engine and adapters run in the content world; lookups and votes go through
+  native code (CryptoKit SHA-256, URLSession) with the same k-anonymity protocol. Private tabs
+  vote under a throwaway id and keep their flags in memory.
+- **Browser**: tabs and private tabs (non-persistent data store), address bar with history,
+  bookmark and search suggestions, back/forward gestures, tab switcher, reopen closed tab,
+  session restore, bookmarks (folders), history, downloads (`WKDownload`, visible in Files),
+  find in page, share and print, page zoom, desktop site, context menus, popups and OAuth
+  windows, JavaScript dialogs, permissions, error pages, new tab page with today's counts,
+  first-run setup, settings like the Mac app's, and import of bookmarks HTML and Safari's export.
+
+Verification:
+
+- vitest for the converter (WebKit's regex subset is checked per rule) and the bridge.
+- XCTest in the simulator: every bundled rule list compiles in WebKit, URL classification (the
+  Mac app's cases), settings, database, flag hashing against `@potato/shared`.
+- An end-to-end run on the simulator against the Mac app's fixture sites, served under their
+  real hostnames through a local proxy (`WKWebsiteDataStore.proxyConfigurations`) with a test CA,
+  and the real flags Worker under `wrangler dev`: shield, ad blocker, flags, engine purity.
+- Live checks on the simulator (Google, YouTube, Reddit, news sites, adblock-tester.com) with
+  screenshots, and a UI smoke test of the main flows.
+
+Release: bundle id `com.potatobrowser.app` (as on the Mac), `apps/ios/scripts/testflight.sh`
+archives with automatic signing through the App Store Connect API key, uploads, and adds the
+team to an internal TestFlight group. Builds are numbered by commit count.

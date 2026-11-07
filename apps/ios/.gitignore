@@ -1,0 +1,7 @@
+# Built by scripts/build-web.mjs
+WebResources/
+build/
+DerivedData/
+.env
+*.xcuserstate
+xcuserdata/

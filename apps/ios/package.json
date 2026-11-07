@@ -1,0 +1,26 @@
+{
+  "name": "@potato/ios",
+  "version": "0.5.0",
+  "description": "Potato Browser for iPhone and iPad: the web bundles and tooling around the Xcode project.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "e2e": "node scripts/e2e.mjs",
+    "testflight": "scripts/testflight.sh"
+  },
+  "devDependencies": {
+    "@ghostery/adblocker": "2.20.3",
+    "@ghostery/adblocker-content": "2.20.3",
+    "@ghostery/adblocker-extended-selectors": "2.20.3",
+    "@potato/shared": "workspace:*",
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "tldts-experimental": "7.4.19",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
