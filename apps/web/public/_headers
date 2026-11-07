@@ -2,7 +2,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: interest-cohort=(), browsing-topics=(), camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' https://plausible-app.caprover.laszlokiss.dev; font-src 'self'; connect-src 'self' https://plausible-app.caprover.laszlokiss.dev; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
   X-Frame-Options: DENY
 
 /fonts/*
