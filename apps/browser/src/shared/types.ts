@@ -41,6 +41,17 @@ export interface Settings {
     globalPrivacyControl: boolean;
     blockAiChatbots: boolean;
   };
+  adblock: {
+    enabled: boolean;
+    /** Hostnames (registrable or full) where ads are allowed. */
+    disabledSites: string[];
+    trackers: boolean;
+    cookieNotices: boolean;
+    annoyances: boolean;
+    /** The user's own filters, in EasyList / uBlock Origin syntax. */
+    customFilters: string;
+    autoUpdate: boolean;
+  };
   installId: string;
   firstRunDone: boolean;
 }
@@ -57,6 +68,15 @@ export interface ShieldTabState {
   enabled: boolean;
   hiddenCount: number;
   features: string[];
+}
+
+export interface AdblockTabState {
+  /** Blocking is active for this page's site. */
+  enabled: boolean;
+  /** Requests blocked on this page. */
+  blocked: number;
+  /** Most blocked hosts, most first. */
+  hosts: { host: string; count: number }[];
 }
 
 export interface FlagTabState {
@@ -83,6 +103,7 @@ export interface TabState {
   zoom: number;
   bookmarked: boolean;
   shield: ShieldTabState;
+  adblock: AdblockTabState;
   flags: FlagTabState;
 }
 
@@ -139,6 +160,7 @@ export interface WindowState {
   downloads: { active: number; recent: DownloadItemState[] };
   theme: Theme;
   shieldGloballyEnabled: boolean;
+  adblockGloballyEnabled: boolean;
   updateAvailable: string | null;
 }
 
@@ -219,6 +241,30 @@ export interface ShieldRuleSummary {
 export interface ShieldStats {
   hiddenTotal: number;
   hiddenToday: number;
+  blockedTotal: number;
+  blockedToday: number;
+}
+
+export interface AdblockListInfo {
+  id: string;
+  name: string;
+  group: string;
+  homepage: string;
+  /** When this copy of the list was fetched (ISO date). */
+  fetchedAt: string;
+}
+
+export interface AdblockStatus {
+  ready: boolean;
+  compiling: boolean;
+  updating: boolean;
+  /** Network and cosmetic filters in the running engine. */
+  filters: number;
+  lists: AdblockListInfo[];
+  lastCheck: number | null;
+  lastError: string | null;
+  /** Problem with the user's own filters, if any line was rejected. */
+  customErrors: string[];
 }
 
 export interface ClearDataOptions {
@@ -235,6 +281,7 @@ export interface PageConfig {
   /** Only under the e2e suite: open shadow roots so tests can reach injected buttons. */
   testHooks: boolean;
   shield: { enabled: boolean; disabledRules: string[] };
+  adblock: { enabled: boolean };
   flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean; disabledPlatforms: Platform[] };
 }
 

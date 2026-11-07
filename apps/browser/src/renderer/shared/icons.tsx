@@ -58,6 +58,13 @@ export const Shield = ({ off, filled, ...p }: P & { off?: boolean; filled?: bool
     {off && <path d="M2.5 2.5l11 11" />}
   </Svg>
 );
+/** Stop sign with a bar: the ad blocker. */
+export const AdBlock = ({ off, filled, ...p }: P & { off?: boolean; filled?: boolean }) => (
+  <Svg {...p}>
+    <path d="M5.6 1.9h4.8l3.7 3.7v4.8l-3.7 3.7H5.6l-3.7-3.7V5.6z" fill={filled ? 'currentColor' : 'none'} />
+    {off ? <path d="M2.5 2.5l11 11" /> : <path d="M5.2 8h5.6" stroke={filled ? 'var(--icon-on-fill, #fff)' : 'currentColor'} />}
+  </Svg>
+);
 export const Download = (p: P) => (
   <Svg {...p}>
     <path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" />

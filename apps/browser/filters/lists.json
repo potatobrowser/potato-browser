@@ -1,0 +1,48 @@
+{
+  "source": "https://cdn.ghostery.com/adblocker/resources",
+  "resources": "ublock-resources-json",
+  "groups": [
+    {
+      "id": "ads",
+      "lists": [
+        "easylist",
+        "ublock-filters",
+        "ublock-filters-2020",
+        "ublock-filters-2021",
+        "ublock-filters-2022",
+        "ublock-filters-2023",
+        "ublock-filters-2024",
+        "ublock-filters-2025",
+        "ublock-filters-2026",
+        "ublock-badware",
+        "ublock-abuse",
+        "ublock-unbreak",
+        "ublock-quick-fixes"
+      ]
+    },
+    { "id": "trackers", "lists": ["easyprivacy", "ublock-privacy"] },
+    { "id": "cookies", "lists": ["easylist-cookie", "ublock-annoyances-cookies"] },
+    { "id": "annoyances", "lists": ["ublock-annoyances-others"] }
+  ],
+  "lists": {
+    "easylist": { "name": "EasyList", "homepage": "https://easylist.to/", "license": "GPL-3.0-or-later or CC-BY-SA-3.0" },
+    "easyprivacy": { "name": "EasyPrivacy", "homepage": "https://easylist.to/", "license": "GPL-3.0-or-later or CC-BY-SA-3.0" },
+    "easylist-cookie": { "name": "EasyList Cookie", "homepage": "https://easylist.to/", "license": "GPL-3.0-or-later or CC-BY-SA-3.0" },
+    "ublock-filters": { "name": "uBlock filters", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2020": { "name": "uBlock filters 2020", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2021": { "name": "uBlock filters 2021", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2022": { "name": "uBlock filters 2022", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2023": { "name": "uBlock filters 2023", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2024": { "name": "uBlock filters 2024", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2025": { "name": "uBlock filters 2025", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-filters-2026": { "name": "uBlock filters 2026", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-badware": { "name": "uBlock badware risks", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-abuse": { "name": "uBlock resource abuse", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-unbreak": { "name": "uBlock unbreak", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-quick-fixes": { "name": "uBlock quick fixes", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-privacy": { "name": "uBlock privacy", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-annoyances-cookies": { "name": "uBlock cookie notices", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-annoyances-others": { "name": "uBlock annoyances", "homepage": "https://github.com/uBlockOrigin/uAssets", "license": "GPL-3.0" },
+    "ublock-resources-json": { "name": "uBlock Origin scriptlets and resources", "homepage": "https://github.com/gorhill/uBlock", "license": "GPL-3.0" }
+  }
+}

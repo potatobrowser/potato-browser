@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { WindowState } from '../../shared/types';
 import { chrome } from '../shared/api';
-import { Back, Close, Download, Forward, Menu, Reload, Shield } from '../shared/icons';
+import { AdBlock, Back, Close, Download, Forward, Menu, Reload, Shield } from '../shared/icons';
 import { BookmarksBar, FindBar, Infobars } from './Bars';
 import { Omnibox, type OmniboxHandle } from './Omnibox';
-import { DownloadsPanel, ShieldPanel } from './Panels';
+import { AdblockPanel, DownloadsPanel, ShieldPanel } from './Panels';
 import { TabStrip } from './TabStrip';
 
-type Popover = 'shield' | 'downloads' | null;
+type Popover = 'shield' | 'adblock' | 'downloads' | null;
 
 export function App() {
   const [state, setState] = useState<WindowState | null>(null);
@@ -74,6 +74,8 @@ export function App() {
   const shieldOn = web && !!shield?.enabled && state.shieldGloballyEnabled;
   const shieldCount = shieldOn ? shield!.hiddenCount : 0;
   const flagCount = (tab?.flags.hidden ?? 0) + (tab?.flags.labeled ?? 0);
+  const adOn = web && !!tab?.adblock.enabled && state.adblockGloballyEnabled;
+  const adCount = adOn ? tab!.adblock.blocked : 0;
   const dl = state.downloads;
 
   return (
@@ -109,6 +111,17 @@ export function App() {
             {shieldCount > 0 ? <span className="badge" data-testid="shield-badge">{shieldCount > 99 ? '99+' : shieldCount}</span> : null}
             {flagCount > 0 ? <span className="badge flag" data-testid="flag-badge" title="Flagged posts">{flagCount}</span> : null}
           </button>
+          <button
+            className={`icon-btn adblock-btn${adOn ? ' on' : web ? ' off' : ''}${popover === 'adblock' ? ' pressed' : ''}`}
+            data-testid="adblock-button"
+            data-state={adOn ? 'on' : web ? 'off' : 'na'}
+            title={!web ? 'Ad blocker' : adOn ? `Ad blocker is on for ${shield!.host}` : `Ads are allowed on ${shield!.host}`}
+            aria-label="Ad blocker"
+            onClick={(e) => openPopover('adblock', e)}
+          >
+            <AdBlock filled={adOn && adCount > 0} off={web && !adOn} />
+            {adCount > 0 ? <span className="badge ad" data-testid="adblock-badge">{adCount > 99 ? '99+' : adCount}</span> : null}
+          </button>
           {dl.recent.length > 0 ? (
             <button
               className={`icon-btn${dl.active ? ' active-dl' : ''}${popover === 'downloads' ? ' pressed' : ''}`}
@@ -141,7 +154,13 @@ export function App() {
         <>
           <div className="backdrop" data-testid="backdrop" onMouseDown={() => setPopover(null)} />
           <div className="popover" style={{ right: anchor.right, top: anchor.top }}>
-            {popover === 'shield' ? <ShieldPanel tab={tab} globallyEnabled={state.shieldGloballyEnabled} /> : <DownloadsPanel items={dl.recent} />}
+            {popover === 'shield' ? (
+              <ShieldPanel tab={tab} globallyEnabled={state.shieldGloballyEnabled} />
+            ) : popover === 'adblock' ? (
+              <AdblockPanel tab={tab} globallyEnabled={state.adblockGloballyEnabled} />
+            ) : (
+              <DownloadsPanel items={dl.recent} />
+            )}
           </div>
         </>
       )}

@@ -4,7 +4,7 @@ import type { ImportSource, SearchEngineId } from '../../shared/types';
 import { call, onInternalEvent } from '../shared/api';
 import { useSettings } from '../shared/components';
 import { FlagModePicker } from '../shared/flagmodes';
-import { ArrowRight, BrandMark, Check, Flag, Globe, NoAi, Shield } from '../shared/icons';
+import { AdBlock, ArrowRight, BrandMark, Check, Flag, Globe, NoAi, Shield } from '../shared/icons';
 import { AccessSteps, useImporter } from '../shared/importer';
 import '../shared/pages.css';
 import './welcome.css';
@@ -16,6 +16,7 @@ const ENGINES: { id: SearchEngineId; name: string; text: string }[] = [
 
 const FEATURES = [
   { icon: <Shield size={18} />, title: 'AI Shield', text: 'Peels the AI off major sites' },
+  { icon: <AdBlock size={18} />, title: 'Ad blocker', text: 'Mashes ads and trackers' },
   { icon: <NoAi size={18} />, title: 'No AI in the engine', text: 'Nothing artificial under the skin' },
   { icon: <Flag size={18} />, title: 'Community flags', text: 'Many eyes, all anonymous' },
 ];
@@ -160,7 +161,7 @@ function Welcome() {
         <header className="hero">
           <BrandMark size={56} />
           <h1>No artificial ingredients.</h1>
-          <p className="lede">A fast Chromium browser that keeps AI features and AI content off your plate. Just the web, the way people grew it.</p>
+          <p className="lede">A fast Chromium browser that keeps AI features, AI content and ads off your plate. Just the web, the way people grew it.</p>
         </header>
 
         <p className="eyebrow" id="already-on">

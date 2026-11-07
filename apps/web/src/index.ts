@@ -8,6 +8,7 @@ import {
   type FlagResponse,
   type LookupItem,
 } from '@potato/shared';
+import { filterList, filterRevisions } from './filters';
 import { DAILY_FLAG_CAP, MAX_VOTES_PER_NETWORK, networkBucket, rateLimitKey, voterId } from './lib';
 import { assetUrl, latestManifest, releaseInfo, repoOf } from './releases';
 
@@ -208,8 +209,13 @@ async function api(req: Request, env: Env, url: URL, ctx: ExecutionContext): Pro
       return stats(env, ctx);
     case 'GET /api/v1/releases/latest':
       return latestRelease(req, env);
-    default:
+    case 'GET /api/v1/filters':
+      return filterRevisions(url);
+    default: {
+      const m = /^GET \/api\/v1\/filters\/([^/]+)\/([^/]+)$/.exec(route);
+      if (m) return filterList(m[1]!, m[2]!);
       return error(url.pathname.startsWith('/api/v1/') ? 405 : 404, 'not found');
+    }
   }
 }
 

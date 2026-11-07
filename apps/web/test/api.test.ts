@@ -294,3 +294,53 @@ describe('releases and downloads', () => {
     expect((await call('GET', '/api/v1/releases/latest')).json.version).toBe('9.9.9');
   });
 });
+
+describe('ad blocker filter lists', () => {
+  const rev = (c: string) => c.repeat(64);
+  const CDN = 'https://cdn.ghostery.com/adblocker/resources';
+  const requested: string[] = [];
+  let lists: Record<string, string[]> = {};
+
+  beforeEach(() => {
+    requested.length = 0;
+    lists = { easylist: [rev('1'), rev('2')], easyprivacy: [rev('3')] };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const u = input instanceof Request ? input.url : String(input);
+      requested.push(u);
+      const meta = new RegExp(`^${CDN}/([a-z0-9-]+)/metadata\\.json$`).exec(u);
+      if (meta) return lists[meta[1]!] ? Response.json({ name: meta[1], revisions: lists[meta[1]!] }) : new Response('nope', { status: 404 });
+      const file = new RegExp(`^${CDN}/([a-z0-9-]+)/([0-9a-f]{64})/list\\.txt$`).exec(u);
+      if (file && lists[file[1]!]?.includes(file[2]!)) return new Response(`! Title: ${file[1]}\n||ads.example^\n`);
+      return new Response('Not Found', { status: 404 });
+    });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('reports the latest revision of each requested list', async () => {
+    const r = await call('GET', '/api/v1/filters?lists=easylist,easyprivacy,missing-list');
+    expect(r.status).toBe(200);
+    expect(r.json.lists).toEqual({ easylist: rev('2'), easyprivacy: rev('3'), 'missing-list': null });
+    expect(r.headers.get('cache-control')).toContain('public');
+    expect(requested.every((u) => u.startsWith(CDN + '/'))).toBe(true);
+  });
+
+  it('serves a pinned revision with a long cache, and only from the filter CDN', async () => {
+    const r = await call('GET', `/api/v1/filters/easylist/${rev('1')}`);
+    expect(r.status).toBe(200);
+    expect(r.text).toContain('||ads.example^');
+    expect(r.headers.get('content-type')).toContain('text/plain');
+    expect(r.headers.get('cache-control')).toContain('immutable');
+    expect(requested).toEqual([`${CDN}/easylist/${rev('1')}/list.txt`]);
+    expect((await call('GET', `/api/v1/filters/easylist/${rev('9')}`)).status).toBe(404);
+  });
+
+  it('rejects malformed list ids and revisions', async () => {
+    expect((await call('GET', '/api/v1/filters')).status).toBe(400);
+    expect((await call('GET', '/api/v1/filters?lists=../etc')).status).toBe(400);
+    expect((await call('GET', `/api/v1/filters?lists=${Array.from({ length: 40 }, (_, i) => `l${i}`).join(',')}`)).status).toBe(400);
+    expect((await call('GET', '/api/v1/filters/easylist/abc')).status).toBe(400);
+    expect((await call('GET', `/api/v1/filters/Easy%2Flist/${rev('1')}`)).status).toBe(400);
+    expect((await call('GET', `/api/v1/filters/easylist/${rev('1')}/extra`)).status).toBe(405);
+    expect(requested).toHaveLength(0);
+  });
+});

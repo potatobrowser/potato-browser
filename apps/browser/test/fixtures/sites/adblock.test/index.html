@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>The Daily Spud</title>
+  <script>
+    // Runs before anything else on the page: scriptlets must already have run.
+    document.documentElement.dataset.scriptlet = String(window.potatoAdTest === true);
+  </script>
+  <script src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-0000"></script>
+  <script src="https://www.google-analytics.com/analytics.js"></script>
+  <script src="https://connect.facebook.net/en_US/fbevents.js"></script>
+  <script src="https://c.amazon-adsystem.com/aax2/apstag.js"></script>
+  <script src="/app.js"></script>
+</head>
+<body>
+  <h1 id="headline">Local farmer grows record potato</h1>
+  <p id="story">The tuber weighed in at eleven pounds, a new county record.</p>
+  <div class="ad-slot" id="generic-ad">Advertisement: buy more potatoes</div>
+  <div class="potato-custom-ad" id="custom-ad">Sponsored by the Mash Council</div>
+  <iframe id="ad-frame" src="https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-0000" width="300" height="250"></iframe>
+  <div id="late"></div>
+  <script>
+    // Ad markup that shows up after load, like most ads do.
+    setTimeout(() => {
+      document.getElementById('late').innerHTML = '<div class="ad-slot" id="late-ad">Late advertisement</div>';
+    }, 300);
+    window.addEventListener('load', () => {
+      document.body.dataset.ads = (window.__potatoAds || []).filter((a) => a !== 'app').sort().join(',');
+      document.body.dataset.app = String((window.__potatoAds || []).includes('app'));
+      document.body.dataset.gpt = String(typeof window.googletag === 'object');
+    });
+  </script>
+</body>
+</html>

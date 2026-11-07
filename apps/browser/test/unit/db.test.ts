@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BOOKMARKS_BAR_ID, OTHER_BOOKMARKS_ID, ProfileDb } from '../../src/main/db';
 
@@ -109,6 +110,19 @@ describe('site settings, flags and stats', () => {
     expect(db.myFlagCount()).toBe(0);
     db.addShieldHidden(3);
     db.addShieldHidden(2);
-    expect(db.shieldStats()).toEqual({ hiddenTotal: 5, hiddenToday: 5 });
+    db.addAdsBlocked(40);
+    db.addAdsBlocked(2);
+    expect(db.shieldStats()).toEqual({ hiddenTotal: 5, hiddenToday: 5, blockedTotal: 42, blockedToday: 42 });
+  });
+
+  it('adds the blocked-ads column to profiles from before the ad blocker', () => {
+    const file = path.join(dir, 'Old.sqlite');
+    const old = new DatabaseSync(file);
+    old.exec("CREATE TABLE stats (day TEXT PRIMARY KEY, shield_hidden INTEGER NOT NULL DEFAULT 0); INSERT INTO stats VALUES ('2026-01-01', 7);");
+    old.close();
+    const upgraded = new ProfileDb(file);
+    upgraded.addAdsBlocked(3);
+    expect(upgraded.shieldStats()).toMatchObject({ hiddenTotal: 7, blockedTotal: 3, blockedToday: 3 });
+    upgraded.close();
   });
 });

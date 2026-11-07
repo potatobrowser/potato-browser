@@ -2,6 +2,14 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.5.0
+
+- Built-in ad blocker, on by default: ads, video ads, pop-ups and trackers never load. It uses the EasyList, EasyPrivacy and uBlock Origin filter lists, with uBlock's scriptlets that keep video ads off YouTube.
+- A new ad blocker button in the toolbar shows how many ads and trackers were blocked on the page and which servers they came from, and lets ads through on one site.
+- Settings, Ad blocker: block trackers, hide cookie notices, hide annoyances such as newsletter pop-ups, sites where ads are allowed, your own filters, and the filter lists in use.
+- Filter lists update once a day through potatobrowser.com. The request names the lists and nothing about you; it can be turned off.
+- The new tab page counts the ads and trackers blocked today.
+
 ## 0.4.2
 
 - Signed with an Apple Developer ID and notarized by Apple, so macOS opens it like any other app, without the Open Anyway step.

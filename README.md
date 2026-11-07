@@ -1,6 +1,7 @@
 # Potato Browser
 
-A Chromium-based browser for macOS for people who want the web without AI. Grown, not generated.
+A Chromium-based browser for macOS for people who want the web without AI, and without ads. Grown,
+not generated.
 
 - **AI Shield**: the AI features of major sites (Google AI Overviews and AI Mode, Gemini in Gmail
   and Docs, YouTube Ask, Bing and Outlook Copilot, X Grok, Meta AI, LinkedIn AI writing, Reddit
@@ -9,6 +10,10 @@ A Chromium-based browser for macOS for people who want the web without AI. Grown
 - **No AI in the engine**: no on-device models, no AI browser features, and Chromium's built-in AI
   web APIs (Prompt, Summarizer, Writer, Rewriter, Proofreader, Translator, Language Detector,
   speech recognition, WebNN) are switched off for every page and worker.
+- **Ad blocker**: ads, video ads, pop-ups and trackers are blocked by default, with the EasyList,
+  EasyPrivacy and uBlock Origin lists (network filters, cosmetic filters and scriptlets, which
+  keep video ads off YouTube). The ad blocker button in the toolbar lets ads through on one site.
+  Cookie notices and annoyances can be hidden too.
 - **Community AI flags**: anonymous "AI?" flags on Reddit, X, Instagram, Facebook, Threads,
   LinkedIn, YouTube, Bluesky and TikTok posts. Flagged posts are hidden, labelled or left alone,
   as the user chooses.
@@ -73,14 +78,15 @@ POTATO_API_BASE_BUILD=https://flags.example.com pnpm --filter @potato/browser di
 
 ```
 apps/browser      Electron 45 (Chromium 156) app
-  src/main          windows, tabs, sessions, SQLite profile, importers, flags client, menus
+  src/main          windows, tabs, sessions, SQLite profile, importers, flags client, ad blocker
   src/preload       ui.ts (browser chrome), web.ts (every tab frame)
-  src/content       AI Shield rules and engine, flag engine and platform adapters
+  src/content       AI Shield rules and engine, ad blocker cosmetics, flag engine and adapters
+  filters           ad blocker list catalog (lists.json) and pinned revisions (lock.json)
   src/renderer      React UI: browser chrome and internal potato:// pages
   test/unit         vitest
   test/e2e          Playwright against the real app, offline fixture sites, real Worker
   test/live         manual checks against live websites
-apps/web          Cloudflare Worker: landing page, flags API (D1), release info and downloads
+apps/web          Cloudflare Worker: landing page, flags API (D1), filter lists, releases, downloads
 packages/shared   flag key format, hashing, API types
 ```
 
@@ -111,13 +117,16 @@ POTATO_E2E_EXECUTABLE="$PWD/release/test/mac-arm64/Potato Browser.app/Contents/M
 
 `node test/live/live-check.mjs <screenshot-dir> <url...>` opens real sites in the real browser and
 prints what the shield hid and how many flag buttons were placed.
+`node test/live/adblock-check.mjs <screenshot-dir> --compare <url...>` does the same for the ad
+blocker, with it on and off.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how changes and releases land.
 
 ## Releases
 
 1. Bump `version` in `apps/browser/package.json` and add a `## <version>` section to
-   [CHANGELOG.md](CHANGELOG.md).
+   [CHANGELOG.md](CHANGELOG.md). Refresh the bundled filter lists with
+   `node apps/browser/scripts/filters.mjs update`.
 2. Push the tag `v<version>`. The [release workflow](.github/workflows/release.yml) runs the
    tests, builds both DMGs on a GitHub macOS runner, signs them with the Developer ID, has Apple
    notarize the apps and the DMGs, checks that Gatekeeper accepts them and that the app starts,
@@ -137,8 +146,9 @@ build from source, are ad-hoc signed.
 
 ## The site and flags service
 
-`apps/web` is one Cloudflare Worker: the landing page (static assets), the flags API on D1, and
-release info read from this repository's GitHub Releases (`SOURCE_REPO` in `wrangler.jsonc`).
+`apps/web` is one Cloudflare Worker: the landing page (static assets), the flags API on D1, the
+ad blocker's filter list updates (proxied from Ghostery's CDN and cached at the edge), and release
+info read from this repository's GitHub Releases (`SOURCE_REPO` in `wrangler.jsonc`).
 To run your own, create a D1 database, put its id in `wrangler.jsonc`, then:
 
 ```sh
@@ -154,6 +164,22 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
   optionally with text or aria-label heuristics, placeholder rewrites, and blocked request
   paths. A unit test checks the catalog, and an e2e test checks every selector is valid in the
   shipped Chromium.
+- **Ad blocker** (`apps/browser/src/main/adblock`) runs
+  [@ghostery/adblocker](https://github.com/ghostery/adblocker) on EasyList, EasyPrivacy and uBlock
+  Origin's lists from Ghostery's CDN. `filters/lock.json` pins each list's revision and SHA-256; the
+  build downloads exactly those files, compiles the default engine into the app (it loads in about
+  20 ms) and ships the lists for other choices. Every subresource request goes through the
+  engine in the session's `onBeforeRequest` (main frames never), and blocked scripts that pages
+  depend on are swapped for uBlock's harmless stand-ins, served from `potato-res://` since
+  Chromium will not follow a redirect to a `data:` URL. The web preload asks for each frame's
+  cosmetic filters and scriptlets synchronously at document start, inserts the styles as user
+  stylesheets and runs the scriptlets in the page before its own scripts, then applies generic
+  and procedural rules as the page changes. Once a day the browser asks the Worker for the
+  latest list revisions and downloads changed lists through it (`/api/v1/filters`), recompiles
+  them in a utility process and swaps the engine without a restart. Scriptlet code is never
+  downloaded: it changes only with a release. As in uBlock Origin, only uBlock's own lists and
+  the user's filters may call "trusted" scriptlets (the ones whose arguments can carry code);
+  `$csp` filters add a separate policy and never loosen the site's own.
 - **Flags** keep what you read on your Mac. Lookups send only 5-character prefixes of
   `sha256("noai-flag:v1:<platform>:<id>")`, each shared by many posts; the browser matches full
   hashes locally. A flag sends the full hash and a random install id (a throwaway one in private
@@ -169,6 +195,8 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
 ## Known limitations
 
 - No extension support and no built-in password manager yet.
+- The ad blocker filters subresources and page elements; it does not block whole pages (uBlock's
+  "strict blocking" of known bad sites) and ignores `$removeparam` filters.
 - Google account sign-in uses a Firefox user agent on Google's account pages (Google blocks
   sign-in from browsers it can't identify). This has not been verified with a real account.
 - Logged-in layouts of X, Facebook, Instagram, LinkedIn and TikTok are covered by fixtures built

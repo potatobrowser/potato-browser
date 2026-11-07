@@ -90,6 +90,7 @@ export function buildAppMenu(): void {
         { label: 'Zoom Out', id: 'zoom-out', accelerator: 'CmdOrCtrl+-', click: commands.zoomOut },
         sep,
         { label: 'Show AI Features on This Site', id: 'toggle-shield', click: commands.toggleShieldForSite },
+        { label: 'Allow Ads on This Site', id: 'toggle-adblock', click: commands.toggleAdblockForSite },
         sep,
         {
           label: 'Developer',

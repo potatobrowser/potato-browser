@@ -104,6 +104,7 @@ export class ShieldService {
       isPrivate,
       testHooks: isTest(),
       shield: { enabled: web && this.isEnabledFor(topUrl), disabledRules: s.shield.disabledRules },
+      adblock: { enabled: web && ctx.adblock.isEnabledFor(topUrl) },
       flags: {
         enabled: web && (s.flags.mode !== 'ignore' || s.flags.showButtons),
         mode: s.flags.mode,

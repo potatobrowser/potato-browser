@@ -113,6 +113,16 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
     case 'shield.openSettings':
       openInternal('settings', '#shield');
       break;
+    case 'adblock.setSite':
+      // Scriptlets and blocked requests only change on a fresh load.
+      if (active && /^https?:/.test(active.url)) {
+        ctx.adblock.setSiteEnabled(active.url, !!cmd.enabled);
+        active.wc.reload();
+      }
+      break;
+    case 'adblock.openSettings':
+      openInternal('settings', '#adblock');
+      break;
     case 'flags.openSettings':
       openInternal('settings', '#flags');
       break;
@@ -226,6 +236,11 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
     const h = str(host, 300).replace(/^https?:\/\//, '').split('/')[0];
     if (h) ctx.shield.setSiteEnabled(`https://${h}/`, !!enabled);
   },
+  'adblock.status': () => ctx.adblock.status(),
+  'adblock.update': async () => {
+    await ctx.adblock.checkForUpdates().catch(() => {});
+    return ctx.adblock.status();
+  },
   'flags.stats': () => ({ mine: ctx.db.myFlagCount() }),
   'permissions.list': () => ctx.permissions.list(),
   'permissions.reset': (origin: unknown, kind: unknown) => ctx.permissions.reset(str(origin), str(kind)),
@@ -324,6 +339,22 @@ export function registerIpc(): void {
     const features = Array.isArray(r.features) ? r.features.filter((f): f is string => typeof f === 'string').slice(0, 30) : [];
     tab.setShieldReport(`${e.processId}:${e.frameId}`, count, features);
     ctx.shield.recordHidden(Math.max(0, Math.min(1000, num(r.delta) || 0)), tab.win.isPrivate);
+  });
+  // Ad blocker cosmetics: the frame is identified by the browser, never by what the page says.
+  ipcMain.on('page:adblock', (e) => {
+    const frame = e.senderFrame;
+    try {
+      e.returnValue = frame && ctx.windows.tabFor(e.sender) ? ctx.adblock.cosmeticsFor(frame) : null;
+    } catch (err) {
+      console.error('adblock cosmetics', err);
+      e.returnValue = null;
+    }
+  });
+  const strings = (v: unknown) => (Array.isArray(v) ? v.slice(0, 5000).filter((x): x is string => typeof x === 'string' && x.length < 1000) : []);
+  ipcMain.handle('page:adblock-dom', (e, dom: { classes?: unknown; ids?: unknown; hrefs?: unknown }) => {
+    const frame = e.senderFrame;
+    if (!frame || !ctx.windows.tabFor(e.sender) || !dom) return '';
+    return ctx.adblock.cosmeticsForDom(frame, { classes: strings(dom.classes), ids: strings(dom.ids), hrefs: strings(dom.hrefs) });
   });
   const keyList = (keys: unknown) =>
     Array.isArray(keys) ? keys.filter((k): k is string => typeof k === 'string' && k.length < 300) : [];

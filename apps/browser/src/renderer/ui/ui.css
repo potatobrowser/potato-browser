@@ -17,6 +17,9 @@
   --shield: #15803d;
   --shield-bg: rgba(21, 128, 61, 0.12);
   --flag: #b45309;
+  --adblock: #4f46e5;
+  --adblock-bg: rgba(79, 70, 229, 0.12);
+  --adblock-ink: #fff;
   --warn: #c2410c;
   --brand: #e5322d;
   --shadow: 0 12px 32px rgba(15, 17, 21, 0.18), 0 2px 6px rgba(15, 17, 21, 0.08);
@@ -43,6 +46,9 @@
     --shield: #4ade80;
     --shield-bg: rgba(74, 222, 128, 0.14);
     --flag: #fbbf24;
+    --adblock: #a5b4fc;
+    --adblock-bg: rgba(165, 180, 252, 0.16);
+    --adblock-ink: #1e1b4b;
     --shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
   }
@@ -68,6 +74,9 @@
   --shield: #4ade80;
   --shield-bg: rgba(74, 222, 128, 0.14);
   --flag: #fbbf24;
+  --adblock: #a5b4fc;
+  --adblock-bg: rgba(165, 180, 252, 0.16);
+  --adblock-ink: #1e1b4b;
   color-scheme: dark;
 }
 
@@ -334,6 +343,17 @@ button {
 }
 .shield-btn.on {
   color: var(--shield);
+}
+.adblock-btn.on {
+  color: var(--adblock);
+  --icon-on-fill: var(--toolbar);
+}
+.adblock-btn.off {
+  color: var(--muted);
+}
+.badge.ad {
+  background: var(--adblock);
+  color: var(--adblock-ink);
 }
 .shield-btn.off {
   color: var(--muted);
@@ -645,6 +665,45 @@ button {
 .panel-icon.on {
   background: var(--shield-bg);
   color: var(--shield);
+}
+.panel-icon.on.adblock {
+  background: var(--adblock-bg);
+  color: var(--adblock);
+}
+.panel-hint {
+  margin: 8px 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.host-list {
+  list-style: none;
+  margin: 4px 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+.host-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--hover);
+}
+.host-list .truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.host-list .muted {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.adblock-panel input[role='switch']:checked {
+  background: var(--adblock);
 }
 .panel-title {
   font-weight: 700;

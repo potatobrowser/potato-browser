@@ -1,6 +1,7 @@
 import { app, dialog, nativeTheme } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { AdblockService } from './adblock/service';
 import { commands, openInternal } from './commands';
 import { ctx } from './context';
 import { ProfileDb } from './db';
@@ -103,6 +104,8 @@ app.whenReady().then(() => {
   ctx.downloads = new DownloadManager();
   ctx.permissions = new PermissionManager();
   ctx.shield = new ShieldService();
+  ctx.adblock = new AdblockService();
+  ctx.adblock.init();
   ctx.flags = new FlagsService();
   ctx.updates = new UpdateChecker();
   ctx.windows = new WindowManager();
@@ -114,6 +117,7 @@ app.whenReady().then(() => {
   ctx.settings.on('changed', (next, prev) => {
     if (next.theme !== prev.theme) nativeTheme.themeSource = next.theme;
     if (JSON.stringify(next.flags) !== JSON.stringify(prev.flags)) ctx.flags.clearCache();
+    ctx.adblock.onSettingsChanged(next, prev);
     refreshMenuChecks();
     ctx.shield.broadcast();
     notifyInternalPages({ type: 'settings' });
@@ -126,6 +130,7 @@ app.whenReady().then(() => {
   ready = true;
   ctx.windows.restoreOrOpen(firstRun, pendingUrls.splice(0));
   ctx.updates.start();
+  ctx.adblock.start();
 
   if (isTest()) {
     // Lets Playwright drive the same code paths as menus and shortcuts.
@@ -142,6 +147,7 @@ app.on('before-quit', () => {
   ctx.windows.persistSessionNow();
   ctx.windows.quitting = true;
   ctx.settings.flush();
+  ctx.adblock.stop();
 });
 
 app.on('window-all-closed', () => {

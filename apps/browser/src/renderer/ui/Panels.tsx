@@ -1,7 +1,77 @@
 import { PLATFORM_LABELS } from '@potato/shared';
 import type { DownloadItemState, TabState } from '../../shared/types';
 import { chrome, formatBytes } from '../shared/api';
-import { Download, File, Flag, Shield } from '../shared/icons';
+import { AdBlock, Download, File, Flag, Shield } from '../shared/icons';
+
+export function AdblockPanel({ tab, globallyEnabled }: { tab: TabState | null; globallyEnabled: boolean }) {
+  const host = tab?.shield.host ?? '';
+  const a = tab?.adblock;
+  const on = !!a?.enabled && globallyEnabled;
+  return (
+    <div className="panel adblock-panel" data-testid="adblock-panel" role="dialog" aria-label="Ad blocker">
+      <div className="panel-head">
+        <span className={`panel-icon${on ? ' on adblock' : ''}`}>
+          <AdBlock size={18} />
+        </span>
+        <div>
+          <div className="panel-title">Ad blocker</div>
+          <div className="panel-sub">{host || 'Not available on this page'}</div>
+        </div>
+      </div>
+      {host ? (
+        <>
+          <label className="switch-row">
+            <span>
+              <strong>Block ads on this site</strong>
+              <small>{on ? 'Ads and trackers get mashed.' : 'Ads and trackers load on this site.'}</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              data-testid="adblock-site-toggle"
+              checked={!!a?.enabled}
+              disabled={!globallyEnabled}
+              onChange={(e) => chrome().send({ type: 'adblock.setSite', enabled: e.target.checked })}
+            />
+          </label>
+          {!globallyEnabled ? (
+            <p className="panel-note">The ad blocker is turned off for all sites in Settings.</p>
+          ) : (
+            <p className="panel-hint">Switching reloads the page.</p>
+          )}
+          <div className="panel-section" data-testid="adblock-summary">
+            {on && a!.blocked > 0 ? (
+              <>
+                <p>
+                  <strong data-testid="adblock-count">{a!.blocked.toLocaleString()}</strong> {a!.blocked === 1 ? 'ad or tracker' : 'ads and trackers'} mashed on this page
+                </p>
+                <ul className="host-list" data-testid="adblock-hosts">
+                  {a!.hosts.map((h) => (
+                    <li key={h.host}>
+                      <span className="truncate">{h.host}</span>
+                      <span className="muted">{h.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : on ? (
+              <p>No ads or trackers on this page so far. A clean spud.</p>
+            ) : (
+              <p>Ads and trackers load normally here. Switch it back on anytime.</p>
+            )}
+          </div>
+        </>
+      ) : (
+        <p className="panel-section">Open a website to mash its ads and trackers.</p>
+      )}
+      <div className="panel-foot">
+        <button className="link" onClick={() => chrome().send({ type: 'adblock.openSettings' })}>
+          Ad blocker settings
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function ShieldPanel({ tab, globallyEnabled }: { tab: TabState | null; globallyEnabled: boolean }) {
   const s = tab?.shield;

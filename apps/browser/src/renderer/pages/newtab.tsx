@@ -60,13 +60,13 @@ function NewTab() {
         </ul>
       )}
       <footer className="ntp-foot" data-testid="ntp-stats">
-        {stats && stats.hiddenTotal > 0 ? (
+        {stats && (stats.hiddenTotal > 0 || stats.blockedTotal > 0) ? (
           <span>
-            <strong>{stats.hiddenToday.toLocaleString()}</strong> AI features peeled off today ·{' '}
-            <strong>{stats.hiddenTotal.toLocaleString()}</strong> in total
+            Today: <strong>{stats.blockedToday.toLocaleString()}</strong> ads and trackers mashed ·{' '}
+            <strong>{stats.hiddenToday.toLocaleString()}</strong> AI features peeled off
           </span>
         ) : (
-          <span>AI features get peeled off the sites you visit. The web, the way people grew it.</span>
+          <span>Ads get mashed and AI features get peeled off the sites you visit. The web, the way people grew it.</span>
         )}
       </footer>
     </main>

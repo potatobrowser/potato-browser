@@ -1,0 +1,100 @@
+{
+  "fetchedAt": "2026-11-07T02:39:33Z",
+  "lists": {
+    "easylist": {
+      "rev": "99f55b3d9fc3f9200995c5f9e97322a41448fe2000aeeebe57f2a11673be5098",
+      "sha256": "bf0500ab5fb69bfd5cf668d92e45984154a84f4c13838294b36a231c7f888df4",
+      "bytes": 2066573
+    },
+    "ublock-filters": {
+      "rev": "00c296ea555345d8934e1e2a2981801841ba4865511d4626e25f48bd2761b3a1",
+      "sha256": "edaf3f7ad761c56e8ade822e66a16781a6c3b50a354fa3893cc3b5b3972328c5",
+      "bytes": 470704
+    },
+    "ublock-filters-2020": {
+      "rev": "63565db4cd6fd4a9fad57da903ea28212f982a9f68872ebae1028fd9d9e7327e",
+      "sha256": "0af1b6d94553befccfe850df941d5cfa96beae5e5930a0b4adc9d748d7a18ec7",
+      "bytes": 133259
+    },
+    "ublock-filters-2021": {
+      "rev": "22411d8abb676e11d2153674939ebd22ee2f41fc77bbb6cab8c592e8d8ef01a6",
+      "sha256": "6b68c6dce43f6ad29d07e08850f0fdf9310dc74b6c891f24077ac522bdc5564d",
+      "bytes": 167399
+    },
+    "ublock-filters-2022": {
+      "rev": "90d7639e3e565624a21c922b3a0e6627494e8314272fd962725ee7383fea4e64",
+      "sha256": "4628010ee2b2251da3790c0480aec248ebf84161bb62a5a7d728e393dccf8d1d",
+      "bytes": 157840
+    },
+    "ublock-filters-2023": {
+      "rev": "cd0331397ca9f277e71a2777aeaae8601d8f86a30965bf3dc0e55479e87c2661",
+      "sha256": "16e756b2ebb3489daeba53da2d3d84ae02c17f77014ece0d4312a9f24afe8dfc",
+      "bytes": 215867
+    },
+    "ublock-filters-2024": {
+      "rev": "b67ded266ce4e34cd109f4acb02369ac65c24fd287da853299bda9dec51f8d3b",
+      "sha256": "c6b86ed4b34ce8198dd15634960d64edf083a38b29744c7b681fe7091939050c",
+      "bytes": 233384
+    },
+    "ublock-filters-2025": {
+      "rev": "9ce4a08797a22696c4ad4f6b1a46a22da1dd6d9a7a8dbf6fef8cb6c3389078eb",
+      "sha256": "db2662bb0c63908096dbbbe9536bfc44d988a74af52ce5c958fc99ea8801346c",
+      "bytes": 172263
+    },
+    "ublock-filters-2026": {
+      "rev": "631c8de7a6ab3de9c02547807fd984d3242f67862844206a6b809754fc3ce920",
+      "sha256": "5d2bf14c17421209bcf26723becd695ec47ebc9c2267ef3e57eaa8acb846b98f",
+      "bytes": 106360
+    },
+    "ublock-badware": {
+      "rev": "17863eb84c3c8a26c53ddc650ba340d4599c9521aa568834e80384daaa866a32",
+      "sha256": "73ad1be91b0aea98f53bacdfdf65baef38f759bca7067d4133d71c39e4a18859",
+      "bytes": 272218
+    },
+    "ublock-abuse": {
+      "rev": "f9d6ff43ab5f6bc1d9389ff78179cd7b0301353ea189fe75b48a8e1f34e6b270",
+      "sha256": "ea0dd62c5996d3b0ecc33105542f995c0667495e8c939de6adf229928265e663",
+      "bytes": 9300
+    },
+    "ublock-unbreak": {
+      "rev": "241e5323ab48d9bbf3d3c0c57ac06dfce746536cdabc332ebfca7a2b07f49b20",
+      "sha256": "e015fec3e5ec8a8f7ba9a0aba2d84ead93021245a2bc195050fc4a84232f46e4",
+      "bytes": 282210
+    },
+    "ublock-quick-fixes": {
+      "rev": "762ddfa3609f11889594780c2e3296803c95a77ad93819e606a150e5915c82f7",
+      "sha256": "63a42007e54fbdf8805284d5a229ea5fa840102b1f4465a60aa7169971799ae7",
+      "bytes": 97231
+    },
+    "easyprivacy": {
+      "rev": "f1e385948845b2e52db6ed41573375ca01fb8066103e1557550b8abb0cc37760",
+      "sha256": "e3e442d26df81618ca8534af99529c5c78ee19f834cd43f2bb05415078adf069",
+      "bytes": 1513156
+    },
+    "ublock-privacy": {
+      "rev": "4835b9236bb638d644109f95a3c7a642adb028de50e36c000331b612742464c6",
+      "sha256": "c00565c02af988eca0559a2f14d428f98c324804ef7dd27333869e41f421c996",
+      "bytes": 188966
+    },
+    "easylist-cookie": {
+      "rev": "b1039625d986374a206c49c446586618dca551a0e1b580ab7ef3d557cac5bb62",
+      "sha256": "2d10f49048c4fc0ad4f8bb9e724dd38450329ed4989b50ab52e4cb9ef469c837",
+      "bytes": 1218322
+    },
+    "ublock-annoyances-cookies": {
+      "rev": "e3d8bcc64abf6dd9862b98bc6a77e0f8bda909def1dbd5eee3e6f108f2e9c989",
+      "sha256": "1d38b68d1f90b4db0d07839ecc655a294acfdcc1c773a8c82aa522a0fd995982",
+      "bytes": 412416
+    },
+    "ublock-annoyances-others": {
+      "rev": "99e5d6b1682819f92252c5e45a15571e7a27ac5d6dd05083bb6b6dbbe1406988",
+      "sha256": "67072a284f8ac3ba97ebbb82627894366a7e51aae1800a2861222bb2a2ad9115",
+      "bytes": 425569
+    },
+    "ublock-resources-json": {
+      "rev": "c4c0a51a5470cd0f3b3812a6dcf4c46b80a4dc56cdf9bc1e020e8b6c215384da",
+      "sha256": "c4c0a51a5470cd0f3b3812a6dcf4c46b80a4dc56cdf9bc1e020e8b6c215384da",
+      "bytes": 188122
+    }
+  }
+}

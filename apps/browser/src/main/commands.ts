@@ -120,6 +120,12 @@ export const commands = {
     if (!t || !/^https?:/.test(t.url)) return;
     ctx.shield.setSiteEnabled(t.url, !ctx.shield.isEnabledFor(t.url));
   },
+  toggleAdblockForSite: () => {
+    const t = tab();
+    if (!t || !/^https?:/.test(t.url)) return;
+    ctx.adblock.setSiteEnabled(t.url, !ctx.adblock.isEnabledFor(t.url));
+    t.wc.reload();
+  },
   toggleMute: () => {
     const t = tab();
     if (t) {

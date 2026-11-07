@@ -88,6 +88,9 @@ export class Tab {
   private typedPending = false;
   private destroyedHandled = false;
 
+  /** Kept for cleanup after the WebContents is gone. */
+  private wcId = -1;
+
   constructor(win: BrowserWindowController, init: TabInit) {
     this.win = win;
     this.openerTabId = init.openerTabId ?? null;
@@ -96,6 +99,7 @@ export class Tab {
       ...(init.webContents ? { webContents: init.webContents } : {}),
     });
     this.view.setBackgroundColor(win.isPrivate ? '#1b1b1f' : '#ffffff');
+    this.wcId = this.view.webContents.id;
     this.wire();
     if (init.url) this.navigate(init.url, { typed: init.typed });
   }
@@ -195,6 +199,7 @@ export class Tab {
       zoom: this.wc.isDestroyed() ? 1 : this.wc.getZoomFactor(),
       bookmarked: !!url && !internalNtp && ctx.db.isBookmarked(url),
       shield: this.shieldState(),
+      adblock: this.wc.isDestroyed() ? { enabled: false, blocked: 0, hosts: [] } : ctx.adblock.tabState(this.wc.id, url),
       flags: this.flags,
     };
   }
@@ -230,6 +235,7 @@ export class Tab {
   private handleDestroyed(): void {
     if (this.destroyedHandled) return;
     this.destroyedHandled = true;
+    ctx.adblock.resetPage(this.wcId);
     ctx.permissions.dropTab(this.id);
     this.win.onTabDestroyed(this);
   }
@@ -271,6 +277,7 @@ export class Tab {
       }
     });
     wc.on('did-navigate', (_e, url) => {
+      ctx.adblock.pageCommitted(wc.id, url);
       this.crashed = false;
       this.lastUrl = url;
       const host = hostOf(url);
@@ -313,6 +320,7 @@ export class Tab {
       if (details.reason === 'clean-exit' || this.wc.isDestroyed()) return;
       this.crashed = true;
       this.resetPageState();
+      ctx.adblock.resetPage(this.wcId);
       update();
       // A new renderer shows the crash page; its button reloads the original URL.
       const failed = this.lastUrl;

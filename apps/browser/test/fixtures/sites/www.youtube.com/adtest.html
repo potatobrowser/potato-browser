@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Potato video - YouTube</title>
+  <script>
+    // Like YouTube's watch page: uBlock's set-constant scriptlets keep the ad fields out.
+    var ytInitialPlayerResponse = { adPlacements: [{ ad: 1 }], playerAds: [{ ad: 2 }], videoDetails: { title: 'How potatoes grow' } };
+    document.documentElement.dataset.adPlacements = String(ytInitialPlayerResponse.adPlacements !== undefined);
+    document.documentElement.dataset.title = ytInitialPlayerResponse.videoDetails.title;
+    // Scriptlets hook builtins; the page must still be able to use them.
+    try {
+      document.documentElement.dataset.builtins = String(Function.prototype.toString.call(fetch).includes('native code') && JSON.stringify({ a: 1 }) === '{"a":1}');
+    } catch (e) {
+      document.documentElement.dataset.builtins = 'error: ' + e;
+    }
+  </script>
+</head>
+<body><h1>How potatoes grow</h1></body>
+</html>

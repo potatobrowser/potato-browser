@@ -78,7 +78,61 @@ Key decisions:
 - Releases are signed with the Developer ID Application certificate and notarized in the release
   workflow; builds from source are ad-hoc signed.
 
-## Status (2026-11-06)
+## Ad blocker (0.5.0)
+
+A built-in ad and tracker blocker, on by default, as the fourth main feature next to the AI
+Shield, the engine switches and the flags.
+
+Investigation (2026-11-07):
+
+- **Engine**: `@ghostery/adblocker` (MPL-2.0, pure TypeScript, used by Ghostery's extensions).
+  It reads EasyList and uBlock Origin syntax: network filters, cosmetic filters, procedural
+  selectors (`:has-text`, `:upward`, ...), scriptlets and redirect resources. Measured on the
+  default lists: about 0.5 s to compile, 10 ms to load a compiled engine, 8 us per request
+  lookup. Brave's `adblock-rust` would be faster per lookup but is a native module (two
+  architectures, rebuilds per Electron), for no gain a user would notice.
+- **Not `@ghostery/adblocker-electron`**: it registers its own `webRequest.onBeforeRequest`,
+  and Electron allows one listener per session (the AI Shield and the chatbot block already use
+  it). It also injects cosmetics into the main frame only, and scriptlets asynchronously.
+- **Lists** come from Ghostery's CDN (`cdn.ghostery.com/adblocker/resources/<list>`), which
+  republishes EasyList, EasyPrivacy and uBlock Origin's lists within hours of upstream, under
+  immutable revision URLs, plus uBlock Origin's scriptlet resources in the engine's format.
+  (Ghostery's GitHub mirror of the same lists is three months old.) Peter Lowe's list is left
+  out: its terms of use are unclear.
+
+Design:
+
+- **Groups**: Ads (EasyList, uBlock filters, badware, resource abuse, unbreak, quick fixes; always
+  on with the blocker), Trackers (EasyPrivacy, uBlock privacy; on), Cookie notices (EasyList
+  Cookie, uBlock cookie annoyances; off) and Annoyances (uBlock annoyances; off), plus the
+  user's own filters.
+- **Pinned and bundled**: `apps/browser/filters/lock.json` pins each list's revision and SHA-256.
+  The build downloads exactly those files (cached in `.cache/filters`), compiles the default
+  engine into the app and ships the lists themselves (gzipped) for other combinations. So a
+  fresh install blocks from its very first request, offline, and a release build is
+  reproducible from its tag.
+- **Network**: one `onBeforeRequest` pipeline: chatbot block, AI Shield, then the ad blocker for
+  every subresource (never a main frame). Redirect filters get uBlock's neutered stand-ins (a
+  harmless `gpt.js` instead of a blocked one), `$csp` filters add headers.
+- **Cosmetics**: the web preload asks for each frame's styles and scriptlets synchronously at
+  document start, inserts the styles as user stylesheets and runs scriptlets in the page's world
+  before page scripts. After DOMContentLoaded it watches ids and classes for generic rules and
+  applies procedural selectors.
+- **Updates**: once a day the browser asks potatobrowser.com for the latest revisions
+  (`GET /api/v1/filters?lists=...`), downloads changed lists through the Worker (which caches
+  Ghostery's immutable files at the edge, so lists are not hotlinked from every install),
+  recompiles in a utility process and swaps the engine without a restart. The request says which
+  lists, nothing about the user. It can be turned off.
+- **UI**: a toolbar button with the number of ads and trackers blocked on the page; its panel
+  turns blocking off for one site (and reloads it) and lists the top blocked domains. Settings
+  has the groups, site exceptions, own filters, list status and "Update now". The new tab page
+  counts what was blocked today.
+- **Validation**: unit tests (matching, settings, updater, Worker endpoint), e2e tests on fixture
+  pages that load real ad and tracker URLs (Google Publisher Tag, AdSense, Google Analytics,
+  Facebook pixel) and carry ad markup, plus live checks against real sites and public ad block
+  test pages.
+
+## Status (2026-11-07)
 
 All nine milestones are done and committed.
 
@@ -119,6 +173,22 @@ All nine milestones are done and committed.
   installs it; the workflow updates github.com/potatobrowser/homebrew-tap on each release.
   0.4.1 was tagged but never published (Apple's ticket service dropped connections from the
   runner; stapling now retries).
+
+- 0.5.0 adds the built-in ad blocker (see Ad blocker above). Validated by 13 unit tests on the
+  pinned lists, 3 Worker tests, 6 new e2e tests (also against the packaged app; the full suite is
+  60 tests), and live checks on 2026-11-07: adblock-tester.com scores 99/100 with the blocker on
+  and 41/100 with it off; video ads played on 2 of 3 YouTube videos with it off and on none with
+  it on (ad data stripped, videos play); visible ad slots on the Guardian went from 13 to 0 and
+  on CNN from 7 to 0; with cookie notices on, the consent walls on Speedtest and the Guardian are
+  gone. The packaged app loads the engine in 19 ms; other list choices compile in about 0.5 s.
+  Found and fixed on the way: Chromium refuses redirects to `data:` URLs (stand-ins now come from
+  `potato-res://`), and uBlock scriptlets must each run in their own block or their shared
+  `proxyApplyFn` sends `Function.prototype.toString` into infinite recursion (YouTube).
+  An independent review before release led to: trusted scriptlets (which take code as
+  arguments) allowed only from uBlock's own lists and the user's filters, since Ghostery's engine
+  does not enforce uBlock's trust flag; `$csp` filters added as a separate policy instead of
+  merged into the site's; stand-ins served only under a per-launch `potato-res://` path; one
+  failing list download no longer holds back the others; per-tab counts start at commit.
 
 Open items: Google sign-in check with a real account, extensions and a password manager,
 cookie encryption (possible now that releases are Developer ID signed).

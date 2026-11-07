@@ -21,6 +21,7 @@ export function defaultSettings(): Settings {
     shield: { enabled: true, disabledSites: [], disabledRules: [] },
     flags: { mode: 'label', threshold: 3, showButtons: true, disabledPlatforms: [] },
     privacy: { globalPrivacyControl: true, blockAiChatbots: false },
+    adblock: { enabled: true, disabledSites: [], trackers: true, cookieNotices: false, annoyances: false, customFilters: '', autoUpdate: true },
     installId: crypto.randomBytes(16).toString('hex'),
     firstRunDone: false,
   };
@@ -62,6 +63,15 @@ export function sanitizeSettings(raw: unknown): Settings {
     privacy: {
       globalPrivacyControl: bool(r.privacy?.globalPrivacyControl, d.privacy.globalPrivacyControl),
       blockAiChatbots: bool(r.privacy?.blockAiChatbots, d.privacy.blockAiChatbots),
+    },
+    adblock: {
+      enabled: bool(r.adblock?.enabled, d.adblock.enabled),
+      disabledSites: [...new Set(strList(r.adblock?.disabledSites).map((s) => s.toLowerCase()))],
+      trackers: bool(r.adblock?.trackers, d.adblock.trackers),
+      cookieNotices: bool(r.adblock?.cookieNotices, d.adblock.cookieNotices),
+      annoyances: bool(r.adblock?.annoyances, d.adblock.annoyances),
+      customFilters: typeof r.adblock?.customFilters === 'string' ? r.adblock.customFilters.slice(0, 200_000) : '',
+      autoUpdate: bool(r.adblock?.autoUpdate, d.adblock.autoUpdate),
     },
     installId: typeof r.installId === 'string' && /^[0-9a-f]{32}$/.test(r.installId) ? r.installId : d.installId,
     firstRunDone: bool(r.firstRunDone, false),

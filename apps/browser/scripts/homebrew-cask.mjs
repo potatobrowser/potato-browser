@@ -22,7 +22,7 @@ cask "potato-browser" do
 
   url "https://github.com/${repo}/releases/download/v#{version}/Potato-Browser-#{version}-#{arch}.dmg"
   name "Potato Browser"
-  desc "Chromium-based browser that hides the AI features of websites"
+  desc "Chromium-based browser that hides AI features of websites and blocks ads"
   homepage "https://potatobrowser.com/"
 
   livecheck do

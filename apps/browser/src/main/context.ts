@@ -1,3 +1,4 @@
+import type { AdblockService } from './adblock/service';
 import type { ProfileDb } from './db';
 import type { SettingsStore } from './settings';
 import type { WindowManager } from './windows';
@@ -15,6 +16,7 @@ export interface AppContext {
   downloads: DownloadManager;
   permissions: PermissionManager;
   shield: ShieldService;
+  adblock: AdblockService;
   flags: FlagsService;
   updates: UpdateChecker;
 }

@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS my_flags (
 );
 CREATE TABLE IF NOT EXISTS stats (
   day TEXT PRIMARY KEY,
-  shield_hidden INTEGER NOT NULL DEFAULT 0
+  shield_hidden INTEGER NOT NULL DEFAULT 0,
+  ads_blocked INTEGER NOT NULL DEFAULT 0
 );
 `;
 
@@ -89,6 +90,9 @@ export class ProfileDb {
     this.db = new DatabaseSync(file);
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON;');
     this.db.exec(SCHEMA);
+    // Profiles from before the ad blocker (0.5.0) lack the column.
+    const cols = this.db.prepare('PRAGMA table_info(stats)').all() as Row[];
+    if (!cols.some((c) => c.name === 'ads_blocked')) this.db.exec('ALTER TABLE stats ADD COLUMN ads_blocked INTEGER NOT NULL DEFAULT 0');
     const now = Date.now();
     this.db
       .prepare(
@@ -477,10 +481,18 @@ export class ProfileDb {
     ).run(day, n);
   }
 
-  shieldStats(): { hiddenTotal: number; hiddenToday: number } {
+  addAdsBlocked(n: number): void {
+    if (n <= 0) return;
     const day = new Date().toISOString().slice(0, 10);
-    const total = (this.stmt('SELECT COALESCE(SUM(shield_hidden), 0) AS s FROM stats').get() as Row).s;
-    const today = (this.stmt('SELECT shield_hidden AS s FROM stats WHERE day = ?').get(day) as Row | undefined)?.s ?? 0;
-    return { hiddenTotal: total, hiddenToday: today };
+    this.stmt(
+      'INSERT INTO stats (day, ads_blocked) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET ads_blocked = ads_blocked + excluded.ads_blocked',
+    ).run(day, n);
+  }
+
+  shieldStats(): { hiddenTotal: number; hiddenToday: number; blockedTotal: number; blockedToday: number } {
+    const day = new Date().toISOString().slice(0, 10);
+    const total = this.stmt('SELECT COALESCE(SUM(shield_hidden), 0) AS s, COALESCE(SUM(ads_blocked), 0) AS a FROM stats').get() as Row;
+    const today = this.stmt('SELECT shield_hidden AS s, ads_blocked AS a FROM stats WHERE day = ?').get(day) as Row | undefined;
+    return { hiddenTotal: total.s, hiddenToday: today?.s ?? 0, blockedTotal: total.a, blockedToday: today?.a ?? 0 };
   }
 }

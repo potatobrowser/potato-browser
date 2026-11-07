@@ -5,6 +5,10 @@ Thanks for helping keep the web human. The most useful contributions are usually
 - **An AI feature is still showing** on a site. Open an issue with the URL, a screenshot and,
   if you can, the element in the inspector (View, Developer, Developer Tools). Or fix the rule in
   `apps/browser/src/content/shield/rules.ts` yourself.
+- **An ad slips through, or the ad blocker breaks a site.** Filter fixes belong upstream in
+  [uBlock Origin's lists](https://github.com/uBlockOrigin/uAssets/issues) or
+  [EasyList](https://github.com/easylist/easylist/issues), and reach the browser within a day.
+  Problems with how the browser applies them go here.
 - **A flag button is missing or on the wrong post.** The platform adapters are in
   `apps/browser/src/content/flags/adapters`.
 - **A browser bug.** Issues with steps to reproduce are best; pull requests are welcome.
@@ -37,7 +41,10 @@ CI runs the same on every pull request.
   shipped Chromium.
 - **User-facing copy**: plain ASCII punctuation (no em or en dashes, no curly quotes), short
   sentences, and a light potato voice where it fits.
+- **Ad blocker**: add the page to `apps/browser/test/fixtures/sites/adblock.test/` or a new
+  fixture host, and an assertion in `apps/browser/test/e2e/adblock.spec.ts`.
 - **Privacy**: nothing the user reads may leave the machine. Flag lookups send hash prefixes only.
+  Filter list updates name the lists, nothing else.
   If a change sends anything new over the network, say so in the pull request.
 
 ## How changes land

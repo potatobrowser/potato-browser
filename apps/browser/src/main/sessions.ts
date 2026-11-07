@@ -55,6 +55,7 @@ export function configureSession(ses: Session, opts: { isPrivate: boolean; ui?: 
   if (opts.ui) return;
 
   if (isTest()) installFixtureProxy(ses);
+  if (!ses.protocol.isProtocolHandled('potato-res')) ses.protocol.handle('potato-res', (req) => ctx.adblock.serveResource(req));
   ses.setSpellCheckerEnabled(true);
   ctx.permissions.install(ses, opts.isPrivate);
   ses.on('will-download', (_e, item, wc) => ctx.downloads.handle(item, wc, opts.isPrivate));
@@ -70,7 +71,18 @@ export function configureSession(ses: Session, opts: { isPrivate: boolean; ui?: 
     const verdict = ctx.shield.filterRequest(details.url, topUrl, isMainFrame);
     if (verdict === 'cancel') return callback({ cancel: true });
     if (verdict) return callback({ redirectURL: verdict });
-    callback({});
+    callback(ctx.adblock.filterRequest(details, opts.isPrivate) ?? {});
+  });
+
+  // Only documents can carry `$csp` filters; other responses skip the round trip.
+  ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'], types: ['mainFrame', 'subFrame'] }, (details, callback) => {
+    const csp = ctx.adblock.cspFor(details);
+    if (!csp) return callback({});
+    // A separate policy: Chromium enforces every one, so the site's own CSP is never loosened.
+    const headers = { ...(details.responseHeaders ?? {}) };
+    const key = Object.keys(headers).find((k) => k.toLowerCase() === 'content-security-policy') ?? 'Content-Security-Policy';
+    headers[key] = [...(headers[key] ?? []), csp];
+    callback({ responseHeaders: headers });
   });
 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {

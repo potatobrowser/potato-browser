@@ -349,6 +349,7 @@ export class BrowserWindowController {
       downloads: ctx.downloads.summary(this.isPrivate),
       theme: settings.theme,
       shieldGloballyEnabled: settings.shield.enabled,
+      adblockGloballyEnabled: settings.adblock.enabled,
       updateAvailable: ctx.updates.available(),
     };
   }

@@ -1,9 +1,9 @@
 import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@potato/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
+import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
 import { SEARCH_ENGINES } from '../../shared/urls';
-import { call } from '../shared/api';
+import { call, onInternalEvent } from '../shared/api';
 import { Card, Row, Toggle, useSettings } from '../shared/components';
 import { FlagModePicker } from '../shared/flagmodes';
 import { AccessSteps, useImporter, type What } from '../shared/importer';
@@ -14,6 +14,7 @@ import './settings.css';
 const SECTIONS = [
   ['general', 'General'],
   ['shield', 'AI Shield'],
+  ['adblock', 'Ad blocker'],
   ['flags', 'AI flags'],
   ['privacy', 'Privacy'],
   ['import', 'Import'],
@@ -146,6 +147,151 @@ function ShieldSection({ s, update }: { s: Settings; update: Update }) {
                   );
                 })}
               </div>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </Card>
+  );
+}
+
+function ago(iso: string | number | null): string {
+  const t = typeof iso === 'number' ? iso : iso ? Date.parse(iso) : NaN;
+  if (!Number.isFinite(t)) return 'never';
+  const min = Math.round((Date.now() - t) / 60_000);
+  if (min < 2) return 'just now';
+  if (min < 90) return `${min} minutes ago`;
+  const h = Math.round(min / 60);
+  if (h < 36) return `${h} hours ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+function AdblockSection({ s, update }: { s: Settings; update: Update }) {
+  const [status, setStatus] = useState<AdblockStatus | null>(null);
+  const [draft, setDraft] = useState(s.adblock.customFilters);
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    const load = () => void call<AdblockStatus>('adblock.status').then(setStatus);
+    load();
+    return onInternalEvent((e) => e.type === 'adblock' && load());
+  }, []);
+  useEffect(() => setDraft(s.adblock.customFilters), [s.adblock.customFilters]);
+  const a = s.adblock;
+  const newest = status?.lists.reduce((m, l) => (l.fetchedAt > m ? l.fetchedAt : m), '') ?? '';
+  const busy = checking || status?.updating || status?.compiling;
+  return (
+    <Card
+      title="Ad blocker"
+      id="adblock"
+      hint="Mashes ads and trackers before they load: banners, video ads, pop-ups, tracking pixels and the scripts behind them. It uses the EasyList, EasyPrivacy and uBlock Origin filter lists. The ad blocker button in the toolbar lets ads through on a single site."
+    >
+      <Row title="Block ads" testId="adblock-global">
+        <Toggle label="Block ads" testId="adblock-global-toggle" checked={a.enabled} onChange={(v) => void update({ adblock: { enabled: v } })} />
+      </Row>
+      <Row title="Block trackers" hint="Analytics, tracking pixels and fingerprinting scripts that follow you from site to site.">
+        <Toggle label="Block trackers" testId="adblock-trackers" checked={a.trackers} onChange={(v) => void update({ adblock: { trackers: v } })} />
+      </Row>
+      <Row title="Hide cookie notices" hint="Removes most cookie consent banners. Sites then usually act as if you made no choice.">
+        <Toggle label="Hide cookie notices" testId="adblock-cookies" checked={a.cookieNotices} onChange={(v) => void update({ adblock: { cookieNotices: v } })} />
+      </Row>
+      <Row title="Hide annoyances" hint="Newsletter pop-ups, open-in-app banners, chat bubbles and similar clutter.">
+        <Toggle label="Hide annoyances" testId="adblock-annoyances" checked={a.annoyances} onChange={(v) => void update({ adblock: { annoyances: v } })} />
+      </Row>
+      <div className="row column">
+        <div className="row-label">
+          <span>Sites where ads are allowed</span>
+          <small>Added when you switch the ad blocker off for a site.</small>
+        </div>
+        {a.disabledSites.length ? (
+          <ul className="chips" data-testid="adblock-exceptions">
+            {a.disabledSites.map((site) => (
+              <li key={site}>
+                {site}
+                <button
+                  className="chip-x"
+                  aria-label={`Block ads on ${site} again`}
+                  onClick={() => void update({ adblock: { disabledSites: a.disabledSites.filter((d) => d !== site) } })}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="muted small">None. Ads get mashed everywhere.</span>
+        )}
+      </div>
+      <Row
+        title="Filter lists"
+        testId="adblock-lists-row"
+        hint={
+          status ? (
+            <span data-testid="adblock-status">
+              {status.compiling
+                ? 'Preparing the new filters...'
+                : `${status.filters.toLocaleString()} filters, updated ${ago(newest)}.`}
+              {status.lastError ? <span className="warn-text"> Last update failed: {status.lastError}</span> : null}
+            </span>
+          ) : (
+            'Loading...'
+          )
+        }
+      >
+        <button
+          className="btn"
+          data-testid="adblock-update"
+          disabled={!!busy}
+          onClick={async () => {
+            setChecking(true);
+            setStatus(await call<AdblockStatus>('adblock.update'));
+            setChecking(false);
+          }}
+        >
+          {busy ? 'Updating...' : 'Update now'}
+        </button>
+      </Row>
+      <Row title="Update filter lists automatically" hint="Once a day, through potatobrowser.com. The request names the lists and nothing about you.">
+        <Toggle label="Update filter lists automatically" checked={a.autoUpdate} onChange={(v) => void update({ adblock: { autoUpdate: v } })} />
+      </Row>
+      <details className="rules" data-testid="adblock-custom">
+        <summary>Your own filters</summary>
+        <div className="custom-filters">
+          <p className="muted small-text">
+            One filter per line, in uBlock Origin or Adblock Plus syntax. For example <span className="mono">example.com##.newsletter-popup</span> hides
+            an element, <span className="mono">||ads.example.com^</span> blocks a server.
+          </p>
+          <textarea
+            className="filters-input mono"
+            data-testid="adblock-custom-input"
+            spellCheck={false}
+            rows={6}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="example.com##.newsletter-popup"
+          />
+          <div className="custom-actions">
+            <button className="btn" data-testid="adblock-custom-save" disabled={draft === a.customFilters} onClick={() => void update({ adblock: { customFilters: draft } })}>
+              Save filters
+            </button>
+            {status?.customErrors.length ? (
+              <span className="warn-text" data-testid="adblock-custom-errors">
+                Not understood: {status.customErrors.join(', ')}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </details>
+      <details className="rules">
+        <summary>
+          Lists in use <span className="muted">({status?.lists.length ?? 0})</span>
+        </summary>
+        <ul className="list-sources">
+          {status?.lists.map((l) => (
+            <li key={l.id}>
+              <a href={l.homepage} target="_blank" rel="noreferrer">
+                {l.name}
+              </a>
+              <span className="muted">fetched {ago(l.fetchedAt)}</span>
             </li>
           ))}
         </ul>
@@ -467,6 +613,7 @@ function SettingsPage() {
       <main className="settings-main">
         <General s={s} update={update} />
         <ShieldSection s={s} update={update} />
+        <AdblockSection s={s} update={update} />
         <FlagsSection s={s} update={update} />
         <PrivacySection s={s} update={update} />
         <ImportSection />

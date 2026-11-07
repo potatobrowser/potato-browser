@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron';
+import { AdblockCosmetics, type CosmeticsStart } from '../content/adblock/cosmetics';
 import { adapterFor } from '../content/flags/adapters';
 import { facebookPageWorldHelper, FB_HELPER_ARGS } from '../content/flags/adapters/facebook';
 import { FlagsEngine } from '../content/flags/engine';
@@ -50,6 +51,26 @@ function startWebPage(): void {
   let current: PageConfig = config;
   setOpenShadowRoots(config.testHooks);
 
+  // First, so scriptlets run before any page script.
+  let cosmetics: AdblockCosmetics | null = null;
+  const startAdblock = (late: boolean) => {
+    if (cosmetics || !current.adblock.enabled) return;
+    const first = ipcRenderer.sendSync('page:adblock') as CosmeticsStart | null;
+    if (!first) return;
+    // Scriptlets only make sense before page scripts run; a late start gets the styles.
+    if (late) first.scripts = [];
+    cosmetics = new AdblockCosmetics({
+      insertCSS: (css) => webFrame.insertCSS(css, { cssOrigin: 'user' }),
+      removeCSS: (key) => webFrame.removeInsertedCSS(key),
+      runScript: (code) => void webFrame.executeJavaScript(code).catch(() => {}),
+      domRules: (dom) => ipcRenderer.invoke('page:adblock-dom', dom),
+    });
+    cosmetics.start(first);
+  };
+  try {
+    startAdblock(false);
+  } catch {}
+
   if (GOOGLE_SIGNIN_HOSTS.includes(location.hostname)) spoofFirefoxNavigator();
 
   const shield = new ShieldEngine(
@@ -94,6 +115,14 @@ function startWebPage(): void {
 
   ipcRenderer.on('page:config', (_e, next: PageConfig) => {
     current = next;
+    if (cosmetics && !next.adblock.enabled) {
+      cosmetics.stop();
+      cosmetics = null;
+    } else if (!cosmetics && next.adblock.enabled) {
+      try {
+        startAdblock(true);
+      } catch {}
+    }
     if (shield.active) shield.apply(next.shield);
     if (flags && !flagsAllowed()) {
       flags.stop();

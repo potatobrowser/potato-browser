@@ -13,6 +13,12 @@ export function registerSchemes(): void {
       scheme: 'potato',
       privileges: { standard: true, secure: true, supportFetchAPI: true, codeCache: true },
     },
+    // Ad blocker stand-ins (a harmless gpt.js, a blank gif): Chromium will not follow a redirect
+    // of a page's request to a data: URL.
+    {
+      scheme: 'potato-res',
+      privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, bypassCSP: true },
+    },
   ]);
 }
 
