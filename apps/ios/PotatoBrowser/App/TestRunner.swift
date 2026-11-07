@@ -104,7 +104,12 @@ enum TestRunner {
       out["interstitial"] = tab.interstitial.map { "\($0)" } ?? ""
       out["tabs"] = tabs.tabs.count
       out["privateTabs"] = tabs.privateTabs.count
+      app.adblock.flushStats()
       out["stats"] = ["shieldHidden": app.store.todayStats().shieldHidden, "adsBlocked": app.store.todayStats().adsBlocked]
+      out["myFlags"] = app.store.myFlagCount()
+      out["downloads"] = app.downloads.items.map { "\($0.filename):\($0.state):\($0.received)" }
+      out["isPrivate"] = tab.isPrivate
+      out["canGoBack"] = tab.canGoBack
     case "settings":
       for (k, v) in step.settings ?? [:] { apply(k, v, app.settings) }
       try await Task.sleep(nanoseconds: 300_000_000)
@@ -113,11 +118,42 @@ enum TestRunner {
       fflush(stdout)
       try await Task.sleep(nanoseconds: UInt64((step.wait ?? 1.5) * 1e9))
     case "panel":
+      if step.text == "tabs" {
+        tabs.selected?.takeSnapshot()
+        try await Task.sleep(nanoseconds: 500_000_000)
+      }
       app.panel = step.text.flatMap { name in [Panel.tabs, .menu, .protections, .settings, .history, .bookmarks, .downloads].first { "\($0)" == name } }
       try await Task.sleep(nanoseconds: 800_000_000)
+    case "reload":
+      guard let tab = tabs.selected else { return }
+      tab.reload()
+      try await waitForLoad(tab, extra: step.wait ?? 2)
+    case "allowChatbot":
+      guard let tab = tabs.selected, case .chatbot(let url) = tab.interstitial else {
+        out["error"] = "no chatbot block page"
+        return
+      }
+      tab.allowChatbotOnce(url)
+      try await waitForLoad(tab, extra: step.wait ?? 2)
+      out["url"] = tab.url?.absoluteString ?? ""
+    case "selectTab":
+      let list = step.text == "private" ? tabs.privateTabs : tabs.tabs
+      if let i = step.wait.map(Int.init), list.indices.contains(i) { tabs.select(list[i]) }
     case "back":
       tabs.selected?.goBack()
       try await Task.sleep(nanoseconds: UInt64((step.wait ?? 2) * 1e9))
+    case "cosmetics":
+      guard let s = step.url else { return }
+      let json = await app.adblock.engine.cosmeticsJSON(ids: app.adblock.engineIds, url: s)
+      let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] ?? [:]
+      let scripts = obj["scripts"] as? [String] ?? []
+      out["ids"] = app.adblock.engineIds
+      out["styles"] = (obj["styles"] as? String)?.count ?? 0
+      out["scripts"] = scripts.map { String($0.prefix(160)) }
+      out["extended"] = (obj["extended"] as? [Any])?.count ?? 0
+    case "userScripts":
+      guard let tab = tabs.selected else { return }
+      out["scripts"] = tab.webView.configuration.userContentController.userScripts.map { "\($0.isForMainFrameOnly ? "main" : "all") \($0.source.count): \($0.source.prefix(120))" }
     case "engineCheck":
       let check = EngineCheck()
       await check.run(app: app)
@@ -147,6 +183,9 @@ enum TestRunner {
       case ("flags.mode", .string(let m)): s.flags.mode = FlagMode(rawValue: m) ?? s.flags.mode
       case ("flags.threshold", .int(let n)): s.flags.threshold = n
       case ("flags.showButtons", .bool(let b)): s.flags.showButtons = b
+      case ("flags.disabledPlatforms", .array(let a)): s.flags.disabledPlatforms = a
+      case ("adblock.trackers", .bool(let b)): s.adblock.trackers = b
+      case ("startup", .string(let m)): s.startup = StartupMode(rawValue: m) ?? s.startup
       case ("privacy.blockAiChatbots", .bool(let b)): s.privacy.blockAiChatbots = b
       case ("privacy.globalPrivacyControl", .bool(let b)): s.privacy.globalPrivacyControl = b
       case ("searchEngine", .string(let e)): s.searchEngine = e

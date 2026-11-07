@@ -34,7 +34,8 @@ struct SearchEngine: Identifiable, Hashable {
       c.host == template.host, c.path == template.path
     else { return nil }
     let key = template.queryItems?.first { $0.value == "%s" }?.name ?? "q"
-    return c.queryItems?.first { $0.name == key }?.value
+    // Search engines encode spaces as `+` (form encoding).
+    return c.queryItems?.first { $0.name == key }?.value?.replacingOccurrences(of: "+", with: " ")
   }
 }
 
@@ -93,10 +94,10 @@ enum URLInput {
       let scheme = text[m].dropLast().lowercased()
       if knownSchemes.contains(scheme) {
         if scheme == "http" || scheme == "https" {
-          if let u = URL(string: text), u.host != nil { return .url(u) }
+          if let u = parse(text), u.host != nil { return .url(withPath(u)) }
           return .search(text)
         }
-        if let u = URL(string: text) { return .url(u) }
+        if let u = parse(text) { return .url(u) }
         return .search(text)
       }
     }
@@ -109,11 +110,33 @@ enum URLInput {
       if looksLikeHost(host) || (!port.isEmpty && host.range(of: "^[a-z0-9-]+$", options: [.regularExpression, .caseInsensitive]) != nil) {
         let isIP = host.split(separator: ".").count == 4 && host.split(separator: ".").allSatisfy { Int($0) != nil }
         let local = host == "localhost" || isIP || !host.contains(".") || host.hasSuffix(".local")
-        if let u = URL(string: "\(local ? "http" : "https")://\(host)\(port)\(rest)") { return .url(u) }
+        if let u = parse("\(local ? "http" : "https")://\(host)\(port)\(rest)") { return .url(withPath(u)) }
         return .search(text)
       }
     }
     return .search(text)
+  }
+
+  /// Characters a URL may carry as they are; `%` too, so escapes already typed stay as they are.
+  private static let keep: CharacterSet = {
+    var s = CharacterSet.urlQueryAllowed
+    s.formUnion(.urlPathAllowed)
+    s.formUnion(.urlFragmentAllowed)
+    s.insert(charactersIn: "%#[]")
+    return s
+  }()
+
+  /// A URL from typed text, encoding only the characters URLs cannot hold (`<`, `"`, `|`...).
+  static func parse(_ text: String) -> URL? {
+    if let u = URL(string: text, encodingInvalidCharacters: false) { return u }
+    return text.addingPercentEncoding(withAllowedCharacters: keep).flatMap { URL(string: $0, encodingInvalidCharacters: false) }
+  }
+
+  /// `https://example.com` -> `https://example.com/`, as browsers normalize it.
+  static func withPath(_ u: URL) -> URL {
+    guard u.path.isEmpty, var c = URLComponents(url: u, resolvingAgainstBaseURL: false) else { return u }
+    c.path = "/"
+    return c.url ?? u
   }
 
   static func resolve(_ raw: String, engine: String) -> URL? {

@@ -28,12 +28,17 @@ struct TabSwitcherView: View {
   @EnvironmentObject var app: AppModel
   @EnvironmentObject var tabs: TabManager
   @Environment(\.dismiss) private var dismiss
+  /// Which tabs the grid shows; switching it does not open or select anything.
+  @State private var showPrivate: Bool?
+
+  private var isPrivate: Bool { showPrivate ?? tabs.privateMode }
+  private var shown: [Tab] { isPrivate ? tabs.privateTabs : tabs.tabs }
 
   var body: some View {
     NavigationStack {
       ScrollView {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-          ForEach(tabs.current) { tab in
+          ForEach(shown) { tab in
             TabCard(tab: tab, selected: tab.id == tabs.selectedID) {
               tabs.select(tab)
               dismiss()
@@ -43,8 +48,8 @@ struct TabSwitcherView: View {
           }
         }
         .padding(14)
-        if tabs.current.isEmpty {
-          Text(tabs.privateMode ? "No private tabs. What happens in a private tab stays in the pantry." : "No tabs open.")
+        if shown.isEmpty {
+          Text(isPrivate ? "No private tabs. What happens in a private tab stays in the pantry." : "No tabs open.")
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .padding(40)
@@ -54,8 +59,8 @@ struct TabSwitcherView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .principal) {
-          Picker("Tabs", selection: Binding(get: { tabs.privateMode }, set: { tabs.setPrivateMode($0) })) {
-            Text("\(tabs.tabs.count) Tabs").tag(false)
+          Picker("Tabs", selection: Binding(get: { isPrivate }, set: { showPrivate = $0 })) {
+            Text(tabs.tabs.count == 1 ? "1 Tab" : "\(tabs.tabs.count) Tabs").tag(false)
             Text("Private").tag(true)
           }
           .pickerStyle(.segmented)
@@ -70,13 +75,13 @@ struct TabSwitcherView: View {
                 dismiss()
               }
             }
-            Button("Close All Tabs", systemImage: "xmark", role: .destructive) { tabs.closeAll(isPrivate: tabs.privateMode) }
+            Button("Close All Tabs", systemImage: "xmark", role: .destructive) { tabs.closeAll(isPrivate: isPrivate) }
           } label: { Image(systemName: "ellipsis.circle") }
             .accessibilityLabel("Tab options")
         }
         ToolbarItem(placement: .bottomBar) {
           Button {
-            tabs.newTab(isPrivate: tabs.privateMode)
+            tabs.newTab(isPrivate: isPrivate)
             dismiss()
             app.editingAddress = true
           } label: { Image(systemName: "plus") }

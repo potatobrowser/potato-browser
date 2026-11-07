@@ -157,6 +157,15 @@ final class Tab: NSObject, ObservableObject, Identifiable {
   }
 
   var isBlank: Bool { url == nil && interstitial == nil && pendingState == nil }
+
+  /// The address the user sees: a blocked or failed page's own, not the one before it.
+  var displayURL: URL? {
+    switch interstitial {
+    case .chatbot(let u), .insecure(let u, _): u
+    case .failed(let u, _, _), .crashed(let u): u ?? url
+    case nil: url
+    }
+  }
   var hasWebView: Bool { web != nil }
   var displayTitle: String {
     if !title.isEmpty { return title }
@@ -164,9 +173,10 @@ final class Tab: NSObject, ObservableObject, Identifiable {
     return "New Tab"
   }
 
+  /// The web view itself is made when the tab is first shown or loads a page: one made before the
+  /// app has a window (at launch) gets its touch handling wrong and crashes on the first tap.
   func activate() {
     lastActive = Date()
-    _ = webView
   }
 
   // MARK: Navigation
@@ -182,8 +192,9 @@ final class Tab: NSObject, ObservableObject, Identifiable {
     load(url, typed: true)
   }
 
+  /// From an error page: back to the page underneath (or the new tab page when there is none).
   func goBack() {
-    if interstitial != nil, web?.url != nil {
+    if interstitial != nil {
       interstitial = nil
       return
     }
@@ -401,7 +412,6 @@ extension Tab: WKNavigationDelegate {
     }
     if app.settings.value.privacy.blockAiChatbots, Chatbots.isChatbot(url), !allowedChatbots.contains(url.host?.lowercased() ?? "") {
       decisionHandler(.cancel, preferences)
-      self.url = url
       interstitial = .chatbot(url)
       return
     }

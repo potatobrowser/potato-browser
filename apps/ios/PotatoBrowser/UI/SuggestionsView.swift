@@ -165,7 +165,7 @@ struct NewTabView: View {
           TileGrid(title: "Bookmarks", items: favorites.map { ($0.title, $0.url ?? "") }) { open($0) }
         }
         if !frequent.isEmpty {
-          TileGrid(title: "Frequently visited", items: frequent.map { ($0.title, $0.url) }) { open($0) }
+          TileGrid(title: "Frequently visited", items: frequent.map { (URLInput.displayHost(URL(string: $0.url)), $0.url) }) { open($0) }
         }
       }
       .padding(.horizontal, 20)

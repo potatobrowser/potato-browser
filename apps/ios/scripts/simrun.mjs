@@ -63,6 +63,7 @@ export async function runSteps(steps, { out, fresh = true, env = {}, install = t
           return;
         }
         if (obj.event !== 'start') {
+          obj.at = Date.now();
           results.push(obj);
           process.stderr.write(`  ${obj.action}${obj.name ? ` ${obj.name}` : ''}${obj.error ? ` ERROR ${obj.error}` : ''}\n`);
         }

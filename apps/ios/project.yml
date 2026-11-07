@@ -65,6 +65,7 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
         NSAppTransportSecurity:
           NSAllowsArbitraryLoadsInWebContent: true
+          NSAllowsLocalNetworking: true
         NSCameraUsageDescription: Websites you allow can use the camera, for example for a video call.
         NSMicrophoneUsageDescription: Websites you allow can use the microphone, for example for a video call.
         NSLocationWhenInUseUsageDescription: Websites you allow can see your location, for example a map.

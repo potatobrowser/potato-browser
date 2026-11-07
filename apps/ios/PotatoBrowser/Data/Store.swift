@@ -44,7 +44,7 @@ final class Store: ObservableObject {
   @Published private(set) var historyVersion = 0
   @Published private(set) var statsVersion = 0
 
-  static let bookmarksRoot: Int64 = 1
+  nonisolated static let bookmarksRoot: Int64 = 1
 
   init(path: String) throws {
     db = try SQLite(path: path)

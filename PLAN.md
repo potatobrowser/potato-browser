@@ -226,9 +226,8 @@ Design:
   (`FORBIDDEN_GLOBALS`, window and worker) on the device and shows the result.
 - **Ad blocker**: a build step converts the pinned lists (filters/lock.json) per group (ads,
   trackers, cookie notices, annoyances) into WebKit rule lists: `block` for network filters,
-  `redirect` to uBlock's stand-ins where WebKit allows it, exceptions as
-  `ignore-previous-rules`. Groups are separate lists, so a settings change adds or removes a
-  list instead of recompiling. Cosmetics, scriptlets and procedural selectors come from the same
+  exceptions as `ignore-previous-rules`. Groups are separate lists, so a settings change adds or
+  removes a list instead of recompiling. Cosmetics, scriptlets and procedural selectors come from the same
   Ghostery engine as on the Mac, run in JavaScriptCore inside the app: per navigation it gives the
   page's styles and scriptlets (scriptlets run as page world user scripts, before page scripts),
   and it answers the generic rules for ids and classes as the page changes. Ads allowed on a
@@ -258,3 +257,35 @@ Verification:
 Release: bundle id `com.potatobrowser.app` (as on the Mac), `apps/ios/scripts/testflight.sh`
 archives with automatic signing through the App Store Connect API key, uploads, and adds the
 team to an internal TestFlight group. Builds are numbered by commit count.
+
+Findings of the WebKit spike (iOS 27 simulator):
+
+- App rule lists compile with up to 150,000 rules each; one url-filter outside WebKit's regex
+  subset fails the whole list, so the converter checks every pattern (`isWebKitRegex`, after
+  WebCore's URLFilterParser). Ads compile in about 10 s and trackers in 7 s, once.
+- `redirect` and `modify-headers` actions parse but do nothing outside Safari extensions: no
+  uBlock stand-ins, no `$csp`, no `Sec-GPC` header. Redirect filters block instead.
+- User scripts and rule lists changed while a main-frame navigation waits for its policy decision
+  apply to that navigation.
+- iOS 27 WebKit exposes no AI web APIs except `webkitSpeechRecognition`, which fails with
+  `not-allowed` in an app without a speech recognition usage description; nothing in workers.
+- The Ghostery engine in JavaScriptCore without JIT (as on a device) loads ads and trackers in
+  0.3 s and 0.2 s and answers a page's cosmetics in 1 to 12 ms.
+
+## iOS status (2026-11-07)
+
+- `apps/ios`: SwiftUI app, 0.5.0, on TestFlight (internal group "Team").
+- Tests: 30 vitest (converter, parity with the Mac app), 20 XCTest units, 4 UI tests and 136
+  end-to-end checks on the simulator against the Mac app's fixture sites and the real Worker,
+  all passing.
+- Live checks on the simulator: adblock-tester.com 100/100; Google search on the mobile layout
+  with 4 AI features hidden and AI Mode sent back to results; m.youtube.com with uBlock's
+  scriptlets stripping the ad data from the player response and flag buttons on every video;
+  Reddit with flag buttons on every post; consent walls gone with cookie notices on.
+- Found on the way: a WKWebView made before the app has a window crashes on its first tap
+  (UIKit gesture handling), so tab web views are made when first shown; typed URLs with escapes
+  were escaped twice.
+
+Open items (iOS): the CGNAT question for votes from phones (one network bucket per carrier
+range), the default browser entitlement (requested from Apple), mobile layouts of the
+logged-in social sites, iPad multiwindow.

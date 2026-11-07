@@ -56,7 +56,6 @@ struct TabContent: View {
     ZStack {
       if !tab.isBlank || tab.isLoading {
         WebViewContainer(webView: tab.webView)
-          .ignoresSafeArea(.container, edges: sideEdges)
       }
       if let i = tab.interstitial {
         InterstitialView(tab: tab, interstitial: i)
@@ -64,10 +63,9 @@ struct TabContent: View {
         NewTabView(tab: tab)
       }
     }
-    .background(Color(.systemBackground))
+    // The status bar takes the page's theme color, as in Safari.
+    .background(Color(uiColor: tab.interstitial == nil && !tab.isBlank ? tab.themeColor ?? .systemBackground : .systemBackground).ignoresSafeArea(edges: .top))
   }
-
-  private var sideEdges: Edge.Set { [.top, .horizontal] }
 }
 
 struct WebViewContainer: UIViewRepresentable {

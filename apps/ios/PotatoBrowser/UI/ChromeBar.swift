@@ -35,7 +35,7 @@ struct ChromeBar: View {
     .background(tab.isPrivate ? AnyShapeStyle(Color.purple.opacity(0.18)) : AnyShapeStyle(.bar))
     .onChange(of: app.editingAddress) { _, editing in
       if editing {
-        app.suggestionText = tab.url.map { SearchEngine.get(app.settings.value.searchEngine).query(in: $0) ?? $0.absoluteString } ?? ""
+        app.suggestionText = tab.displayURL.map { SearchEngine.get(app.settings.value.searchEngine).query(in: $0) ?? $0.absoluteString } ?? ""
         focused = true
       } else {
         focused = false
@@ -87,14 +87,14 @@ struct ChromeBar: View {
             Text(addressTitle)
               .lineLimit(1)
               .truncationMode(.middle)
-              .foregroundStyle(tab.url == nil ? .secondary : .primary)
+              .foregroundStyle(tab.displayURL == nil ? .secondary : .primary)
           }
           .frame(maxWidth: .infinity)
           .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("address-bar")
-        .accessibilityValue(tab.url?.absoluteString ?? "")
+        .accessibilityValue(tab.displayURL?.absoluteString ?? "")
         if tab.url != nil {
           Button {
             tab.isLoading ? tab.stop() : tab.reload()
@@ -120,7 +120,7 @@ struct ChromeBar: View {
   }
 
   private var addressTitle: String {
-    guard let url = tab.url else { return "Search or enter address" }
+    guard let url = tab.displayURL else { return "Search or enter address" }
     if let q = SearchEngine.get(app.settings.value.searchEngine).query(in: url) { return q }
     return URLInput.displayHost(url)
   }

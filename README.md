@@ -20,6 +20,9 @@ not generated.
 
 Website: https://potatobrowser.com. Free and open source under the [MIT license](LICENSE).
 
+There is also an app for iPhone and iPad with the same four features, built on WebKit; see
+[apps/ios](apps/ios/README.md).
+
 ## Install
 
 With [Homebrew](https://brew.sh):
@@ -86,6 +89,9 @@ apps/browser      Electron 45 (Chromium 156) app
   test/unit         vitest
   test/e2e          Playwright against the real app, offline fixture sites, real Worker
   test/live         manual checks against live websites
+apps/ios          iPhone and iPad app: SwiftUI around WKWebView, reusing src/content and the lists
+  web               bridge scripts and the filter list to WebKit rule list converter
+  PotatoBrowser     the Swift app (XcodeGen project.yml)
 apps/web          Cloudflare Worker: landing page, flags API (D1), filter lists, releases, downloads
 packages/shared   flag key format, hashing, API types
 ```
