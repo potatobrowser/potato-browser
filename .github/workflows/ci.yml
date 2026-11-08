@@ -25,8 +25,16 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # The Electron zip comes from GitHub releases, which fail intermittently.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/electron-cache
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/browser/package.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
 
       - run: pnpm install --frozen-lockfile
+        env:
+          electron_config_cache: ${{ runner.temp }}/electron-cache
       - run: pnpm typecheck
       - run: pnpm test
       - name: End-to-end tests

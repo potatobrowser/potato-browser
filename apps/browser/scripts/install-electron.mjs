@@ -2,6 +2,7 @@
 // (the web deploy only needs the worker toolchain).
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 if (process.env.ELECTRON_SKIP_BINARY_DOWNLOAD) {
   console.log('install-electron: skipped (ELECTRON_SKIP_BINARY_DOWNLOAD)');
@@ -9,5 +10,13 @@ if (process.env.ELECTRON_SKIP_BINARY_DOWNLOAD) {
 }
 const require = createRequire(import.meta.url);
 const script = require.resolve('electron/install.js');
-const r = spawnSync(process.execPath, [script], { stdio: 'inherit' });
-process.exit(r.status ?? 1);
+// GitHub release downloads fail with 5xx now and then.
+const waits = [10, 30, 60];
+let status = 1;
+for (let attempt = 0; ; attempt++) {
+  status = spawnSync(process.execPath, [script], { stdio: 'inherit' }).status ?? 1;
+  if (status === 0 || attempt === waits.length) break;
+  console.log(`install-electron: download failed, retrying in ${waits[attempt]}s`);
+  await sleep(waits[attempt] * 1000);
+}
+process.exit(status);
