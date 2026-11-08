@@ -17,6 +17,9 @@ const define = {
   'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
   __APP_VERSION__: JSON.stringify(pkg.version),
   __API_BASE__: JSON.stringify(process.env.POTATO_API_BASE_BUILD || 'https://potatobrowser.com'),
+  // Squirrel.Mac only installs updates signed like the running app, so only Developer ID release
+  // builds download them; others just say a new version is out.
+  __AUTO_UPDATE__: JSON.stringify(process.env.POTATO_AUTO_UPDATE === '1'),
 };
 
 const common = {

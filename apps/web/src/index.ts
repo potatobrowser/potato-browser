@@ -10,7 +10,7 @@ import {
 } from '@potato/shared';
 import { filterList, filterRevisions } from './filters';
 import { DAILY_FLAG_CAP, MAX_VOTES_PER_NETWORK, networkBucket, rateLimitKey, voterId } from './lib';
-import { assetUrl, latestManifest, releaseInfo, repoOf } from './releases';
+import { assetUrl, latestManifest, releaseInfo, repoOf, updateFeed, type Arch } from './releases';
 
 export interface Env {
   DB: D1Database;
@@ -174,6 +174,16 @@ async function latestRelease(req: Request, env: Env): Promise<Response> {
   return json(info, 200, { 'cache-control': 'public, max-age=300' });
 }
 
+/** The in-app update feed; the browser asks for it every few hours and sends nothing about the user. */
+async function updateFeedMac(env: Env, arch: Arch): Promise<Response> {
+  const m = await latestManifest(env);
+  const feed = m ? updateFeed(repoOf(env), m, arch) : null;
+  if (!feed) return error(404, 'no update yet');
+  return new Response(JSON.stringify(feed), {
+    headers: { 'content-type': 'text/yaml; charset=utf-8', 'cache-control': 'public, max-age=300' },
+  });
+}
+
 /** Downloads go to the GitHub Release the public workflow built; the site only counts them. */
 async function download(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   if (req.method !== 'GET' && req.method !== 'HEAD') return error(405, 'method not allowed');
@@ -214,6 +224,8 @@ async function api(req: Request, env: Env, url: URL, ctx: ExecutionContext): Pro
     default: {
       const m = /^GET \/api\/v1\/filters\/([^/]+)\/([^/]+)$/.exec(route);
       if (m) return filterList(m[1]!, m[2]!);
+      const u = /^GET \/api\/v1\/update\/mac\/(arm64|x64)\/latest-mac\.yml$/.exec(route);
+      if (u) return updateFeedMac(env, u[1] as Arch);
       return error(url.pathname.startsWith('/api/v1/') ? 405 : 404, 'not found');
     }
   }

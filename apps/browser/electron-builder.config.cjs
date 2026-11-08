@@ -5,7 +5,7 @@ const testBuild = process.env.POTATO_TEST_BUILD === '1';
 // Connect key in APPLE_API_KEY*; everything else, like a build from source, is ad-hoc signed.
 const signed = !testBuild && !!process.env.CSC_LINK;
 const notarizing = signed && !!(process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER);
-// POTATO_ARCH=arm64 or x64 builds one DMG (scripts/dist.mjs --arch); releases build both.
+// POTATO_ARCH=arm64 or x64 builds one arch (scripts/dist.mjs --arch); releases build both.
 const archs = ['arm64', 'x64'].includes(process.env.POTATO_ARCH) ? [process.env.POTATO_ARCH] : ['arm64', 'x64'];
 
 /** @type {import('electron-builder').Configuration} */
@@ -18,12 +18,22 @@ module.exports = {
   extraResources: [{ from: '../../THIRD_PARTY_NOTICES.md', to: 'THIRD_PARTY_NOTICES.md' }],
   // Our own notarize step: it retries stapling, which electron-builder's built-in one does not.
   afterSign: notarizing ? 'scripts/notarize.cjs' : undefined,
+  // Only for the app-update.yml electron-updater needs on disk; the app sets its feed URL itself
+  // (src/main/updates.ts) and the release workflow publishes the zips, not electron-builder.
+  publish: { provider: 'generic', url: 'https://potatobrowser.com/api/v1/update/mac' },
   asar: true,
   npmRebuild: false,
   mac: {
     category: 'public.app-category.productivity',
     icon: 'build/icon.icns',
-    target: testBuild ? [{ target: 'dir', arch: ['arm64'] }] : [{ target: 'dmg', arch: archs }],
+    // The DMG is for first installs, the zip for in-app updates (Squirrel.Mac installs zips only).
+    target: testBuild
+      ? [{ target: 'dir', arch: ['arm64'] }]
+      : [
+          { target: 'dmg', arch: archs },
+          { target: 'zip', arch: archs },
+        ],
+    artifactName: 'Potato-Browser-${version}-${arch}.${ext}',
     minimumSystemVersion: '13.0',
     // undefined: the identity in CSC_LINK. '-': ad-hoc, so arm64 builds still launch.
     identity: signed ? undefined : '-',
@@ -53,6 +63,8 @@ module.exports = {
   dmg: {
     // The release workflow notarizes and staples the signed DMG too.
     sign: signed,
+    // Updates come from the zip: no DMG blockmap or entry in latest-mac.yml.
+    writeUpdateInfo: false,
     title: 'Potato Browser ${version}',
     artifactName: 'Potato-Browser-${version}-${arch}.${ext}',
     background: 'build/dmg-background.png',

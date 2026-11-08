@@ -169,8 +169,24 @@ export interface WindowState {
   theme: Theme;
   shieldGloballyEnabled: boolean;
   adblockGloballyEnabled: boolean;
-  updateAvailable: string | null;
+  update: UpdateStatus;
   passwordPrompt: PasswordPrompt | null;
+}
+
+/** In-app updates (src/main/updates.ts). */
+export interface UpdateStatus {
+  /**
+   * idle: not checked yet. none: up to date. available: a newer version is out that this copy
+   * cannot install itself (see `manual`). downloading, then ready: a restart installs it.
+   */
+  phase: 'idle' | 'checking' | 'none' | 'available' | 'downloading' | 'ready' | 'error';
+  /** The newer version, once one is known. */
+  version: string | null;
+  /** 0 to 100 while downloading. */
+  percent: number;
+  /** Why this copy only points to the download page: a build without the release signature, or an app outside Applications. */
+  manual: 'build' | 'location' | null;
+  error: string | null;
 }
 
 /** "Save password?" for the active tab, after a sign-in that looked successful. */

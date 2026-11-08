@@ -1,7 +1,8 @@
-# Builds the DMGs for a version tag, signs them with the Developer ID, has Apple notarize them,
-# attests where they came from and publishes the GitHub Release that potatobrowser.com, the
-# in-app update check and the Homebrew cask read. Tags are pushed as v<version> of
-# apps/browser/package.json. Secrets live in the "release" environment, which only v* tags reach.
+# Builds the DMGs (first installs) and zips (in-app updates) for a version tag, signs them with
+# the Developer ID, has Apple notarize them, attests where they came from and publishes the GitHub
+# Release that potatobrowser.com, the in-app update feed and the Homebrew cask read. Tags are
+# pushed as v<version> of apps/browser/package.json. Secrets live in the "release" environment,
+# which only v* tags reach.
 name: Release
 
 on:
@@ -84,8 +85,9 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: node apps/browser/scripts/notarize.cjs apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.dmg
 
+      # The zips hold the apps notarized and stapled above; they are checked as Squirrel unpacks them.
       - name: Check Gatekeeper accepts them and the app starts
-        run: apps/browser/scripts/verify-release.sh apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.dmg
+        run: apps/browser/scripts/verify-release.sh apps/browser/release/Potato-Browser-"$VERSION"-{arm64,x64}.{dmg,zip}
 
       - name: Write latest.json, SHA256SUMS and notes
         run: node apps/browser/scripts/release-manifest.mjs --commit "$(git rev-parse HEAD)"
@@ -94,6 +96,7 @@ jobs:
         with:
           subject-path: |
             apps/browser/release/Potato-Browser-*.dmg
+            apps/browser/release/Potato-Browser-*.zip
             apps/browser/release/latest.json
 
       - name: Publish the GitHub Release
@@ -101,7 +104,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         working-directory: apps/browser/release
         run: |
-          assets=("Potato-Browser-$VERSION-arm64.dmg" "Potato-Browser-$VERSION-x64.dmg" latest.json SHA256SUMS)
+          assets=(latest.json SHA256SUMS)
+          for a in arm64 x64; do
+            # The blockmaps let the next update download only what changed.
+            assets+=("Potato-Browser-$VERSION-$a.dmg" "Potato-Browser-$VERSION-$a.zip" "Potato-Browser-$VERSION-$a.zip.blockmap")
+          done
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
             gh release edit "$TAG" --notes-file notes.md

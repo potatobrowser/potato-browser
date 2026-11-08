@@ -7,7 +7,7 @@ import type { PermissionManager } from './permissions';
 import type { ShieldService } from './shield';
 import type { FlagsService } from './flags';
 import type { PasswordService } from './passwords/service';
-import type { UpdateChecker } from './updates';
+import type { UpdateService } from './updates';
 
 /** Process-wide services, filled in once at startup (see index.ts). */
 export interface AppContext {
@@ -20,7 +20,7 @@ export interface AppContext {
   adblock: AdblockService;
   flags: FlagsService;
   passwords: PasswordService;
-  updates: UpdateChecker;
+  updates: UpdateService;
 }
 
 export const ctx = {} as AppContext;

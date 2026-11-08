@@ -257,6 +257,68 @@ Touch ID, single page apps must keep the form away for 2 s, password-and-PIN for
 as a change, pending sign-ins are per origin, bare hosts with ports import, and the mock
 Keychain is used only with a test profile.
 
+## In-app updates (0.7.0)
+
+Until 0.6.0 the browser only put a dot on the menu button and linked to the DMG, so a Chromium
+security fix reached people when they got around to downloading it. Browsers stay open for weeks,
+so fixes have to install themselves within days.
+
+Decisions (2026-11-08):
+
+- **electron-updater with Squirrel.Mac**, the standard for Electron on the Mac. The release
+  workflow builds a zip per architecture next to the DMG (Squirrel installs zips only), with
+  blockmaps so later updates can download only what changed. The DMG stays for first installs.
+- **Feed on potatobrowser.com**, not electron-updater's GitHub provider: the Worker builds
+  `latest-mac.yml` (as JSON, which is YAML) from the release's `latest.json`, which now lists the
+  zips with size and SHA-512. The browser keeps asking one host, the feed is validated like the
+  download page (names, arch, hash format), and a release can be held back at the Worker. The
+  zips download from the GitHub Release, one range per request (GitHub does not answer
+  multi-range requests, which differential downloads otherwise use).
+- **One feed per architecture** (`/api/v1/update/mac/arm64` and `/x64`), chosen by the app from
+  `process.arch` (Intel builds under Rosetta get the Apple silicon one): given both zips,
+  electron-updater decides by looking for "ARM" anywhere in `uname -a`, host name included, and
+  an Intel Mac named that way would install a build it cannot run.
+- **Trust**: electron-updater checks the zip's SHA-512 from the feed; Squirrel.Mac then installs
+  only an app whose signature satisfies the running app's designated requirement (our Developer
+  ID team and bundle id), and the release workflow checks every new app against that requirement.
+  A compromised feed or download host cannot install code we did not sign. electron-updater
+  refuses versions that are not newer, but it takes the version from the feed: whoever controls
+  the Worker could offer an older signed release under a new number.
+- **Privacy**: electron-updater sends a random per-install `x-user-staging-id` with every check
+  for staged rollouts; the browser strips it in the updater's session. Checks carry no id.
+- **When**: 10 s after launch, then every 4 hours. The download starts at once; when Squirrel has
+  staged it, "Restart to update" shows in the toolbar (and the menus). One click saves the
+  session before the windows close (Squirrel closes them before `before-quit`, so the session is
+  saved on `before-quit-for-update`) and the next launch restores it whatever the startup setting.
+  Quitting installs a staged update without relaunching. Active downloads ask first. While an
+  update waits for the restart there are no further checks; the launch after it checks again.
+  If the restart fails after the windows closed, they reopen and the browser carries on.
+- **Who**: only Developer ID builds (`__AUTO_UPDATE__`, set when `CSC_LINK` signs the build) in
+  an Applications folder download updates. Squirrel would reject an update for an ad-hoc or
+  otherwise signed copy after downloading it, and cannot replace an app on the DMG or a
+  translocated one; those copies show the version with a Download link, as before. A failed or
+  stalled download (no progress for 5 minutes) retries after 15 minutes; an update Squirrel
+  refuses twice in one run stops downloading until relaunch.
+- **Homebrew**: the cask is `auto_updates true`. Homebrew still upgrades it when the installed
+  bundle is older than the tap (the default in Homebrew 7), so 0.6.0 installs move to 0.7.0 with a
+  plain `brew upgrade`, and self-updated ones are left alone.
+
+Status (2026-11-08): done. 3 Worker tests (a feed per architecture, swapped or malformed zips
+refused, no feed for releases without zips) and 2 e2e tests (the toolbar button restarting into
+the update with the tabs back although startup is set to a new tab, and the About states). End to
+end on this Mac with two builds signed by one identity with the hardened runtime, a local feed
+and a 302 to a CDN as GitHub does: 0.7.0 found 0.7.1 10 s after launch and had it staged at 15 s;
+one click restarted into 0.7.1 within 5 s with both windows and all three tabs; quitting instead
+installed it without relaunching; an ad-hoc signed 0.7.1 was refused by Squirrel ("code failed
+to satisfy specified code requirement(s)"), About offered the download and 0.7.0 stayed; the
+staging id never reached the server. Found on the way: Squirrel closes the windows before
+`before-quit`, so without `before-quit-for-update` only the last window survived. An independent
+review before release led to: a feed per architecture, failure counting limited to updates
+Squirrel refuses (a download broken off by sleep retries after 15 minutes instead), a watchdog
+for stalled downloads (electron-updater's timeout never fires with Electron's net module), the
+windows reopening if a restart fails, single-range downloads from GitHub, and the release check
+pinned to the designated requirement of released apps.
+
 ## iOS app (plan, 2026-11-07)
 
 Goal: Potato Browser for iPhone (and iPad) on TestFlight with the same four features as the Mac

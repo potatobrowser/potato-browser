@@ -100,6 +100,9 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
     case 'ui.menu':
       showOverflowMenu(win, num(cmd.x) || 0, num(cmd.y) || 0);
       break;
+    case 'update.install':
+      void ctx.updates.install();
+      break;
     case 'ui.focusPage':
       active?.wc.focus();
       break;
@@ -277,10 +280,9 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
     app.setAsDefaultProtocolClient('https');
     return true;
   },
-  'app.checkUpdates': async () => {
-    const info = await ctx.updates.check();
-    return { latest: info, available: ctx.updates.available(), current: APP_VERSION };
-  },
+  'app.updateStatus': () => ctx.updates.state(),
+  'app.checkUpdates': () => ctx.updates.check(),
+  'app.installUpdate': () => void ctx.updates.install(),
   'app.openDownloadPage': () => void shell.openExternal(SITE_URL + '/#download'),
   'app.openSourcePage': () => void shell.openExternal(SOURCE_URL),
   'app.chooseDownloadsDir': async () => {

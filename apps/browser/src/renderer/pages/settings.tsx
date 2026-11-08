@@ -1,7 +1,7 @@
 import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@potato/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme } from '../../shared/types';
+import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme, UpdateStatus } from '../../shared/types';
 import { SEARCH_ENGINES } from '../../shared/urls';
 import { call, onInternalEvent } from '../shared/api';
 import { Card, Row, Toggle, useSettings } from '../shared/components';
@@ -546,11 +546,60 @@ function DownloadsSection({ s, update }: { s: Settings; update: Update }) {
   );
 }
 
+function useUpdateStatus(): UpdateStatus | null {
+  const [status, setStatus] = useState<UpdateStatus | null>(null);
+  useEffect(() => {
+    const load = () => void call<UpdateStatus>('app.updateStatus').then(setStatus);
+    load();
+    return onInternalEvent((e) => e.type === 'update' && load());
+  }, []);
+  return status;
+}
+
+function UpdateNote({ u }: { u: UpdateStatus }) {
+  const download = (
+    <button className="link-btn" data-testid="update-download" onClick={() => void call('app.openDownloadPage')}>
+      Download
+    </button>
+  );
+  switch (u.phase) {
+    case 'checking':
+      return <>Checking the cellar...</>;
+    case 'none':
+      return <>You are up to date. Fresh as a new potato.</>;
+    case 'downloading':
+      return <>Digging up version {u.version}... {u.percent}%</>;
+    case 'ready':
+      return <>Version {u.version} is ready. Restart to finish updating; your windows and tabs come back.</>;
+    case 'available':
+      return (
+        <>
+          Version {u.version} is fresh out of the ground.{' '}
+          {u.manual === 'location'
+            ? 'Move Potato Browser to the Applications folder and it updates itself. '
+            : u.manual === 'build'
+              ? 'This build does not update itself. '
+              : 'It could not be installed here. '}
+          {download}
+        </>
+      );
+    case 'error':
+      return u.version ? (
+        <>Version {u.version} could not be installed yet. Trying again soon. {download}</>
+      ) : (
+        <>Could not check for updates. Try again in a bit.</>
+      );
+    default:
+      return null;
+  }
+}
+
 function About() {
   const [info, setInfo] = useState<AppInfo | null>(null);
-  const [update, setUpdate] = useState<{ text: string; available?: boolean } | null>(null);
+  const update = useUpdateStatus();
   useEffect(() => void call<AppInfo>('app.info').then(setInfo), []);
   if (!info) return null;
+  const busy = update?.phase === 'checking' || update?.phase === 'downloading';
   return (
     <Card title="About Potato Browser" id="about">
       <div className="about-head">
@@ -561,29 +610,19 @@ function About() {
             Version {info.version} · Chromium {info.chromium}
           </p>
         </div>
-        <button
-          className="btn"
-          onClick={async () => {
-            setUpdate({ text: 'Checking the cellar...' });
-            const r = await call<{ available: string | null; current: string; latest: unknown }>('app.checkUpdates');
-            setUpdate(
-              r.available
-                ? { text: `Version ${r.available} is fresh out of the ground.`, available: true }
-                : { text: r.latest ? 'You are up to date. Fresh as a new potato.' : 'Could not check for updates. Try again in a bit.' },
-            );
-          }}
-        >
-          Check for updates
-        </button>
+        {update?.phase === 'ready' ? (
+          <button className="btn primary" data-testid="update-check" onClick={() => void call('app.installUpdate')}>
+            Restart to update
+          </button>
+        ) : (
+          <button className="btn" data-testid="update-check" disabled={busy} onClick={() => void call('app.checkUpdates')}>
+            Check for updates
+          </button>
+        )}
       </div>
-      {update && (
-        <p className="about-update">
-          {update.text}{' '}
-          {update.available ? (
-            <button className="link-btn" onClick={() => void call('app.openDownloadPage')}>
-              Download
-            </button>
-          ) : null}
+      {update && update.phase !== 'idle' && (
+        <p className="about-update" data-testid="update-status" aria-live="polite">
+          <UpdateNote u={update} />
         </p>
       )}
       <div className="row column">

@@ -321,6 +321,10 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
         <p>Yes, with an Apple Developer ID, and notarized by Apple. <code>spctl --assess -vv "/Applications/Potato Browser.app"</code> should say Notarized Developer ID.</p>
       </details>
       <details>
+        <summary>How does it update?</summary>
+        <p>On its own. Every few hours it asks this site for a new version, downloads it in the background and installs it when you restart, with your tabs back. macOS installs it only if it carries the same signature as the app you run.</p>
+      </details>
+      <details>
         <summary>Does it save passwords?</summary>
         <p>Yes. It offers to keep a password when you sign in and fills it when you pick it from its own list. Passwords are encrypted with a key in your macOS Keychain and never leave your Mac. Bring yours over from Chrome, Safari, Firefox or 1Password with a CSV export.</p>
       </details>

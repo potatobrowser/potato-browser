@@ -243,6 +243,11 @@ describe('releases and downloads', () => {
   afterEach(() => vi.restoreAllMocks());
 
   const get = (path: string, init: RequestInit = {}) => worker.fetch(new Request(BASE + path, { redirect: 'manual', ...init }));
+  const CACHED = 'https://release-cache.potatobrowser.invalid/potatobrowser/potato-browser/latest.json';
+  const forget = async () => {
+    resetManifestCache();
+    await caches.default.delete(new Request(CACHED));
+  };
 
   it('404s before the first release and sends downloads to the releases page', async () => {
     served = { status: 404, body: 'Not Found' };
@@ -282,6 +287,52 @@ describe('releases and downloads', () => {
     expect((await get('/download/mac-arm64', { method: 'HEAD' })).status).toBe(302);
     expect((await get('/download/linux')).status).toBe(404);
     expect((await get('/download/mac-arm64', { method: 'POST' })).status).toBe(405);
+  });
+
+  it('serves the in-app update feed from the release zips', async () => {
+    const b64 = (c: string) => c.repeat(86) + '==';
+    const zips = {
+      arm64: { file: 'Potato-Browser-9.9.9-arm64.zip', size: 3000, sha512: b64('a') },
+      x64: { file: 'Potato-Browser-9.9.9-x64.zip', size: 4000, sha512: b64('b') },
+    };
+    await forget();
+    served = { status: 200, body: { ...manifest, zips } };
+    // electron-updater adds a cache-busting query.
+    const r = await call('GET', '/api/v1/update/mac/arm64/latest-mac.yml?noCache=1k2j3h');
+    expect(r.status).toBe(200);
+    expect(r.headers.get('content-type')).toContain('yaml');
+    expect(r.json).toEqual({
+      version: '9.9.9',
+      files: [{ url: `${repo}/releases/download/v9.9.9/Potato-Browser-9.9.9-arm64.zip`, sha512: b64('a'), size: 3000 }],
+      releaseDate: '2026-11-05T00:00:00.000Z',
+    });
+    // Each architecture gets its own zip only.
+    expect((await call('GET', '/api/v1/update/mac/x64/latest-mac.yml')).json.files).toEqual([
+      { url: `${repo}/releases/download/v9.9.9/Potato-Browser-9.9.9-x64.zip`, sha512: b64('b'), size: 4000 },
+    ]);
+    expect((await call('GET', '/api/v1/update/mac/latest-mac.yml')).status).toBe(405);
+    expect((await call('GET', '/api/v1/update/mac/ppc/latest-mac.yml')).status).toBe(405);
+
+    // Swapped arches would install the wrong build; a bad hash or name is no feed at all.
+    for (const bad of [
+      { ...zips, arm64: zips.x64, x64: zips.arm64 },
+      { ...zips, x64: { ...zips.x64, file: '../x64.zip' } },
+      { ...zips, arm64: { ...zips.arm64, sha512: 'abc' } },
+      { arm64: zips.arm64 },
+    ]) {
+      await forget();
+      served = { status: 200, body: { ...manifest, zips: bad } };
+      expect((await call('GET', '/api/v1/update/mac/arm64/latest-mac.yml')).status).toBe(404);
+      // The DMG downloads are unaffected.
+      expect((await call('GET', '/api/v1/releases/latest')).status).toBe(200);
+    }
+  });
+
+  it('has no update feed for releases without zips', async () => {
+    await forget();
+    served = { status: 200, body: manifest };
+    expect((await call('GET', '/api/v1/update/mac/arm64/latest-mac.yml')).status).toBe(404);
+    expect((await call('POST', '/api/v1/update/mac/arm64/latest-mac.yml')).status).toBe(405);
   });
 
   it('keeps serving the last good release while GitHub is down', async () => {

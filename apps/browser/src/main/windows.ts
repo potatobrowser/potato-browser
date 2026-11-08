@@ -17,6 +17,8 @@ interface SavedWindow {
 
 interface SavedSession {
   windows: SavedWindow[];
+  /** Written by a restart into an update: the next launch restores, whatever the startup setting. */
+  restore?: boolean;
 }
 
 export class WindowManager {
@@ -33,6 +35,7 @@ export class WindowManager {
   private certAllowed = new WeakMap<Session, Set<string>>();
   private lastCertError = new Map<number, { host: string; fingerprint: string }>();
   quitting = false;
+  private restoreNext = false;
 
   constructor() {
     this.mainSession = electronSession.fromPartition('persist:main');
@@ -235,13 +238,26 @@ export class WindowManager {
   /** Called on quit before windows close, so the session reflects what was open. */
   persistSessionNow(): void {
     const snap = this.snapshot();
-    if (snap.windows.length) this.sessionFile.write(snap);
+    if (snap.windows.length) this.sessionFile.write(this.restoreNext ? { ...snap, restore: true } : snap);
     this.sessionFile.flush();
+  }
+
+  restoreOnNextLaunch(): void {
+    this.restoreNext = true;
+  }
+
+  /** A restart into an update closed the windows but did not quit: reopen them and keep saving. */
+  resumeAfterFailedQuit(): void {
+    this.quitting = false;
+    this.restoreNext = false;
+    if (!this.windows.length) this.restoreOrOpen(false);
   }
 
   restoreOrOpen(firstRun: boolean, links: string[] = []): void {
     const settings = ctx.settings.get();
-    if (links.length && !firstRun && settings.startup !== 'restore') {
+    const saved = this.sessionFile.read();
+    const restore = settings.startup === 'restore' || saved?.restore === true;
+    if (links.length && !firstRun && !restore) {
       this.createWindow({ urls: links });
       return;
     }
@@ -249,8 +265,7 @@ export class WindowManager {
       this.createWindow({ urls: ['potato://welcome/', ...links] });
       return;
     }
-    if (settings.startup === 'restore') {
-      const saved = this.sessionFile.read();
+    if (restore) {
       const wins = (saved?.windows ?? []).filter((w) => Array.isArray(w.tabs) && w.tabs.length);
       if (wins.length) {
         for (const w of wins) {

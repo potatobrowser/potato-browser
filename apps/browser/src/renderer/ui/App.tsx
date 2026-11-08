@@ -77,6 +77,9 @@ export function App() {
   const adOn = web && !!tab?.adblock.enabled && state.adblockGloballyEnabled;
   const adCount = adOn ? tab!.adblock.blocked : 0;
   const dl = state.downloads;
+  const update = state.update;
+  // A newer version this copy cannot install itself: the menu points to About.
+  const manualUpdate = !!update.version && (update.phase === 'available' || update.phase === 'error');
 
   return (
     <div className={`app${state.isPrivate ? ' private' : ''}`} data-private={state.isPrivate || undefined}>
@@ -133,6 +136,16 @@ export function App() {
               {dl.active ? <span className="badge">{dl.active}</span> : null}
             </button>
           ) : null}
+          {update.phase === 'ready' ? (
+            <button
+              className="update-btn"
+              data-testid="update-button"
+              title={`Restart Potato Browser to update to version ${update.version}. Your tabs come back.`}
+              onClick={() => chrome().send({ type: 'update.install' })}
+            >
+              Restart to update
+            </button>
+          ) : null}
           <button
             className="icon-btn"
             data-testid="menu-button"
@@ -143,7 +156,7 @@ export function App() {
             }}
           >
             <Menu />
-            {state.updateAvailable ? <span className="dot" title={`Update available: ${state.updateAvailable}`} /> : null}
+            {manualUpdate ? <span className="dot" data-testid="update-dot" title={`Update available: ${update.version}`} /> : null}
           </button>
         </div>
         {state.bookmarksBar !== null && <BookmarksBar items={state.bookmarksBar} />}

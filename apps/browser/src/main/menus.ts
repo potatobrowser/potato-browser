@@ -23,7 +23,8 @@ export function buildAppMenu(): void {
       label: app.name,
       submenu: [
         { label: `About ${app.name}`, click: commands.showAbout },
-        { label: 'Check for Updates...', click: commands.showAbout },
+        { label: 'Check for Updates...', click: commands.checkForUpdates },
+        { label: 'Restart to Update', id: 'restart-to-update', visible: false, click: () => void ctx.updates.install() },
         sep,
         { label: 'Settings...', id: 'settings', accelerator: 'CmdOrCtrl+,', click: commands.showSettings },
         { label: 'Passwords', id: 'passwords', click: commands.showPasswords },
@@ -150,8 +151,11 @@ export function buildAppMenu(): void {
 }
 
 export function refreshMenuChecks(): void {
-  const item = Menu.getApplicationMenu()?.getMenuItemById('toggle-bookmarks-bar');
+  const menu = Menu.getApplicationMenu();
+  const item = menu?.getMenuItemById('toggle-bookmarks-bar');
   if (item) item.checked = ctx.settings.get().showBookmarksBar;
+  const restart = menu?.getMenuItemById('restart-to-update');
+  if (restart) restart.visible = ctx.updates.state().phase === 'ready';
 }
 
 function truncate(s: string, n = 30): string {
@@ -255,9 +259,15 @@ export function showTabContextMenu(win: BrowserWindowController, tab: Tab): void
 export function showOverflowMenu(win: BrowserWindowController, x: number, y: number): void {
   const t = win.activeTab;
   const zoom = Math.round((t?.wc.getZoomFactor() ?? 1) * 100);
-  const update = ctx.updates.available();
+  const u = ctx.updates.state();
+  const update: MenuItemConstructorOptions[] =
+    u.phase === 'ready'
+      ? [{ label: `Restart to Update (${u.version})`, click: () => void ctx.updates.install() }, sep]
+      : (u.phase === 'available' || u.phase === 'error') && u.version
+        ? [{ label: `Update Available: ${u.version}`, click: commands.showAbout }, sep]
+        : [];
   Menu.buildFromTemplate([
-    ...(update ? [{ label: `Update available: ${update}`, click: commands.showAbout }, sep] : []),
+    ...update,
     { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: commands.newTab },
     { label: 'New Window', accelerator: 'CmdOrCtrl+N', click: commands.newWindow },
     { label: 'New Private Window', accelerator: 'CmdOrCtrl+Shift+N', click: commands.newPrivateWindow },

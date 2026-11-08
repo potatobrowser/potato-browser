@@ -1,5 +1,6 @@
-// Writes release/latest.json, release/SHA256SUMS and release/notes.md for the DMGs in release/.
-// The release workflow attaches all three to the GitHub Release; potatobrowser.com reads latest.json.
+// Writes release/latest.json, release/SHA256SUMS and release/notes.md for the DMGs and zips in
+// release/. The release workflow attaches all three to the GitHub Release; potatobrowser.com reads
+// latest.json for the download page and the in-app update feed (the zips).
 // Usage: node scripts/release-manifest.mjs [--commit <sha>]
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -28,17 +29,32 @@ function changelogSection() {
   return (end < 0 ? rest : rest.slice(0, end)).join('\n').trim();
 }
 
+const ARCHS = ['arm64', 'x64'];
+const read = (name) => {
+  const file = path.join(out, name);
+  if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
+  return fs.readFileSync(file);
+};
+const hash = (algo, buf, enc) => crypto.createHash(algo).update(buf).digest(enc);
+
 const files = {};
 const sizes = {};
 const sha256 = {};
-for (const arch of ['arm64', 'x64']) {
+const zips = {};
+const sums = [];
+for (const arch of ARCHS) {
   const name = `Potato-Browser-${version}-${arch}.dmg`;
-  const file = path.join(out, name);
-  if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
-  const buf = fs.readFileSync(file);
+  const buf = read(name);
   files[arch] = name;
   sizes[arch] = buf.length;
-  sha256[arch] = crypto.createHash('sha256').update(buf).digest('hex');
+  sha256[arch] = hash('sha256', buf, 'hex');
+  sums.push(`${sha256[arch]}  ${name}`);
+}
+for (const arch of ARCHS) {
+  const name = `Potato-Browser-${version}-${arch}.zip`;
+  const buf = read(name);
+  zips[arch] = { file: name, size: buf.length, sha512: hash('sha512', buf, 'base64') };
+  sums.push(`${hash('sha256', buf, 'hex')}  ${name}`);
 }
 
 const section = changelogSection();
@@ -47,10 +63,10 @@ const notes = section
   .map((l) => l.replace(/^\s*[-*]\s+/, '').trim())
   .filter(Boolean)
   .join(' ');
-const manifest = { version, date: new Date().toISOString().slice(0, 10), notes, commit, files, sizes, sha256 };
+const manifest = { version, date: new Date().toISOString().slice(0, 10), notes, commit, files, sizes, sha256, zips };
 
 fs.writeFileSync(path.join(out, 'latest.json'), JSON.stringify(manifest, null, 2) + '\n');
-fs.writeFileSync(path.join(out, 'SHA256SUMS'), ['arm64', 'x64'].map((a) => `${sha256[a]}  ${files[a]}`).join('\n') + '\n');
+fs.writeFileSync(path.join(out, 'SHA256SUMS'), sums.join('\n') + '\n');
 fs.writeFileSync(
   path.join(out, 'notes.md'),
   `${section}

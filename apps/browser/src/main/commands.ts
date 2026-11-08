@@ -94,6 +94,10 @@ export const commands = {
   showPasswords: () => openInternal('passwords'),
   importPasswords: () => openInternal('passwords', '#import'),
   showAbout: () => openInternal('settings', '#about'),
+  checkForUpdates: () => {
+    openInternal('settings', '#about');
+    void ctx.updates.check();
+  },
   nextTab: () => win()?.activateRelative(1),
   previousTab: () => win()?.activateRelative(-1),
   selectTab: (i: number) => win()?.activateIndex(i),

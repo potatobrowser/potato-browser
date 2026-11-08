@@ -30,13 +30,16 @@ cask "potato-browser" do
     strategy :github_latest
   end
 
+  auto_updates true
   depends_on macos: :ventura
 
   app "Potato Browser.app"
 
   zap trash: [
     "~/Library/Application Support/Potato Browser",
+    "~/Library/Caches/@potatobrowser-updater",
     "~/Library/Caches/com.potatobrowser.app",
+    "~/Library/Caches/com.potatobrowser.app.ShipIt",
     "~/Library/Caches/Potato Browser",
     "~/Library/HTTPStorages/com.potatobrowser.app",
     "~/Library/Logs/Potato Browser",

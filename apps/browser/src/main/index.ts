@@ -1,4 +1,4 @@
-import { app, dialog, nativeTheme } from 'electron';
+import { app, autoUpdater, dialog, nativeTheme } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { AdblockService } from './adblock/service';
@@ -17,7 +17,7 @@ import { PermissionManager } from './permissions';
 import { registerSchemes } from './protocol';
 import { SettingsStore } from './settings';
 import { ShieldService } from './shield';
-import { UpdateChecker } from './updates';
+import { UpdateService } from './updates';
 import { WindowManager } from './windows';
 
 // ---- before ready: identity, engine switches, schemes -----------------------------------------
@@ -112,7 +112,7 @@ app.whenReady().then(() => {
   ctx.adblock.init();
   ctx.flags = new FlagsService();
   ctx.passwords = new PasswordService();
-  ctx.updates = new UpdateChecker();
+  ctx.updates = new UpdateService();
   ctx.windows = new WindowManager();
 
   nativeTheme.themeSource = ctx.settings.get().theme;
@@ -147,13 +147,16 @@ app.on('activate', () => {
   if (ready && ctx.windows.windows.length === 0) ctx.windows.createWindow();
 });
 
-app.on('before-quit', () => {
-  if (!ready) return;
+function beforeQuit(): void {
+  if (!ready || ctx.windows.quitting) return;
   ctx.windows.persistSessionNow();
   ctx.windows.quitting = true;
   ctx.settings.flush();
   ctx.adblock.stop();
-});
+}
+app.on('before-quit', beforeQuit);
+// Restarting into an update closes the windows first and only then emits before-quit.
+autoUpdater.on('before-quit-for-update', beforeQuit);
 
 app.on('window-all-closed', () => {
   // macOS keeps the app running without windows, like every other browser.

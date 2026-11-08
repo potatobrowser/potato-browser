@@ -44,10 +44,13 @@ Every release is built by [GitHub Actions](.github/workflows/release.yml) from t
 in this repository, so the build log is public. Releases are signed with an Apple Developer ID and
 notarized by Apple, so macOS opens them like any other app.
 
+From 0.7.0 on the browser updates itself: it downloads a new version in the background and a
+"Restart to update" button in the toolbar installs it, bringing the open windows and tabs back.
+
 ### Verify a download
 
 Each release has a `SHA256SUMS` file and a signed build provenance attestation that ties each DMG
-to the workflow run and the commit it was built from:
+and update zip to the workflow run and the commit it was built from:
 
 ```sh
 shasum -a 256 -c SHA256SUMS --ignore-missing
@@ -141,15 +144,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how changes and releases land.
    [CHANGELOG.md](CHANGELOG.md). Refresh the bundled filter lists with
    `node apps/browser/scripts/filters.mjs update`.
 2. Push the tag `v<version>`. The [release workflow](.github/workflows/release.yml) runs the
-   tests, builds both DMGs on a GitHub macOS runner, signs them with the Developer ID, has Apple
-   notarize the apps and the DMGs, checks that Gatekeeper accepts them and that the app starts,
-   writes `latest.json` and `SHA256SUMS`, attests the build, publishes the GitHub Release with the
+   tests, builds a DMG and an update zip per architecture on a GitHub macOS runner, signs them
+   with the Developer ID, has Apple notarize the apps and the DMGs, checks that Gatekeeper accepts
+   them (the zips unpacked as Squirrel.Mac unpacks them) and that the app starts, writes
+   `latest.json` and `SHA256SUMS`, attests the build, publishes the GitHub Release with the
    changelog section as notes, and updates the cask in
-   [potatobrowser/homebrew-tap](https://github.com/potatobrowser/homebrew-tap).
+   [potatobrowser/homebrew-tap](https://github.com/potatobrowser/homebrew-tap), which is marked
+   `auto_updates`.
 
 potatobrowser.com reads `latest.json` from the latest release to show the version and checksums,
-and `/download/mac-arm64` and `/download/mac-x64` redirect to that release's DMGs. The app's
-daily update check asks the same endpoint and never downloads anything itself.
+and `/download/mac-arm64` and `/download/mac-x64` redirect to that release's DMGs. The in-app
+update feeds, `/api/v1/update/mac/{arm64,x64}/latest-mac.yml`, are built from the same
+`latest.json` and point at the release's zips.
 
 The workflow reads its secrets from the `release` environment, which only `v*` tags can use:
 `MAC_CERT_P12` (the Developer ID Application certificate as a base64 .p12), `MAC_CERT_PASSWORD`,
@@ -171,6 +177,20 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
 ```
 
 ## How it works
+
+- **In-app updates** (`apps/browser/src/main/updates.ts`) use electron-updater with Squirrel.Mac.
+  Every four hours (and 10 seconds after launch) the browser asks the Worker's update feed for
+  its architecture for the latest version; the request carries no install id
+  (electron-updater's staged-rollout id is stripped). A newer version downloads from the GitHub
+  Release in the background; electron-updater checks its SHA-512 against the feed, and
+  Squirrel.Mac installs it only if its code signature satisfies the running app's designated
+  requirement, so neither the feed nor the download host can push code that is not signed with
+  our Developer ID (the release workflow checks each new app against that requirement). Once staged, "Restart to
+  update" appears in the toolbar, the overflow menu and the app menu; restarting saves the
+  session first and the next launch restores it whatever the startup setting. Quitting installs
+  the update too. Only Developer ID builds (`POTATO_AUTO_UPDATE=1`, set by `dist.mjs` when
+  `CSC_LINK` is given) in an Applications folder download updates; builds from source and copies
+  run from the DMG show the new version with a link to the download page.
 
 - **AI Shield** rules live in `apps/browser/src/content/shield/rules.ts`. Each feature hides
   elements with CSS (injected as a user stylesheet at document start, so nothing flashes) and

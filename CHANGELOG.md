@@ -2,6 +2,13 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.7.0
+
+- Updates install themselves. Every few hours the browser asks potatobrowser.com for a new version, downloads it in the background, and a Restart to update button appears in the toolbar. One click and you are on the new version, with your windows and tabs back. Quitting installs it too.
+- Every update is checked twice before it installs: the download must match the checksum published with the release, and macOS installs it only when it is signed by the same developer as the browser you run. The check sends nothing about you.
+- Updates work for the copy in your Applications folder. A copy started from the disk image points you to the download page instead.
+- Coming from 0.6.0 or older: download this version once from potatobrowser.com, or run brew upgrade. Later versions arrive on their own.
+
 ## 0.6.0
 
 - Built-in password manager. After you sign in, the browser offers to save the password, or to update it when it changed. On the next visit, saved logins show up in a list under the sign-in field, and nothing is filled until you pick one.

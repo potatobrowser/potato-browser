@@ -22,6 +22,8 @@
   --adblock-ink: #fff;
   --warn: #c2410c;
   --brand: #e5322d;
+  /* White text on it passes WCAG AA, which --brand does not quite. */
+  --brand-strong: #cf2b26;
   --shadow: 0 12px 32px rgba(15, 17, 21, 0.18), 0 2px 6px rgba(15, 17, 21, 0.08);
   color-scheme: light;
 }
@@ -331,6 +333,30 @@ button {
   bottom: 1px;
   background: var(--flag);
   color: #1c1917;
+}
+.update-btn {
+  height: 26px;
+  padding: 0 11px;
+  margin: 0 2px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--brand-strong);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.update-btn:hover {
+  filter: brightness(1.08);
+}
+.update-btn:active {
+  filter: brightness(0.94);
+}
+.update-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
 }
 .dot {
   position: absolute;

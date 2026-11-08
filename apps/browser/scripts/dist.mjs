@@ -1,5 +1,5 @@
 // Production build + electron-builder.
-// Usage: node scripts/dist.mjs [--test] [--arch arm64|x64|host]   (default: both DMGs)
+// Usage: node scripts/dist.mjs [--test] [--arch arm64|x64|host]   (default: both archs, DMG and zip)
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
@@ -14,6 +14,7 @@ const env = {
   // Without a Developer ID in CSC_LINK, never pick up a certificate from the keychain.
   ...(process.env.CSC_LINK ? {} : { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }),
   ...(test ? { POTATO_TEST_BUILD: '1' } : {}),
+  POTATO_AUTO_UPDATE: process.env.POTATO_AUTO_UPDATE ?? (process.env.CSC_LINK && !test ? '1' : '0'),
   ...(arch ? { POTATO_ARCH: arch } : {}),
 };
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, stdio: 'inherit', env });

@@ -357,7 +357,7 @@ export class BrowserWindowController {
       theme: settings.theme,
       shieldGloballyEnabled: settings.shield.enabled,
       adblockGloballyEnabled: settings.adblock.enabled,
-      updateAvailable: ctx.updates.available(),
+      update: ctx.updates.state(),
       passwordPrompt: ctx.passwords.promptFor(this),
     };
   }
