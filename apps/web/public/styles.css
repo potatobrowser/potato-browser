@@ -1339,3 +1339,127 @@ main > section.hero {
     animation: none;
   }
 }
+
+/* ---- privacy -------------------------------------------------------------------------------- */
+.policy > section {
+  padding-block: clamp(40px, 5vw, 72px);
+}
+.policy .policy-head {
+  border-top: 0;
+  padding-top: clamp(24px, 4vw, 56px);
+}
+.policy-head .lede {
+  margin-top: 22px;
+  max-width: var(--measure);
+  font-size: clamp(20px, 2vw, 24px);
+  color: var(--ink);
+}
+.policy-head .fine {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.policy h2 {
+  font-size: clamp(28px, 3.4vw, 42px);
+  margin-bottom: 22px;
+}
+.policy-text p,
+.policy-list {
+  max-width: var(--measure);
+}
+.policy-text p + p {
+  margin-top: 14px;
+}
+.policy-list {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.policy-list li + li {
+  margin-top: 8px;
+}
+.policy-table {
+  overflow-x: auto;
+  border: 2px solid var(--ink);
+}
+.policy-table table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.policy-table th,
+.policy-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.policy-table thead th {
+  background: var(--wash);
+  color: var(--ink);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.policy-table tbody th {
+  color: var(--ink);
+  font-weight: 700;
+  width: 15%;
+}
+.policy-table tbody tr:last-child th,
+.policy-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.policy-note {
+  margin-top: 16px;
+  max-width: var(--measure);
+  color: var(--muted);
+  font-size: 15px;
+}
+/* Phones: each request becomes a card instead of a wide table. */
+@media (max-width: 680px) {
+  .policy-table {
+    border: 0;
+    overflow: visible;
+  }
+  .policy-table table,
+  .policy-table tbody,
+  .policy-table tr,
+  .policy-table th,
+  .policy-table td {
+    display: block;
+    width: auto;
+    min-width: 0;
+  }
+  .policy-table thead {
+    display: none;
+  }
+  .policy-table tr {
+    border: 2px solid var(--ink);
+    margin-bottom: 14px;
+  }
+  .policy-table tbody th {
+    width: auto;
+    background: var(--wash);
+    font-size: 17px;
+  }
+  .policy-table td {
+    border-bottom: 1px solid var(--rule);
+    font-size: 15px;
+  }
+  .policy-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .policy-table tbody tr:last-child td:last-child,
+  .policy-table td:last-child {
+    border-bottom: 0;
+  }
+}

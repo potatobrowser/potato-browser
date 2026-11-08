@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy: Potato Browser</title>
+  <meta name="description" content="What Potato Browser for Mac, iPhone and iPad, and potatobrowser.com send, to whom, and what is kept. No accounts, no ads, no tracking.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="canonical" href="https://potatobrowser.com/privacy">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <script async src="https://plausible-app.caprover.laszlokiss.dev/js/pa-auOgUTe6WoI0iFx8yHM1E.js"></script>
+  <script src="/visits.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <a class="brand" href="/" aria-label="Potato Browser home">
+      <img src="/mark.svg" alt="" width="28" height="28">
+      <span>Potato Browser</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/#faq">Questions</a>
+      <a class="nav-cta" href="/#download">Download</a>
+    </nav>
+  </header>
+
+  <main id="main" class="policy">
+    <section class="policy-head" aria-labelledby="privacy-title">
+      <h1 id="privacy-title">Privacy</h1>
+      <p class="lede">What you read stays on your device. This page lists every request Potato Browser and this site make to us, what each one carries, and what we keep.</p>
+      <p class="fine">Applies to Potato Browser for Mac, Potato Browser for iPhone and iPad, and potatobrowser.com. Last updated November 9, 2026.</p>
+    </section>
+
+    <section aria-labelledby="short-title">
+      <h2 id="short-title">In short</h2>
+      <ul class="policy-list">
+        <li>No accounts, no ads, no tracking, and nothing is sold or shared.</li>
+        <li>History, bookmarks, passwords, settings and downloads live on your device. Passwords are encrypted with a key in your Keychain.</li>
+        <li>The flag service learns hash prefixes that thousands of posts share, never the posts or pages you read.</li>
+        <li>The daily check says which lists, which app and which version. We count it, nothing more.</li>
+        <li>Crash reports are off unless you switch them on. Site reports are sent only when you press Report.</li>
+        <li>We keep no IP addresses. Cloudflare, which hosts this site, sees them to deliver each request.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="device-title">
+      <h2 id="device-title">On your device</h2>
+      <div class="policy-text">
+        <p>Browsing history, bookmarks, saved passwords, site permissions, downloads, settings, the posts you flagged and the daily counts on the new tab page are stored in your profile on your Mac, iPhone or iPad. They are never uploaded, and there is no sync. Passwords are encrypted with a key kept in the macOS Keychain or the iOS Keychain.</p>
+        <p>The AI Shield, the ad blocker and the flag buttons work inside the browser. Which pages you visit, what is on them and what got hidden or blocked are never sent anywhere.</p>
+        <p>Private windows (Mac) and private tabs (iPhone and iPad) keep nothing once they close, and vote under a new random id each time.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="requests-title">
+      <h2 id="requests-title">What reaches potatobrowser.com</h2>
+      <div class="policy-table" role="region" aria-labelledby="requests-title" tabindex="0">
+        <table>
+          <thead>
+            <tr><th scope="col">Request</th><th scope="col">When</th><th scope="col">What it carries</th><th scope="col">What we keep</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Flag lookups</th>
+              <td data-label="When">When a page of Reddit, X, YouTube or another supported site shows posts, and flags are on</td>
+              <td data-label="What it carries">The first 5 characters of each post's fingerprint (a SHA-256 hash of its id), which thousands of other posts share. The browser matches full fingerprints itself.</td>
+              <td data-label="What we keep">Nothing.</td>
+            </tr>
+            <tr>
+              <th scope="row">Your vote on a post</th>
+              <td data-label="When">When you flag a post as AI, vote Not AI, or take your vote back</td>
+              <td data-label="What it carries">The post's full fingerprint and platform, your vote, a random id this app made up (a new one in private windows and tabs), and whether it is the Mac or the iOS app</td>
+              <td data-label="What we keep">The fingerprint, the platform and the counts. Per vote: a keyed hash of your random id (so you can undo it), the vote, the hour, and a network bucket from 0 to 65,535 derived from the first part of your IP address, shared by hundreds of networks. Daily totals of votes per app and IP version. Votes stay until you take them back.</td>
+            </tr>
+            <tr>
+              <th scope="row">Daily check</th>
+              <td data-label="When">Once a day, while filter list or AI Shield rule updates are on</td>
+              <td data-label="What it carries">The filter lists in use, the app (Mac or iOS) and its version number</td>
+              <td data-label="What we keep">One added to a counter for that day, app and version. That counter is how we know how many installs are in use.</td>
+            </tr>
+            <tr>
+              <th scope="row">Filter lists and AI Shield rules</th>
+              <td data-label="When">After the daily check, when something changed</td>
+              <td data-label="What it carries">Which list or rules to download. Lists come from Ghostery's servers through us, so your browser never contacts them. Rules are signed, so the browser accepts only ones we made.</td>
+              <td data-label="What we keep">Nothing.</td>
+            </tr>
+            <tr>
+              <th scope="row">Update check (Mac)</th>
+              <td data-label="When">Every 4 hours</td>
+              <td data-label="What it carries">The Mac's architecture (Apple silicon or Intel). The random id the updater would add is removed before the request leaves.</td>
+              <td data-label="What we keep">Nothing. The new version downloads from GitHub, see below.</td>
+            </tr>
+            <tr>
+              <th scope="row">Site report</th>
+              <td data-label="When">Only when you press Report in the AI Shield or ad blocker panel</td>
+              <td data-label="What it carries">The page address (without the part after #), what is wrong (AI still showing, ads still showing, page broken), the app and its version</td>
+              <td data-label="What we keep">All of it, for fixing the rules. Deleted 30 days after we looked at it, and after 90 days at the latest.</td>
+            </tr>
+            <tr>
+              <th scope="row">Crash report</th>
+              <td data-label="When">Only if you switched crash reports on (welcome page or Settings), after a crash</td>
+              <td data-label="What it carries"><strong>Mac:</strong> a minidump of the crashed process: the app, Electron and macOS versions, the architecture, the process type and a snapshot of its memory at that moment, which can contain parts of pages you had open. <strong>iPhone and iPad:</strong> the crash or hang diagnostics iOS makes: the version, the device model, the iOS version and where in the code it happened, with the region setting and process number removed.</td>
+              <td data-label="What we keep">The report, stored with Cloudflare R2 and read only to fix the bug. Deleted after 90 days. The random id the Mac crash reporter adds and your IP address are not kept.</td>
+            </tr>
+            <tr>
+              <th scope="row">Download links</th>
+              <td data-label="When">When you download the Mac app from this site</td>
+              <td data-label="What it carries">The architecture you picked</td>
+              <td data-label="What we keep">A counter per day and architecture.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="policy-note">Every request goes over HTTPS without cookies. Limits against abuse count requests per IP address in memory for a minute and are never written down. The service logs errors only, never requests.</p>
+    </section>
+
+    <section aria-labelledby="others-title">
+      <h2 id="others-title">Other services the browser talks to</h2>
+      <div class="policy-text">
+        <p><strong>Websites you visit</strong> see what they see in any browser. Potato Browser sends Global Privacy Control, asking them not to sell or share your data, unless you switch it off.</p>
+        <p><strong>Your search engine</strong> gets your searches, and, when search suggestions are on, what you type into the address bar. You pick it: DuckDuckGo, Google, Bing, Brave, Startpage, Ecosia or Kagi.</p>
+        <p><strong>GitHub</strong> hosts the downloads and the Mac app's updates, so GitHub sees your IP address when you download them, as with any download.</p>
+        <p><strong>Apple</strong> distributes the iPhone and iPad app through the App Store and TestFlight. As in Safari, WebKit's fraudulent website warning is on there and checks addresses against Safe Browsing lists the way Safari does. If you share analytics with app developers in iOS Settings, Apple may pass us crash logs, as it does for any app.</p>
+        <p>The Mac app is built on Electron, which has none of Chrome's Google services: no sign-in, no sync, no usage statistics and no Safe Browsing lookups.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="site-title">
+      <h2 id="site-title">This website</h2>
+      <div class="policy-text">
+        <p>No cookies. A self-hosted copy of <a href="https://plausible.io/data-policy">Plausible</a> counts visits without personal data: the page, the referring site, the browser, the operating system, the device type and the country, which it works out from your IP address without storing the address.</p>
+        <p>The site runs on Cloudflare, which processes each request (and so your IP address) to deliver it, under its own privacy policy. The flag counts and counters above are stored in Cloudflare D1, crash reports in Cloudflare R2.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="choices-title">
+      <h2 id="choices-title">Your choices</h2>
+      <ul class="policy-list">
+        <li>Turn off filter list updates (Settings, Ad blocker) and AI Shield rule updates (Settings, AI Shield): the daily check stops.</li>
+        <li>Turn flags off per platform in Settings, AI flags. Leaving flagged posts alone and hiding the buttons stops the lookups too.</li>
+        <li>Crash reports stay off unless you switch them on; switching them off again also drops reports not sent yet on the Mac.</li>
+        <li>Take a vote back any time: press the button on the post again.</li>
+        <li>Everything on your device goes when you delete the app and its data.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="contact-title">
+      <h2 id="contact-title">Questions and changes</h2>
+      <div class="policy-text">
+        <p>Potato Browser is open source, so all of the above can be checked in <a href="https://github.com/potatobrowser/potato-browser">its code</a>. Ask anything in a <a href="https://github.com/potatobrowser/potato-browser/issues">GitHub issue</a>, or report a security problem privately through <a href="https://github.com/potatobrowser/potato-browser/security/advisories/new">GitHub's security advisories</a>.</p>
+        <p>When this page changes, the change shows in the repository's history, and the date at the top moves.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p><img src="/mark.svg" alt="" width="18" height="18"> Potato Browser. Grown on Chromium and WebKit. Not affiliated with Google, Apple, any site named here, or any actual potato.</p>
+    <p><a href="/">Home</a> <a href="https://github.com/potatobrowser/potato-browser">Source on GitHub</a></p>
+  </footer>
+</body>
+</html>
