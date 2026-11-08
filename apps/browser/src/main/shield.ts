@@ -112,6 +112,7 @@ export class ShieldService {
         showButtons: s.flags.showButtons,
         disabledPlatforms: s.flags.disabledPlatforms,
       },
+      passwords: ctx.passwords.pageConfig(isPrivate),
     };
   }
 

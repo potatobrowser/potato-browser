@@ -16,6 +16,7 @@ const SECTIONS = [
   ['shield', 'AI Shield'],
   ['adblock', 'Ad blocker'],
   ['flags', 'AI flags'],
+  ['passwords', 'Passwords'],
   ['privacy', 'Privacy'],
   ['import', 'Import'],
   ['downloads', 'Downloads'],
@@ -354,6 +355,31 @@ function FlagsSection({ s, update }: { s: Settings; update: Update }) {
   );
 }
 
+function PasswordsSection({ s, update }: { s: Settings; update: Update }) {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    const load = () => void call<number>('passwords.count').then(setCount);
+    load();
+    return onInternalEvent((e) => e.type === 'passwords' && load());
+  }, []);
+  const p = s.passwords;
+  return (
+    <Card title="Passwords" id="passwords" hint="Saved passwords are encrypted with a key kept in your macOS Keychain, and never leave this Mac.">
+      <Row title="Saved passwords" hint={count === null ? null : count ? `${count.toLocaleString()} saved. Show, edit, import or export them.` : 'None yet. Import them from another browser or password manager.'}>
+        <a className="btn" href="potato://passwords/" data-testid="settings-manage-passwords">
+          Manage passwords
+        </a>
+      </Row>
+      <Row title="Offer to save passwords" hint="After you sign in to a site. Never in private windows.">
+        <Toggle label="Offer to save passwords" checked={p.offerToSave} onChange={(v) => void update({ passwords: { offerToSave: v } })} />
+      </Row>
+      <Row title="Fill passwords on websites" hint="Saved logins show up under sign-in fields. Nothing is filled until you pick one.">
+        <Toggle label="Fill passwords on websites" checked={p.autofill} onChange={(v) => void update({ passwords: { autofill: v } })} />
+      </Row>
+    </Card>
+  );
+}
+
 function PrivacySection({ s, update }: { s: Settings; update: Update }) {
   const [range, setRange] = useState('3600000');
   const [what, setWhat] = useState({ history: true, cookies: false, cache: true, downloads: false });
@@ -439,7 +465,15 @@ function ImportSection() {
   const [what, setWhat] = useState<Record<string, What>>({});
   const busy = Object.values(states).includes('busy');
   return (
-    <Card title="Import from another browser" id="import" hint="Replant your bookmarks and history here. Passwords and cookies stay where they are.">
+    <Card
+      title="Import from another browser"
+      id="import"
+      hint={
+        <>
+          Replant your bookmarks and history here. Passwords come over as a file: <a href="potato://passwords/#import">import passwords</a>.
+        </>
+      }
+    >
       {sources === null ? (
         <div className="empty">Digging for browsers...</div>
       ) : sources.length === 0 ? (
@@ -615,6 +649,7 @@ function SettingsPage() {
         <ShieldSection s={s} update={update} />
         <AdblockSection s={s} update={update} />
         <FlagsSection s={s} update={update} />
+        <PasswordsSection s={s} update={update} />
         <PrivacySection s={s} update={update} />
         <ImportSection />
         <DownloadsSection s={s} update={update} />

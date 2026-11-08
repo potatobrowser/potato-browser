@@ -5,6 +5,7 @@ import { facebookPageWorldHelper, FB_HELPER_ARGS } from '../content/flags/adapte
 import { FlagsEngine } from '../content/flags/engine';
 import { setOpenShadowRoots } from '../content/flags/ui';
 import type { FlagsBridge } from '../content/flags/types';
+import { PasswordForms, type PasswordsBridge } from '../content/passwords/forms';
 import { ShieldEngine } from '../content/shield/engine';
 import { GOOGLE_SIGNIN_HOSTS, GOOGLE_SIGNIN_UA } from '../shared/constants';
 import type { PageConfig } from '../shared/types';
@@ -113,6 +114,27 @@ function startWebPage(): void {
     startFlags();
   } catch {}
 
+  const pwBridge: PasswordsBridge = {
+    focus: (f) => ipcRenderer.send('page:pw-focus', f),
+    move: (r) => ipcRenderer.send('page:pw-move', r),
+    blur: () => ipcRenderer.send('page:pw-blur'),
+    key: (k) => ipcRenderer.send('page:pw-key', k),
+    typed: (t) => ipcRenderer.send('page:pw-typed', t),
+    hide: () => ipcRenderer.send('page:pw-hide'),
+    submit: (s) => ipcRenderer.send('page:pw-submit', s),
+    username: (u) => ipcRenderer.send('page:pw-username', u),
+    gone: () => ipcRenderer.send('page:pw-gone'),
+    loginForm: () => ipcRenderer.send('page:pw-form'),
+  };
+  const passwords = new PasswordForms(pwBridge, current.passwords);
+  try {
+    passwords.start();
+  } catch {}
+  ipcRenderer.on('page:pw-fill', (_e, d: { username?: unknown; password?: unknown }) => {
+    if (typeof d?.username === 'string' && typeof d.password === 'string') passwords.fill(d.username, d.password);
+  });
+  ipcRenderer.on('page:pw-popup', (_e, s: { open?: unknown; highlighted?: unknown }) => passwords.popupState(!!s?.open, !!s?.highlighted));
+
   ipcRenderer.on('page:config', (_e, next: PageConfig) => {
     current = next;
     if (cosmetics && !next.adblock.enabled) {
@@ -124,6 +146,7 @@ function startWebPage(): void {
       } catch {}
     }
     if (shield.active) shield.apply(next.shield);
+    passwords.update(next.passwords);
     if (flags && !flagsAllowed()) {
       flags.stop();
       flags = null;

@@ -6,6 +6,7 @@ import type { DownloadManager } from './downloads';
 import type { PermissionManager } from './permissions';
 import type { ShieldService } from './shield';
 import type { FlagsService } from './flags';
+import type { PasswordService } from './passwords/service';
 import type { UpdateChecker } from './updates';
 
 /** Process-wide services, filled in once at startup (see index.ts). */
@@ -18,6 +19,7 @@ export interface AppContext {
   shield: ShieldService;
   adblock: AdblockService;
   flags: FlagsService;
+  passwords: PasswordService;
   updates: UpdateChecker;
 }
 

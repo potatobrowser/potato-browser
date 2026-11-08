@@ -205,8 +205,15 @@ function Welcome() {
           <FlagModePicker value={settings?.flags.mode} onChange={(mode) => void update({ flags: { mode } })} testIdPrefix="welcome-mode" />
         </Step>
 
-        <Step n={3} title="Bookmarks and history" hint="Replant them from the browser you use now. Passwords stay where they are.">
+        <Step n={3} title="Bookmarks, history and passwords" hint="Replant them from the browser you use now.">
           <ImportList />
+          <p className="password-import">
+            Passwords come over as a file: export them from your browser or password manager, then{' '}
+            <a href="potato://passwords/#import" target="_blank" data-testid="welcome-passwords">
+              import the file here
+            </a>
+            .
+          </p>
         </Step>
 
         <Step n={4} title="Default browser" hint="Send links from Mail, Slack and other apps straight to the potato." aside={<DefaultBrowserButton />} />

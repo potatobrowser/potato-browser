@@ -2,6 +2,14 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.6.0
+
+- Built-in password manager. After you sign in, the browser offers to save the password, or to update it when it changed. On the next visit, saved logins show up in a list under the sign-in field, and nothing is filled until you pick one.
+- Passwords are encrypted with a key kept in your macOS Keychain and never leave your Mac. Pages cannot read the list or pick from it for you, and a password only goes to the site it was saved for.
+- Import passwords from the CSV exports of Chrome, Edge, Brave, Arc, Safari, Firefox and 1Password, in the new Passwords page (Potato Browser menu, Passwords). Passwords already saved are never overwritten, and the page offers to move the export file to the Trash.
+- The Passwords page shows, copies, edits, deletes and exports saved passwords, asking for Touch ID or your Mac password first. Settings, Passwords turns saving and filling off, and "Never for this site" is remembered.
+- Private windows fill saved passwords but never save new ones.
+
 ## 0.5.0
 
 - Built-in ad blocker, on by default: ads, video ads, pop-ups and trackers never load. It uses the EasyList, EasyPrivacy and uBlock Origin filter lists, with uBlock's scriptlets that keep video ads off YouTube.

@@ -1,0 +1,3 @@
+"url","username","password","httpRealm","formActionOrigin","guid","timeCreated","timeLastUsed","timePasswordChanged"
+"https://mail.test","alice","Different-pass","","https://mail.test","{1}","1700000000000","1700000000000","1700000000000"
+"https://forum.test","dan","Fx-pass-1","","https://forum.test","{2}","1700000000000","1700000000000","1700000000000"

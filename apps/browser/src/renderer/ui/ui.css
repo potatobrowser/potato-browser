@@ -597,6 +597,31 @@ button {
   display: flex;
   gap: 8px;
 }
+.password-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.password-text svg {
+  flex: none;
+  color: var(--muted);
+}
+.password-user {
+  width: 220px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--field-focus);
+  color: var(--text);
+  padding: 0 9px;
+  outline: 0;
+  user-select: text;
+  font: inherit;
+}
+.password-user:focus {
+  border-color: var(--ring);
+}
 .btn {
   border: 1px solid var(--border);
   background: var(--toolbar);

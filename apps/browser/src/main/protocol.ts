@@ -4,7 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { paths } from './paths';
 
-export const INTERNAL_PAGES = ['ui', 'newtab', 'settings', 'history', 'bookmarks', 'downloads', 'welcome', 'error'];
+export const INTERNAL_PAGES = ['ui', 'autofill', 'newtab', 'settings', 'history', 'bookmarks', 'downloads', 'passwords', 'welcome', 'error'];
 const ALIASES: Record<string, string> = { about: 'settings', import: 'settings', preferences: 'settings' };
 
 export function registerSchemes(): void {
@@ -81,16 +81,14 @@ export function installFixtureProxy(ses: Session): void {
       const u = new URL(request.url);
       if (!matches(u.hostname)) return net.fetch(request, { bypassCustomProtocolHandlers: true });
       const target = `${proxy}/${u.hostname}${u.pathname}${u.search}`;
-      const init: RequestInit & { duplex?: 'half' } = {
-        method: request.method,
-        headers: request.headers,
-        redirect: 'manual',
-      };
+      const headers = new Headers(request.headers);
+      const init: RequestInit = { method: request.method, headers, redirect: 'manual' };
+      // Form posts: net.fetch fails on a streamed body and on an Origin header it did not set.
       if (request.method !== 'GET' && request.method !== 'HEAD') {
-        init.body = request.body;
-        init.duplex = 'half';
+        headers.delete('origin');
+        init.body = await request.arrayBuffer();
       }
-      return net.fetch(target, init as RequestInit);
+      return net.fetch(target, init);
     });
   }
 }

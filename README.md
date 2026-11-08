@@ -18,6 +18,11 @@ not generated.
   LinkedIn, YouTube, Bluesky and TikTok posts. Flagged posts are hidden, labelled or left alone,
   as the user chooses.
 
+It is also a complete browser, with a built-in password manager: it offers to save passwords when
+you sign in, fills them from its own dropdown, keeps them encrypted with a key in the macOS
+Keychain, and imports the CSV exports of Chrome (and Edge, Brave, Arc), Safari, Firefox and
+1Password.
+
 Website: https://potatobrowser.com. Free and open source under the [MIT license](LICENSE).
 
 There is also an app for iPhone and iPad with the same four features, built on WebKit; see
@@ -81,9 +86,11 @@ POTATO_API_BASE_BUILD=https://flags.example.com pnpm --filter @potato/browser di
 
 ```
 apps/browser      Electron 45 (Chromium 156) app
-  src/main          windows, tabs, sessions, SQLite profile, importers, flags client, ad blocker
+  src/main          windows, tabs, sessions, SQLite profile, importers, flags client, ad blocker,
+                    passwords
   src/preload       ui.ts (browser chrome), web.ts (every tab frame)
-  src/content       AI Shield rules and engine, ad blocker cosmetics, flag engine and adapters
+  src/content       AI Shield rules and engine, ad blocker cosmetics, flag engine and adapters,
+                    login form detection
   filters           ad blocker list catalog (lists.json) and pinned revisions (lock.json)
   src/renderer      React UI: browser chrome and internal potato:// pages
   test/unit         vitest
@@ -197,10 +204,32 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
 - **Platform adapters** (`apps/browser/src/content/flags/adapters`) find posts and their stable
   ids. Facebook and LinkedIn show different ids for one post on different surfaces; flags are
   written to every id found and lookups take the highest count.
+- **Passwords** (`apps/browser/src/main/passwords`) are stored in the profile database with the
+  password and note encrypted by Electron's `safeStorage`, whose key is a "Potato Browser Safe
+  Storage" item in the login Keychain (Chrome stores its passwords the same way). Websites and
+  usernames stay readable so finding matches never touches the Keychain; it is used only when a
+  password is saved, filled, shown or exported. The web preload finds login fields
+  (`src/content/passwords/forms.ts`) in every frame and, when the user clicks or tabs into one
+  (never on a page's own `focus()`), asks the browser to show saved logins. The dropdown is a
+  browser view of its own, so pages can neither read nor click it, and picks in the first half
+  second after it appears or moves are ignored, so a page cannot slide it under the pointer.
+  Only after the user picks a login does the password go to that frame, and only if the frame's
+  origin
+  (as the browser sees it, never as the page reports it) matches: the same origin, the same
+  host upgraded from http to https, or another host of the same registrable domain (with
+  github.io, blogspot.com and other shared hosts counted as separate sites). Sign-ins are
+  reported on submit; "Save password?" shows once a page without the sign-in form loads, or the
+  form stays away for two seconds (and is taken back if it returns), and never in private
+  windows or on pages with a certificate warning. Only the potato://passwords page can read
+  saved passwords, and showing, copying or exporting them asks for Touch ID or the Mac's
+  password.
 
 ## Known limitations
 
-- No extension support and no built-in password manager yet.
+- No extension support.
+- The password manager has no password generator, no passkeys, no sync and no fill for HTTP
+  authentication dialogs. Passwords come over from
+  other browsers as CSV exports, not directly from their profiles.
 - The ad blocker filters subresources and page elements; it does not block whole pages (uBlock's
   "strict blocking" of known bad sites) and ignores `$removeparam` filters.
 - Google account sign-in uses a Firefox user agent on Google's account pages (Google blocks

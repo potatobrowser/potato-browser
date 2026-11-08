@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>App sign in (fails)</title></head>
+<body>
+<div class="login" id="login">
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <div id="submit" role="button" tabindex="0">Continue</div>
+</div>
+<p id="spinner" hidden>Checking...</p>
+<p id="error" hidden>Wrong password.</p>
+<script>
+  document.getElementById('submit').addEventListener('click', () => {
+    document.getElementById('login').hidden = true;
+    document.getElementById('spinner').hidden = false;
+    setTimeout(() => {
+      document.getElementById('spinner').hidden = true;
+      document.getElementById('login').hidden = false;
+      document.getElementById('error').hidden = false;
+    }, Number(new URLSearchParams(location.search).get('wait') || 1200));
+  });
+</script>
+</body>
+</html>

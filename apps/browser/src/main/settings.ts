@@ -22,6 +22,7 @@ export function defaultSettings(): Settings {
     flags: { mode: 'label', threshold: 3, showButtons: true, disabledPlatforms: [] },
     privacy: { globalPrivacyControl: true, blockAiChatbots: false },
     adblock: { enabled: true, disabledSites: [], trackers: true, cookieNotices: false, annoyances: false, customFilters: '', autoUpdate: true },
+    passwords: { offerToSave: true, autofill: true, neverSave: [] },
     installId: crypto.randomBytes(16).toString('hex'),
     firstRunDone: false,
   };
@@ -72,6 +73,11 @@ export function sanitizeSettings(raw: unknown): Settings {
       annoyances: bool(r.adblock?.annoyances, d.adblock.annoyances),
       customFilters: typeof r.adblock?.customFilters === 'string' ? r.adblock.customFilters.slice(0, 200_000) : '',
       autoUpdate: bool(r.adblock?.autoUpdate, d.adblock.autoUpdate),
+    },
+    passwords: {
+      offerToSave: bool(r.passwords?.offerToSave, d.passwords.offerToSave),
+      autofill: bool(r.passwords?.autofill, d.passwords.autofill),
+      neverSave: [...new Set(strList(r.passwords?.neverSave).filter((o) => /^https?:\/\/[^/]+$/.test(o)))].slice(0, 5000),
     },
     installId: typeof r.installId === 'string' && /^[0-9a-f]{32}$/.test(r.installId) ? r.installId : d.installId,
     firstRunDone: bool(r.firstRunDone, false),

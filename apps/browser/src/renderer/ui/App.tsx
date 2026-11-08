@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { WindowState } from '../../shared/types';
 import { chrome } from '../shared/api';
 import { AdBlock, Back, Close, Download, Forward, Menu, Reload, Shield } from '../shared/icons';
-import { BookmarksBar, FindBar, Infobars } from './Bars';
+import { BookmarksBar, FindBar, Infobars, PasswordBar } from './Bars';
 import { Omnibox, type OmniboxHandle } from './Omnibox';
 import { AdblockPanel, DownloadsPanel, ShieldPanel } from './Panels';
 import { TabStrip } from './TabStrip';
@@ -149,6 +149,7 @@ export function App() {
         {state.bookmarksBar !== null && <BookmarksBar items={state.bookmarksBar} />}
         {state.find && <FindBar find={state.find} focusToken={findFocus} />}
         <Infobars prompts={state.permissionPrompts} />
+        {state.passwordPrompt && <PasswordBar key={state.passwordPrompt.id} prompt={state.passwordPrompt} />}
       </div>
       {popover && (
         <>

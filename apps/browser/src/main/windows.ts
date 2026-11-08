@@ -98,6 +98,7 @@ export class WindowManager {
     if (this.lastFocused === win) this.lastFocused = null;
     this.recentlyClosed = this.recentlyClosed.filter((r) => r.win !== win);
     ctx.permissions.dropWindow(win);
+    ctx.passwords.windowClosed(win);
     if (win.isPrivate && !this.windows.some((w) => w.isPrivate)) void this.destroyPrivateSession();
     if (!this.quitting) this.saveSessionSoon();
   }

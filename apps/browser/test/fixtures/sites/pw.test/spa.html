@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>App sign in</title></head>
+<body>
+<div id="app">
+  <div class="login">
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <div id="submit" role="button" tabindex="0">Continue</div>
+    <button id="eye" type="button" aria-label="Show password">Show</button>
+  </div>
+</div>
+<script>
+  document.getElementById('submit').addEventListener('click', () => {
+    setTimeout(() => {
+      document.getElementById('app').innerHTML = '<h1 id="welcome">Signed in</h1>';
+      history.pushState({}, '', '/spa-home');
+    }, 300);
+  });
+  document.getElementById('eye').addEventListener('click', () => {
+    const p = document.getElementById('password');
+    p.type = p.type === 'password' ? 'text' : 'password';
+  });
+</script>
+</body>
+</html>

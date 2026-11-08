@@ -1,0 +1,3 @@
+Title,URL,Username,Password,Notes,OTPAuth
+bank.test (alice@bank.test),https://bank.test/,alice@bank.test,Ch-pass-1,,
+shop.test (carol),https://shop.test/,carol,Sa-pass-1,,otpauth://totp/shop?secret=ABC

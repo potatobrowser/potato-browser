@@ -52,6 +52,14 @@ export interface Settings {
     customFilters: string;
     autoUpdate: boolean;
   };
+  passwords: {
+    /** Ask to save passwords after signing in. */
+    offerToSave: boolean;
+    /** Offer saved passwords in login fields. */
+    autofill: boolean;
+    /** Origins where saving is never offered. */
+    neverSave: string[];
+  };
   installId: string;
   firstRunDone: boolean;
 }
@@ -162,6 +170,63 @@ export interface WindowState {
   shieldGloballyEnabled: boolean;
   adblockGloballyEnabled: boolean;
   updateAvailable: string | null;
+  passwordPrompt: PasswordPrompt | null;
+}
+
+/** "Save password?" for the active tab, after a sign-in that looked successful. */
+export interface PasswordPrompt {
+  id: number;
+  host: string;
+  username: string;
+  /** A password for this username is saved already and differs. */
+  update: boolean;
+}
+
+/** A saved login without its secrets. */
+export interface LoginInfo {
+  id: number;
+  origin: string;
+  host: string;
+  username: string;
+  createdAt: number;
+  updatedAt: number;
+  lastUsed: number;
+  timesUsed: number;
+  hasNote: boolean;
+}
+
+export interface PasswordsOverview {
+  /** The macOS Keychain key can be used; without it nothing is saved or filled. */
+  available: boolean;
+  logins: LoginInfo[];
+  /** Showing, copying or exporting passwords asks for Touch ID or the Mac's password first. */
+  asksAuth: boolean;
+}
+
+export interface PasswordImportResult {
+  /** Set when the file could not be read; nothing was imported. */
+  error: string | null;
+  source: string | null;
+  added: number;
+  /** Already saved with the same password. */
+  same: number;
+  /** Already saved with a different password, which was kept. */
+  kept: number;
+  skipped: { noPassword: number; noWebsite: number; archived: number; duplicates: number };
+  /** Name of the imported file, which can be moved to the Trash afterwards. */
+  file: string | null;
+}
+
+/** One entry of the autofill dropdown. */
+export interface AutofillItem {
+  username: string;
+  /** The saved login's host when it is from another subdomain of the site. */
+  host: string | null;
+}
+
+export interface AutofillView {
+  items: AutofillItem[];
+  highlighted: number;
 }
 
 export type SuggestionKind = 'url' | 'search' | 'history' | 'bookmark' | 'suggest';
@@ -283,6 +348,7 @@ export interface PageConfig {
   shield: { enabled: boolean; disabledRules: string[] };
   adblock: { enabled: boolean };
   flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean; disabledPlatforms: Platform[] };
+  passwords: { autofill: boolean; save: boolean };
 }
 
 export interface FlagStatus {

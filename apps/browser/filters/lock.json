@@ -1,15 +1,15 @@
 {
-  "fetchedAt": "2026-11-07T02:39:33Z",
+  "fetchedAt": "2026-11-08T17:32:30Z",
   "lists": {
     "easylist": {
-      "rev": "99f55b3d9fc3f9200995c5f9e97322a41448fe2000aeeebe57f2a11673be5098",
-      "sha256": "bf0500ab5fb69bfd5cf668d92e45984154a84f4c13838294b36a231c7f888df4",
-      "bytes": 2066573
+      "rev": "fa0d61797eb6c3e93ea4f57b01022eec7f1877f6c39b4d094af940a6711b65f5",
+      "sha256": "996b7ba3e7d5d56b11cee0de84ef97889d2894420511accb9027277c726cb124",
+      "bytes": 2082291
     },
     "ublock-filters": {
-      "rev": "00c296ea555345d8934e1e2a2981801841ba4865511d4626e25f48bd2761b3a1",
-      "sha256": "edaf3f7ad761c56e8ade822e66a16781a6c3b50a354fa3893cc3b5b3972328c5",
-      "bytes": 470704
+      "rev": "a9d8f529f2db9347bc5734f427b424f5704b0080a5cb6e83fcc14d544ad11a6f",
+      "sha256": "0294e3c8bcba3ffdec5e54e11d93224277cafc0a3c86515b0ef43ca0859c2021",
+      "bytes": 470737
     },
     "ublock-filters-2020": {
       "rev": "63565db4cd6fd4a9fad57da903ea28212f982a9f68872ebae1028fd9d9e7327e",
@@ -32,24 +32,24 @@
       "bytes": 215867
     },
     "ublock-filters-2024": {
-      "rev": "b67ded266ce4e34cd109f4acb02369ac65c24fd287da853299bda9dec51f8d3b",
-      "sha256": "c6b86ed4b34ce8198dd15634960d64edf083a38b29744c7b681fe7091939050c",
-      "bytes": 233384
+      "rev": "3ae66ecab4cd1c039988ecea0c64f987240186b308344a5b44aea53f201b14f0",
+      "sha256": "afeecb2eb53ce05a10b11b0c4407ef1645e6271445faa7a151765697c8b655a6",
+      "bytes": 233413
     },
     "ublock-filters-2025": {
-      "rev": "9ce4a08797a22696c4ad4f6b1a46a22da1dd6d9a7a8dbf6fef8cb6c3389078eb",
-      "sha256": "db2662bb0c63908096dbbbe9536bfc44d988a74af52ce5c958fc99ea8801346c",
-      "bytes": 172263
+      "rev": "23d33f2776f7747f708056079e31f5c477cdbe6bffcec122c3540577aeb5f51e",
+      "sha256": "958b53e7c41fdc371dfdc72dab0c0cdb697ccc34d897251392385be46662308a",
+      "bytes": 172491
     },
     "ublock-filters-2026": {
-      "rev": "631c8de7a6ab3de9c02547807fd984d3242f67862844206a6b809754fc3ce920",
-      "sha256": "5d2bf14c17421209bcf26723becd695ec47ebc9c2267ef3e57eaa8acb846b98f",
-      "bytes": 106360
+      "rev": "4079703382e12ac4a2a01d5034b94c6374a8487a2f413fb6a7d0732586fb6886",
+      "sha256": "a9497bade9d924e60ed17bb067d088504bdcad816a468bee26ce26a97d71c908",
+      "bytes": 116261
     },
     "ublock-badware": {
-      "rev": "17863eb84c3c8a26c53ddc650ba340d4599c9521aa568834e80384daaa866a32",
-      "sha256": "73ad1be91b0aea98f53bacdfdf65baef38f759bca7067d4133d71c39e4a18859",
-      "bytes": 272218
+      "rev": "5f55bf1ebcc35feafe7219e8fb01aa7d1a3b97a7f9a03b06b4813ad2f3aa2fb6",
+      "sha256": "cc9dbbb0046ddd287b9865f13b36950c900f0f4d3a197c72ecd1bd8e8fa9a904",
+      "bytes": 273178
     },
     "ublock-abuse": {
       "rev": "f9d6ff43ab5f6bc1d9389ff78179cd7b0301353ea189fe75b48a8e1f34e6b270",
@@ -62,34 +62,34 @@
       "bytes": 282210
     },
     "ublock-quick-fixes": {
-      "rev": "762ddfa3609f11889594780c2e3296803c95a77ad93819e606a150e5915c82f7",
-      "sha256": "63a42007e54fbdf8805284d5a229ea5fa840102b1f4465a60aa7169971799ae7",
-      "bytes": 97231
+      "rev": "71a697a041c35b2ad6b25010bb23cbd5dff979b2047df2b3f4db00a5743f1658",
+      "sha256": "ec5b989f6811d57ca373fa3c3dc209ce5f4b3a3ca9b775d226fce34fb779771e",
+      "bytes": 97630
     },
     "easyprivacy": {
-      "rev": "f1e385948845b2e52db6ed41573375ca01fb8066103e1557550b8abb0cc37760",
-      "sha256": "e3e442d26df81618ca8534af99529c5c78ee19f834cd43f2bb05415078adf069",
-      "bytes": 1513156
+      "rev": "732ff5e0c6c0326108a77e21c308290a205dfe632de62fa5649aa56db87e31ad",
+      "sha256": "b209d83fbbd6669ac4156893ea68d4eeb5a6c54bcb3a69a3ecaf98f30aa29311",
+      "bytes": 1513433
     },
     "ublock-privacy": {
-      "rev": "4835b9236bb638d644109f95a3c7a642adb028de50e36c000331b612742464c6",
-      "sha256": "c00565c02af988eca0559a2f14d428f98c324804ef7dd27333869e41f421c996",
-      "bytes": 188966
+      "rev": "0f02069b9ec122b179061b49d0883e4c5119d0c9e41451a2519141dfab9ec7db",
+      "sha256": "febd6e8db7b7dd3c927bd7777a15b6a487e19f6ec5362c083398e5053ed71e9a",
+      "bytes": 189111
     },
     "easylist-cookie": {
-      "rev": "b1039625d986374a206c49c446586618dca551a0e1b580ab7ef3d557cac5bb62",
-      "sha256": "2d10f49048c4fc0ad4f8bb9e724dd38450329ed4989b50ab52e4cb9ef469c837",
-      "bytes": 1218322
+      "rev": "feb487bf3bd4b8f5796828edf5ce37562fdd215c09b40cc7acd2624f5813c0c1",
+      "sha256": "e5502351e83a828e31b1812e978a052758754bbeb8dd5b786e51bc944e2445a6",
+      "bytes": 1218747
     },
     "ublock-annoyances-cookies": {
-      "rev": "e3d8bcc64abf6dd9862b98bc6a77e0f8bda909def1dbd5eee3e6f108f2e9c989",
-      "sha256": "1d38b68d1f90b4db0d07839ecc655a294acfdcc1c773a8c82aa522a0fd995982",
-      "bytes": 412416
+      "rev": "9fcb69965ac411d95ee28a656d3b649a3aebc4da2243b983ad73d60ae09722ed",
+      "sha256": "8ff963ab36422e25fe8921a5d40256a0eeed379396dceca7f4bba2b9f10e18f2",
+      "bytes": 412565
     },
     "ublock-annoyances-others": {
-      "rev": "99e5d6b1682819f92252c5e45a15571e7a27ac5d6dd05083bb6b6dbbe1406988",
-      "sha256": "67072a284f8ac3ba97ebbb82627894366a7e51aae1800a2861222bb2a2ad9115",
-      "bytes": 425569
+      "rev": "56c28491a966fc47e4fb7ccd60579fd8e6d0d645e2fb4034adfc4e90bafda722",
+      "sha256": "bce6ccb5afd9c0ee37a119e7886c6fbc704f371adf2d8b3ee4a2ac07eed734fd",
+      "bytes": 426205
     },
     "ublock-resources-json": {
       "rev": "c4c0a51a5470cd0f3b3812a6dcf4c46b80a4dc56cdf9bc1e020e8b6c215384da",

@@ -204,3 +204,27 @@ export function NoAi({ size = 16, strike = '#E5322D', color = 'currentColor' }: 
     </svg>
   );
 }
+export const Key = (p: P) => (
+  <Svg {...p}>
+    <circle cx="5.5" cy="10.5" r="3" />
+    <path d="m7.7 8.3 5.8-5.8M11.5 4.5l1.5 1.5M9.8 6.2l1.2 1.2" />
+  </Svg>
+);
+export const Eye = (p: P) => (
+  <Svg {...p}>
+    <path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8Z" />
+    <circle cx="8" cy="8" r="2" />
+  </Svg>
+);
+export const EyeOff = (p: P) => (
+  <Svg {...p}>
+    <path d="M6.3 3.7A6.6 6.6 0 0 1 8 3.5c4.1 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.7 2.2M4.3 4.9C2.5 6.1 1.5 8 1.5 8s2.4 4.5 6.5 4.5c1.1 0 2.1-.3 2.9-.8" />
+    <path d="M6.6 6.6a2 2 0 0 0 2.8 2.8M2 2l12 12" />
+  </Svg>
+);
+export const Copy = (p: P) => (
+  <Svg {...p}>
+    <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+    <path d="M10.5 3.5V3a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3v5A1.5 1.5 0 0 0 4 9.5h.5" />
+  </Svg>
+);

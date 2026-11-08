@@ -137,6 +137,10 @@ h3 {
   align-items: center;
   gap: 8px;
 }
+a.btn {
+  color: var(--text);
+  text-decoration: none;
+}
 .btn:hover {
   background: var(--surface-2);
 }

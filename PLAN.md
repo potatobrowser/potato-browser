@@ -190,8 +190,72 @@ All nine milestones are done and committed.
   merged into the site's; stand-ins served only under a per-launch `potato-res://` path; one
   failing list download no longer holds back the others; per-tab counts start at commit.
 
-Open items: Google sign-in check with a real account, extensions and a password manager,
-cookie encryption (possible now that releases are Developer ID signed).
+Open items: Google sign-in check with a real account, extensions, cookie encryption (possible
+now that releases are Developer ID signed).
+
+## Passwords (0.6.0)
+
+Most people switching browsers depend on saved passwords, and without extensions there is no
+password manager extension to fall back on. So: saving and autofill backed by the macOS Keychain,
+and CSV import from Chrome (Edge, Brave, Arc), Safari, Firefox and 1Password.
+
+Decisions (2026-11-08):
+
+- **Keychain**: Electron's `safeStorage` (Chromium's OSCrypt), as Chrome does: one random key in
+  the login Keychain ("Potato Browser Safe Storage"), passwords and notes encrypted with it in a
+  `logins` table of the profile database. Considered instead: one Keychain item per password
+  through a bundled Swift helper. It would list passwords in Keychain Access, but adds a signed
+  helper binary per architecture, puts hundreds of items in the user's keychain after an import,
+  asks once per item after every rebuild of an ad-hoc signed app, and any process could run the
+  helper to read them (its signature is what the Keychain trusts). With safeStorage the Keychain
+  trusts the app itself, Developer ID releases keep access across updates, and a build from
+  source asks once. Websites and usernames are stored readable, so matching never touches the
+  Keychain; existing users see no Keychain prompt until they save or fill a password. Checked on
+  this Mac: the async API creates and reads the item in the real login keychain; tests run with
+  `--use-mock-keychain`, which keeps the key stable across restarts.
+- **Dropdown in the browser, not the page**: a per-window WebContentsView under the field
+  (positioned from the field's rect, through parent frames by postMessage for cross-origin
+  iframes; a parent answers only for the frame that has focus). It opens only when the user
+  clicks or tabs into a field, never on a page's `focus()`. Pages cannot read it or forge clicks
+  on it (keys only count when `isTrusted`), and picks in the first 500 ms after it appears or
+  moves are ignored, as in Chrome, so a page cannot slide it under the pointer. Nothing is
+  filled on page load; the password goes to the frame only after a pick, and only if the
+  frame's origin (from the browser) matches.
+- **Matching**: exact origin; http saved, https page; other hosts of the same registrable domain
+  (tldts with private suffixes, so github.io neighbours never share), shown with their host.
+  Never https passwords on http pages, nothing on pages past a certificate warning.
+- **Saving**: the preload reports submits (form submit, Enter, sign-in buttons, not show-password
+  toggles), kept per origin so another frame cannot replace them; the prompt appears once a page
+  loads without a password field (a returning sign-in form means a wrong password), or the field
+  stays away for 2 s without a page load (single page apps), and is taken back if the field
+  returns within 5 s. Usernames from a first step (email, then password) carry over within a
+  site. Change-password forms update the saved login whose password matches the current one;
+  two different passwords without autocomplete hints (password and PIN?) are not guessed at.
+  Never in private windows (they still fill).
+- **Import**: header-driven CSV parser (any column order; Chrome, Safari, Firefox, 1Password,
+  Bitwarden and LastPass headers), skips app entries, rows without a password or website and
+  1Password's archive, never overwrites a saved login. The file is chosen in a native dialog in
+  the main process, and the page offers to move it to the Trash afterwards. Export writes
+  Chrome's format, owner-only. Only potato://passwords may call the `passwords.*` API (settings
+  gets the count). Showing, copying and exporting ask for Touch ID, or the Mac's password where
+  there is none (Electron's prompt uses the user-presence access control).
+
+Status (2026-11-08): done. 14 unit tests (CSV formats and quoting, origin matching including
+shared hosts, password picking for login/sign-up/change forms, encrypted store, import rules) and
+6 e2e tests on fixture sites: save after a form post, fill by click and keyboard with framework
+input events, cross-origin iframe fill and placement, a page's own scripts and a too-early click
+getting nothing, http pages getting nothing, no prompt after a failed sign-in, single page app
+and two-step sign-ins, a single page app failing slowly (prompt taken back), update after a
+change, "Never for this site", private windows, internal pages other than the passwords page
+denied, and the import of all four formats, edit, delete, export and a restart, on the dev build
+and the packaged app. Found on the way: the test proxy dropped form posts (Origin header and
+streamed bodies in `net.fetch`), and focus moving into an iframe looked like the page getting
+focus back. An independent review before release led to: the dropdown opens only on the user's
+click or Tab, picks are ignored right after it moves (not only after it appears), the Enter key
+gets the same delay, the passwords API is limited to its page, the Mac password stands in for
+Touch ID, single page apps must keep the form away for 2 s, password-and-PIN forms are not read
+as a change, pending sign-ins are per origin, bare hosts with ports import, and the mock
+Keychain is used only with a test profile.
 
 ## iOS app (plan, 2026-11-07)
 

@@ -237,6 +237,7 @@ export class Tab {
     this.destroyedHandled = true;
     ctx.adblock.resetPage(this.wcId);
     ctx.permissions.dropTab(this.id);
+    ctx.passwords.tabClosed(this);
     this.win.onTabDestroyed(this);
   }
 
@@ -274,8 +275,10 @@ export class Tab {
         this.errorPage = null;
         this.resetPageState();
         ctx.permissions.dropTab(this.id);
+        ctx.passwords.navigationStarted(this, details.url);
       }
     });
+    wc.on('did-frame-navigate', (_e, url, _code, _status, isMainFrame) => ctx.passwords.frameNavigated(this, url, isMainFrame));
     wc.on('did-navigate', (_e, url) => {
       ctx.adblock.pageCommitted(wc.id, url);
       this.crashed = false;

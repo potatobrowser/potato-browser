@@ -88,7 +88,11 @@ export class BrowserWindowController {
     });
     void this.ui.webContents.loadURL(`potato://ui/?window=${this.id}${this.isPrivate ? '&private=1' : ''}`);
 
-    this.base.on('resize', () => this.layout());
+    this.base.on('resize', () => {
+      ctx.passwords.dropField(this);
+      this.layout();
+    });
+    this.base.on('blur', () => ctx.passwords.hidePopup(this));
     this.base.on('focus', () => manager.onWindowFocused(this));
     this.base.on('enter-full-screen', () => this.update());
     this.base.on('leave-full-screen', () => this.update());
@@ -140,10 +144,12 @@ export class BrowserWindowController {
   setOverlay(open: boolean): void {
     if (this.overlayOpen === open) return;
     this.overlayOpen = open;
+    if (open) ctx.passwords.hidePopup(this);
     this.layout();
   }
 
   setHtmlFullscreen(tab: Tab, on: boolean): void {
+    ctx.passwords.dropField(this);
     if (on) {
       this.htmlFullscreenTab = tab;
       if (!this.base.isFullScreen()) this.base.setFullScreen(true);
@@ -183,6 +189,7 @@ export class BrowserWindowController {
       return;
     }
     const prev = this.activeTab;
+    ctx.passwords.dropField(this);
     this.activeTab = tab;
     this.base.contentView.addChildView(tab.view, 0);
     if (prev && prev !== tab && !prev.isDestroyed) this.base.contentView.removeChildView(prev.view);
@@ -351,6 +358,7 @@ export class BrowserWindowController {
       shieldGloballyEnabled: settings.shield.enabled,
       adblockGloballyEnabled: settings.adblock.enabled,
       updateAvailable: ctx.updates.available(),
+      passwordPrompt: ctx.passwords.promptFor(this),
     };
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BookmarkNode, FindState, PermissionPrompt } from '../../shared/types';
+import type { BookmarkNode, FindState, PasswordPrompt, PermissionPrompt } from '../../shared/types';
 import { chrome } from '../shared/api';
-import { ChevronDown, ChevronUp, Close, Folder, Globe } from '../shared/icons';
+import { ChevronDown, ChevronUp, Close, Folder, Globe, Key } from '../shared/icons';
 
 export function BookmarksBar({ items }: { items: BookmarkNode[] }) {
   if (!items.length) {
@@ -105,5 +105,53 @@ export function Infobars({ prompts }: { prompts: PermissionPrompt[] }) {
         </div>
       ))}
     </>
+  );
+}
+
+/** "Save password?" after a sign-in, with the username editable before saving. */
+export function PasswordBar({ prompt }: { prompt: PasswordPrompt }) {
+  // Keyed by prompt id in App, so a new prompt starts from its own username.
+  const [username, setUsername] = useState(prompt.username);
+  const send = (type: string) => chrome().send({ type, id: prompt.id, username });
+  return (
+    <div className="infobar password-bar" data-testid="password-prompt" role="alertdialog" aria-label={prompt.update ? 'Update password' : 'Save password'}>
+      <span className="password-text">
+        <Key size={15} />
+        {prompt.update ? (
+          <span>
+            Update the saved password for <strong>{prompt.username || 'this account'}</strong> on <strong>{prompt.host}</strong>?
+          </span>
+        ) : (
+          <>
+            <span>
+              Save password for <strong>{prompt.host}</strong>?
+            </span>
+            <input
+              className="password-user"
+              data-testid="password-prompt-username"
+              aria-label="Username"
+              placeholder="Username"
+              value={username}
+              spellCheck={false}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && send('password.save')}
+            />
+          </>
+        )}
+      </span>
+      <span className="infobar-actions">
+        {!prompt.update && (
+          <button className="btn" data-testid="password-never" onClick={() => send('password.never')}>
+            Never for this site
+          </button>
+        )}
+        <button className="btn" data-testid="password-dismiss" onClick={() => send('password.dismiss')}>
+          Not now
+        </button>
+        <button className="btn primary" data-testid="password-save" onClick={() => send('password.save')}>
+          {prompt.update ? 'Update' : 'Save'}
+        </button>
+      </span>
+    </div>
   );
 }

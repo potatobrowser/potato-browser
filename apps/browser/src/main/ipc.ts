@@ -167,6 +167,15 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
     case 'zoom.reset':
       active?.zoomStep(0);
       break;
+    case 'password.save':
+      void ctx.passwords.savePrompt(win, cmd.id, cmd.username);
+      break;
+    case 'password.never':
+      ctx.passwords.neverForSite(win, cmd.id);
+      break;
+    case 'password.dismiss':
+      ctx.passwords.dismissPrompt(win, cmd.id);
+      break;
     case 'command':
       if (typeof cmd.name === 'string' && cmd.name in commands && cmd.name !== 'selectTab') {
         (commands as unknown as Record<string, () => unknown>)[cmd.name]!();
@@ -298,6 +307,16 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
   'app.finishWelcome': () => {
     ctx.settings.update({ firstRunDone: true });
   },
+  'passwords.count': () => ctx.passwords.store.count(),
+  'passwords.list': () => ctx.passwords.overview(),
+  'passwords.reveal': (id: unknown) => ctx.passwords.reveal(num(id)),
+  'passwords.copy': (id: unknown, what: unknown) => ctx.passwords.copy(num(id), what === 'username' ? 'username' : 'password'),
+  'passwords.add': (l: Record<string, unknown>) => ctx.passwords.add(l ?? {}),
+  'passwords.update': (id: unknown, patch: Record<string, unknown>) => ctx.passwords.update(num(id), patch ?? {}),
+  'passwords.remove': (id: unknown) => ctx.passwords.remove(num(id)),
+  'passwords.import': () => ctx.passwords.importFile(),
+  'passwords.trashImported': () => ctx.passwords.trashImportedFile(),
+  'passwords.export': () => ctx.passwords.exportFile(),
   'chatbot.allowOnce': (url: unknown) => allowChatbotOnce(str(url)),
   newTab: () => NEW_TAB_URL,
 };
@@ -307,18 +326,33 @@ function isInternalSender(e: IpcMainInvokeEvent | IpcMainEvent): boolean {
   return !!frame && frame.parent === null && frame.url.startsWith('potato://') && !!ctx.windows.tabFor(e.sender);
 }
 
+/** Saved passwords are only for the passwords page (settings gets the count), not every internal page. */
+function methodAllowed(method: string, frameUrl: string): boolean {
+  if (!method.startsWith('passwords.')) return true;
+  let page = '';
+  try {
+    page = new URL(frameUrl).host;
+  } catch {}
+  return page === 'passwords' || (page === 'settings' && method === 'passwords.count');
+}
+
 export function registerIpc(): void {
   ipcMain.on('ui:command', (e, cmd: Cmd) => {
+    if (!cmd || typeof cmd.type !== 'string') return;
     const win = windowForUi(e.sender);
-    if (win && cmd && typeof cmd.type === 'string') handleUiCommand(win, cmd);
+    if (win) return handleUiCommand(win, cmd);
+    // The autofill dropdown only picks, holds and opens the passwords page.
+    const popupWin = ctx.passwords.windowForPopup(e.sender);
+    if (popupWin && cmd.type.startsWith('autofill.')) ctx.passwords.popupCommand(popupWin, cmd);
   });
+  ctx.passwords.registerIpc();
   ipcMain.handle('ui:suggest', (e, text: unknown) => {
     if (!windowForUi(e.sender)) return { input: '', suggestions: [], inline: null };
     return suggest(str(text, 2000));
   });
 
   ipcMain.handle('potato:api', async (e, method: unknown, ...args: unknown[]) => {
-    if (!isInternalSender(e) || typeof method !== 'string' || !(method in internalApi)) {
+    if (!isInternalSender(e) || typeof method !== 'string' || !(method in internalApi) || !methodAllowed(method, e.senderFrame!.url)) {
       throw new Error('Not allowed');
     }
     return internalApi[method]!(...args);

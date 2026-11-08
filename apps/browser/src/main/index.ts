@@ -8,6 +8,7 @@ import { ProfileDb } from './db';
 import { DownloadManager } from './downloads';
 import { applyEngineSwitches, chromeUserAgent } from './engine';
 import { FlagsService } from './flags';
+import { PasswordService } from './passwords/service';
 import { registerIpc } from './ipc';
 import { notifyInternalPages } from './notify';
 import { buildAppMenu, refreshMenuChecks } from './menus';
@@ -25,6 +26,9 @@ configureUserData();
 applyEngineSwitches();
 app.userAgentFallback = chromeUserAgent();
 registerSchemes();
+// Tests must never touch the real Keychain (or wait on its permission dialog). Only with a
+// throwaway profile: the mock key would leave a real profile's passwords unreadable.
+if (isTest() && process.env.POTATO_USER_DATA) app.commandLine.appendSwitch('use-mock-keychain');
 
 let ready = false;
 const pendingUrls: string[] = [];
@@ -107,6 +111,7 @@ app.whenReady().then(() => {
   ctx.adblock = new AdblockService();
   ctx.adblock.init();
   ctx.flags = new FlagsService();
+  ctx.passwords = new PasswordService();
   ctx.updates = new UpdateChecker();
   ctx.windows = new WindowManager();
 

@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Sneaky</title></head>
+<body>
+<form>
+  <input id="username" autocomplete="username">
+  <input id="password" type="password">
+</form>
+<p id="stolen"></p>
+<script>
+  // Page script trying to make the browser fill without the user: focus, synthetic keys and clicks.
+  window.tryToSteal = async () => {
+    const u = document.getElementById('username');
+    u.focus();
+    for (const key of ['ArrowDown', 'Enter']) {
+      u.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    u.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 300));
+    document.getElementById('stolen').textContent = document.getElementById('password').value || 'nothing';
+  };
+</script>
+</body></html>

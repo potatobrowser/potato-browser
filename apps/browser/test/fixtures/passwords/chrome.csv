@@ -1,0 +1,6 @@
+name,url,username,password,note
+bank.test,https://bank.test/login,alice@bank.test,Ch-pass-1,
+mail.test,https://mail.test/,alice,"Ch,pass""2","two, lines
+note"
+app,android://abc@com.example.app/,alice,Ch-pass-3,
+empty.test,https://empty.test/,bob,,
