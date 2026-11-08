@@ -48,6 +48,8 @@ jobs:
           retention-days: 7
 
   ios:
+    # On the public mirror only, where macOS minutes are free; it gets every commit of main.
+    if: github.repository == 'potatobrowser/potato-browser'
     # GitHub's Xcode 27 image (preview): the app needs the iOS 27 SDK.
     runs-on: xcode-27
     timeout-minutes: 45
