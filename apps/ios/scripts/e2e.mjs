@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { flagAsOthers, flagCount, startApiServer } from '../test/support/api-server.mjs';
+import { apiSummary, flagAsOthers, flagCount, startApiServer, voteCounts } from '../test/support/api-server.mjs';
 import { ensureCerts, startFixtureProxy } from '../test/support/fixture-proxy.mjs';
 import { boot, DEVICE, runSteps, simctl } from './simrun.mjs';
 
@@ -53,6 +53,7 @@ function expectVisibility(r, name, hidden, visible) {
 
 // ---- scenarios ---------------------------------------------------------------------------------
 
+const VERSION = /MARKETING_VERSION: "([\d.]+)"/.exec(fs.readFileSync(path.join(root, 'project.yml'), 'utf8'))[1];
 const GOOGLE = 'https://www.google.com/search?q=how+do+magnets+work';
 const GOOGLE_AI = ['#aio-css', '#aio-wrapper', '#aio-text', '#tab-ai', '#paa-ai', '#dive'];
 const GOOGLE_HUMAN = ['#r0', '#r3', '#r-ai-title', '#tab-all', '#tab-images', '#paa-human'];
@@ -180,10 +181,12 @@ const scenarios = {
       { url: 'https://www.linkedin.com/feed/', key: 'linkedin:ugcPost:7497764716677758977', flagged: '#li1', clean: null },
     ];
     await flagAsOthers(api.url, 'reddit:t3_1xabc22', 3);
+    await flagAsOthers(api.url, 'reddit:t3_1xhuman3', 3);
     for (const c of cases) await flagAsOthers(api.url, c.key, 1);
     const reply = 'reddit:t1_p9reply1';
     const replyBefore = await flagCount(api.url, reply);
     const bridge = (keys, flag) => `return await window.webkit.messageHandlers.potato.postMessage({ type: 'flagsSet', keys: ${JSON.stringify(keys)}, flag: ${flag} })`;
+    const vote = (keys, v) => `return await window.webkit.messageHandlers.potato.postMessage({ type: 'flagsSet', keys: ${JSON.stringify(keys)}, vote: ${JSON.stringify(v)} })`;
     const labeled = (sel) => `return !!document.querySelector('${sel}[data-potato-flag="label"], ${sel} [data-potato-flag="label"]')`;
     const steps = [
       { action: 'ready', wait: 180 },
@@ -200,6 +203,10 @@ const scenarios = {
       { action: 'reload', wait: 3 },
       evalStep('reddit-hide', `const n = document.querySelector('#a2 potato-flag-hidden'); return { postVisible: document.querySelector('#a2 shreddit-post')?.checkVisibility(), notice: n?.shadowRoot?.textContent ?? n?.textContent ?? null, a1Visible: document.querySelector('#a1 shreddit-post')?.checkVisibility() }`),
       shot('flags-reddit-hide'),
+      evalStep('human-before', `return document.querySelector('#a3 shreddit-post')?.checkVisibility()`),
+      evalStep('human-vote', vote(['reddit:t3_1xhuman3'], 'human'), 'potato'),
+      { action: 'reload', wait: 3 },
+      evalStep('human-after', `return { visible: document.querySelector('#a3 shreddit-post')?.checkVisibility(), button: document.querySelector('#a3 potato-flag')?.shadowRoot?.textContent ?? '' }`),
       settings({ 'flags.mode': 'label', 'flags.threshold': 1 }),
       ...cases.flatMap((c, i) => [
         open(c.url, `case-${i}`, 2.5),
@@ -229,6 +236,10 @@ const scenarios = {
     check('hide mode: flagged post buried', h.postVisible === false, h);
     check('hide mode: notice shown', /flagged as AI-generated/.test(h.notice ?? ''), h.notice);
     check('hide mode: other posts stay', h.a1Visible === true, h);
+    check('Not AI: post buried before the vote', r.get('human-before')?.value === false, r.get('human-before')?.value);
+    const hv = r.get('human-vote')?.value?.['reddit:t3_1xhuman3'];
+    check('Not AI: the vote reaches the server', hv?.disputed === true && hv?.d === 1 && (await voteCounts(api.url, 'reddit:t3_1xhuman3')).d === 1, hv);
+    check('Not AI: the post comes back for the voter', r.get('human-after')?.value?.visible === true && /You said Not AI/.test(r.get('human-after')?.value?.button), r.get('human-after')?.value);
     cases.forEach((c, i) => {
       const v = r.get(`case-${i}-check`)?.value ?? {};
       check(`${c.key.split(':')[0]}: button and label on the right post`, v.button && v.labeled && v.clean === 0, v);
@@ -269,6 +280,36 @@ const scenarios = {
     const e = r.get('engine');
     check('engine check: no AI APIs in pages, workers, frames', e && e.window?.length === 0 && e.worker?.length === 0 && e.frame?.length === 0, e);
     check('engine: no AI globals on a page', JSON.stringify(r.get('engine-globals')?.value) === '[]', r.get('engine-globals')?.value);
+  },
+
+  async launch() {
+    const metrics = JSON.stringify({
+      timeStampBegin: '2026-11-08 10:00:00',
+      crashDiagnostics: [{ callStackTree: { callStacks: [], callStackPerThread: true }, diagnosticMetaData: { appVersion: VERSION, regionFormat: 'HU', pid: 4242, osVersion: 'iPhone OS 27.0', signal: 11 } }],
+      cpuExceptionDiagnostics: [{ x: 1 }],
+    });
+    const steps = [
+      { action: 'ready', wait: 180 },
+      settings({ 'adblock.autoUpdate': false, 'shield.autoUpdate': true }),
+      open('https://www.google.com/search?q=report+from+ios#frag', 'google', 2),
+      { action: 'report', text: 'shield:showing', name: 'report' },
+      { action: 'report', text: 'adblock:broken', name: 'report2' },
+      { action: 'crashUpload', js: metrics, name: 'crash' },
+      { action: 'checkUpdates', name: 'check' },
+    ];
+    const r = byName((await run(steps)).results);
+    check('report: sent from the protections panel action', r.get('report')?.ok === true && r.get('report2')?.ok === true, [r.get('report'), r.get('report2')]);
+    check('crash report: sent', r.get('crash')?.ok === true, r.get('crash'));
+    const s = await apiSummary(api.url);
+    const reps = s.reports.filter((x) => x.url.includes('report+from+ios'));
+    check(
+      'report: the address without fragment, the choice, app and version',
+      reps.length === 2 && reps.every((x) => x.url === 'https://www.google.com/search?q=report+from+ios' && x.app === 'ios' && x.version === VERSION) && reps.some((x) => x.feature === 'shield' && x.problem === 'showing') && reps.some((x) => x.feature === 'adblock' && x.problem === 'broken'),
+      reps,
+    );
+    check('crash report: stored as a crash from this version', s.crashes.some((x) => x.app === 'ios' && x.process === 'crash' && x.version === VERSION), s.crashes);
+    check('daily check: counted this install by app and version', s.installs.some((x) => x.app === 'ios' && x.version === VERSION && x.n >= 1), s.installs);
+    check('daily check: the app keeps its own rules when the site has the same', r.get('check')?.shield?.source === 'app', r.get('check'));
   },
 
   async session() {

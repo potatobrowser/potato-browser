@@ -35,6 +35,13 @@ enum WebResources {
       let lists: [String]
       let rules: Int
     }
+    struct ShieldRules: Decodable {
+      /// Seconds since 1970 of the rules' commit, and sha256 of their JSON.
+      let version: Int
+      let hash: String
+      /// Ed25519 keys (raw, base64) that may sign rule updates.
+      let keys: [String]
+    }
     let version: String
     let builtAt: String
     let listsFetchedAt: String
@@ -42,12 +49,13 @@ enum WebResources {
     let resources: String
     let groups: [Group]
     let aiGlobals: [String]
+    var shieldRules: ShieldRules?
   }
 
   static let manifest: Manifest = {
     let data = (try? Data(contentsOf: url("manifest.json"))) ?? Data()
     return (try? JSONDecoder().decode(Manifest.self, from: data))
-      ?? Manifest(version: "0", builtAt: "", listsFetchedAt: "", lists: [:], resources: "", groups: [], aiGlobals: [])
+      ?? Manifest(version: "0", builtAt: "", listsFetchedAt: "", lists: [:], resources: "", groups: [], aiGlobals: [], shieldRules: nil)
   }()
 
   /// The page world script with its options written in.

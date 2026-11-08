@@ -29,6 +29,8 @@ struct PotatoApp: App {
       if p == .background {
         app.tabs.save()
         app.adblock.flushStats()
+      } else if p == .active {
+        app.adblock.checkIfDue()
       }
     }
   }

@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { catalog, ensureLists, readLock } from '../../browser/scripts/filters.mjs';
+import { loadShieldRules } from '../../browser/scripts/shield-rules.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'WebResources');
@@ -71,6 +72,8 @@ const shield = lib.RULES.map((r) => ({
   features: r.features.map((f) => ({ id: f.id, name: f.name, block: f.block ?? [] })),
 }));
 fs.writeFileSync(path.join(out, 'shield.json'), JSON.stringify(shield));
+// Their git version and hash: a downloaded rule update replaces them only when newer.
+const shieldRules = await loadShieldRules(build, root);
 
 const manifest = {
   version: pkg.version,
@@ -81,6 +84,7 @@ const manifest = {
   groups,
   flagPlatforms: lib.ADAPTERS.map((a) => ({ platform: a.platform, hosts: a.hosts })),
   aiGlobals: lib.AI_GLOBALS,
+  shieldRules: { version: shieldRules.version, hash: shieldRules.hash, keys: lib.SHIELD_RULES_KEYS },
 };
 fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2));
 

@@ -89,7 +89,8 @@ final class Store: ObservableObject {
         key TEXT PRIMARY KEY,
         hash TEXT NOT NULL,
         platform TEXT NOT NULL,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        vote TEXT NOT NULL DEFAULT 'ai'
       );
       CREATE TABLE IF NOT EXISTS stats (
         day TEXT PRIMARY KEY,
@@ -97,6 +98,10 @@ final class Store: ObservableObject {
         ads_blocked INTEGER NOT NULL DEFAULT 0
       );
       """)
+    // Not AI votes (0.6.0): before them every row was an AI flag.
+    if !db.query("PRAGMA table_info(my_flags)").contains(where: { $0.string("name") == "vote" }) {
+      try db.exec("ALTER TABLE my_flags ADD COLUMN vote TEXT NOT NULL DEFAULT 'ai'")
+    }
     if db.query("SELECT id FROM bookmarks WHERE id = 1").isEmpty {
       try db.runOrThrow("INSERT INTO bookmarks (id, parent_id, type, title, position, created_at) VALUES (1, NULL, 'folder', 'Bookmarks', 0, ?)", [Self.now()])
     }
@@ -306,20 +311,32 @@ final class Store: ObservableObject {
 
   // MARK: Flags
 
-  func myFlags(_ keys: [String]) -> Set<String> {
-    Set(keys.filter { !db.query("SELECT 1 AS x FROM my_flags WHERE key = ?", $0).isEmpty })
+  /// The user's votes on these keys: "ai" (flagged) or "human" (Not AI).
+  func myFlags(_ keys: [String]) -> [String: String] {
+    var out: [String: String] = [:]
+    for k in keys {
+      if let row = db.query("SELECT vote FROM my_flags WHERE key = ?", k).first { out[k] = row.string("vote") == "human" ? "human" : "ai" }
+    }
+    return out
   }
 
-  func setMyFlag(key: String, hash: String, platform: String, on: Bool) {
-    if on {
-      db.run("INSERT OR REPLACE INTO my_flags (key, hash, platform, created_at) VALUES (?, ?, ?, ?)", key, hash, platform, Self.now())
+  /// `vote` nil takes the user's vote back.
+  func setMyFlag(key: String, hash: String, platform: String, vote: String?) {
+    if let vote {
+      db.run("INSERT OR REPLACE INTO my_flags (key, hash, platform, created_at, vote) VALUES (?, ?, ?, ?, ?)", key, hash, platform, Self.now(), vote)
     } else {
       db.run("DELETE FROM my_flags WHERE key = ?", key)
     }
   }
 
+  /// Posts the user flagged as AI.
   func myFlagCount() -> Int {
-    Int(db.query("SELECT COUNT(*) AS n FROM my_flags").first?.int("n") ?? 0)
+    Int(db.query("SELECT COUNT(*) AS n FROM my_flags WHERE vote = 'ai'").first?.int("n") ?? 0)
+  }
+
+  /// Posts the user said are Not AI.
+  func myDisputeCount() -> Int {
+    Int(db.query("SELECT COUNT(*) AS n FROM my_flags WHERE vote = 'human'").first?.int("n") ?? 0)
   }
 
   // MARK: Stats

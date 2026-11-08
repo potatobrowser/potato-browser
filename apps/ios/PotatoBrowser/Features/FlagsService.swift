@@ -13,11 +13,12 @@ final class FlagsService {
   private let store: Store
   private let settings: SettingsStore
   private let session: URLSession
-  private var prefixCache: [String: (at: Date, counts: [String: Int])] = [:]
+  /// Per prefix: AI flags (`n`) and Not AI votes (`d`) of each full hash.
+  private var prefixCache: [String: (at: Date, counts: [String: (n: Int, d: Int)])] = [:]
   private var hashes: [String: String] = [:]
   private var inflight: [String: Task<Void, Never>] = [:]
-  /// Private tabs flag under a throwaway id and remember their flags only in memory.
-  private var privateMine = Set<String>()
+  /// Private tabs vote under a throwaway id and remember their votes only in memory.
+  private var privateMine: [String: String] = [:]
   private var privateClient: String?
 
   init(apiBase: URL, store: Store, settings: SettingsStore) {
@@ -74,11 +75,11 @@ final class FlagsService {
       let batch = Array(todo[start..<min(start + Self.maxPrefixes, todo.count)])
       let task = Task { @MainActor in
         defer { batch.forEach { self.inflight[$0] = nil } }
-        guard let res = try? await self.post("api/v1/lookup", ["prefixes": batch]) else { return }
-        var grouped = Dictionary(uniqueKeysWithValues: batch.map { ($0, [String: Int]()) })
+        guard let res = try? await self.post("api/v1/lookup", ["prefixes": batch, "v": 2]) else { return }
+        var grouped = Dictionary(uniqueKeysWithValues: batch.map { ($0, [String: (n: Int, d: Int)]()) })
         for item in res["items"] as? [[String: Any]] ?? [] {
           guard let h = item["h"] as? String, let n = item["n"] as? Int else { continue }
-          grouped[String(h.prefix(Self.prefixLength))]?[h] = n
+          grouped[String(h.prefix(Self.prefixLength))]?[h] = (n, item["d"] as? Int ?? 0)
         }
         for (p, counts) in grouped { self.prefixCache[p] = (Date(), counts) }
       }
@@ -95,18 +96,23 @@ final class FlagsService {
       let hs = valid.map(hash)
       await fetch(Array(Set(hs.map { String($0.prefix(Self.prefixLength)) })))
     }
-    // The user's own flags are read only now: one may have been set while the lookup ran.
+    // The user's own votes are read only now: one may have been cast while the lookup ran.
     let mine = isPrivate ? privateMine : store.myFlags(valid)
     for k in valid {
       let h = hash(k)
-      let n = localOnly ? 0 : prefixCache[String(h.prefix(Self.prefixLength))]?.counts[h] ?? 0
-      out[k] = ["n": n, "mine": mine.contains(k)]
+      let c = localOnly ? (n: 0, d: 0) : prefixCache[String(h.prefix(Self.prefixLength))]?.counts[h] ?? (0, 0)
+      out[k] = Self.status(c, mine[k])
     }
     return out
   }
 
-  /// Flags (or un-flags) every key of one post and returns their new status.
-  func set(keys: [String], flag: Bool, isPrivate: Bool) async throws -> [String: [String: Any]] {
+  private static func status(_ c: (n: Int, d: Int), _ vote: String?) -> [String: Any] {
+    ["n": c.n, "d": c.d, "mine": vote == "ai", "disputed": vote == "human"]
+  }
+
+  /// Sets the user's vote ("ai" or "human") on every key of one post, or takes it back with nil.
+  func set(keys: [String], vote: String?, isPrivate: Bool) async throws -> [String: [String: Any]] {
+    let vote = vote.flatMap { ["ai", "human"].contains($0) ? $0 : nil }
     let valid = Array(Set(keys)).filter { Self.platform(of: $0) != nil }.prefix(10)
     guard !valid.isEmpty else { throw URLError(.badURL) }
     let client: String
@@ -120,18 +126,18 @@ final class FlagsService {
     for key in valid {
       let platform = Self.platform(of: key)!
       let h = hash(key)
-      let res = try await post("api/v1/flags", ["h": h, "platform": platform, "client": client], method: flag ? "POST" : "DELETE")
-      let n = res["n"] as? Int ?? 0
+      let res = try await post("api/v1/flags", ["h": h, "platform": platform, "client": client, "vote": vote ?? "ai", "app": "ios"], method: vote != nil ? "POST" : "DELETE")
+      let c = (n: res["n"] as? Int ?? 0, d: res["d"] as? Int ?? 0)
       if isPrivate {
-        if flag { privateMine.insert(key) } else { privateMine.remove(key) }
+        privateMine[key] = vote
       } else {
-        store.setMyFlag(key: key, hash: h, platform: platform, on: flag)
+        store.setMyFlag(key: key, hash: h, platform: platform, vote: vote)
       }
       let p = String(h.prefix(Self.prefixLength))
       var entry = prefixCache[p] ?? (Date(), [:])
-      entry.counts[h] = n
+      entry.counts[h] = c
       prefixCache[p] = entry
-      out[key] = ["n": n, "mine": flag]
+      out[key] = Self.status(c, vote)
     }
     return out
   }

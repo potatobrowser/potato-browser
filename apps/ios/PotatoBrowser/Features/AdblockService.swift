@@ -26,6 +26,10 @@ final class AdblockService: ObservableObject {
   private var state = UserState()
   private var pendingStats = 0
   private var timer: Timer?
+  /// The daily check also carries the AI Shield's rule version; AppModel hands it on.
+  var onShieldInfo: (([String: Any]?) async -> Void)?
+  /// Whether the AI Shield wants its daily rule check (Settings > AI Shield).
+  var shieldWantsUpdates: () -> Bool = { false }
 
   struct UserState: Codable {
     /// Lists downloaded by an update: id -> revision and when.
@@ -245,13 +249,37 @@ final class AdblockService: ObservableObject {
 
   // MARK: Updates (once a day, through potatobrowser.com, like the Mac app)
 
+  private var wantsLists: Bool { a.enabled && a.autoUpdate }
+
+  static func utcDay(_ t: Double?) -> String {
+    guard let t else { return "" }
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .gregorian)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(identifier: "UTC")
+    f.dateFormat = "yyyy-MM-dd"
+    return f.string(from: Date(timeIntervalSince1970: t))
+  }
+
+  /// Once per calendar day (UTC), so the check also tells how many installs ran that day.
+  var isCheckDue: Bool {
+    (wantsLists || shieldWantsUpdates()) && Self.utcDay(state.lastCheck) != Self.utcDay(Date().timeIntervalSince1970)
+  }
+
+  /// When the app comes to the foreground: suspended apps miss their hourly timer.
+  func checkIfDue() {
+    guard started, isCheckDue else { return }
+    Task { await checkForUpdates() }
+  }
+
+  private var started = false
+
   private func scheduleUpdates() {
     Task {
-      try? await Task.sleep(nanoseconds: 60_000_000_000)
+      try? await Task.sleep(nanoseconds: UInt64(ProcessInfo.processInfo.environment["POTATO_UPDATE_CHECK_DELAY_MS"].flatMap(Double.init) ?? 60_000) * 1_000_000)
+      started = true
       while true {
-        if a.enabled, a.autoUpdate, Date().timeIntervalSince1970 - (state.lastCheck ?? 0) > 86_400 {
-          await checkForUpdates()
-        }
+        if isCheckDue { await checkForUpdates() }
         try? await Task.sleep(nanoseconds: 3_600_000_000_000)
       }
     }
@@ -273,14 +301,17 @@ final class AdblockService: ObservableObject {
       updating = false
       saveState()
     }
-    let ids = WebResources.manifest.groups.filter { activeGroups.contains($0.id) }.flatMap(\.lists)
+    let ids = wantsLists ? WebResources.manifest.groups.filter { activeGroups.contains($0.id) }.flatMap(\.lists) : []
     var c = URLComponents(url: apiBase.appendingPathComponent("api/v1/filters"), resolvingAgainstBaseURL: false)!
-    c.queryItems = [URLQueryItem(name: "lists", value: ids.joined(separator: ","))]
+    // The lists, the app and its version: nothing about the user.
+    c.queryItems = [URLQueryItem(name: "lists", value: ids.joined(separator: ",")), URLQueryItem(name: "app", value: "ios"), URLQueryItem(name: "v", value: Bundle.main.marketingVersion)]
     let session = URLSession(configuration: .ephemeral)
     do {
       let (data, res) = try await session.data(from: c.url!)
       guard (res as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
-      let latest = ((try JSONSerialization.jsonObject(with: data)) as? [String: Any])?["lists"] as? [String: Any] ?? [:]
+      let body = (try JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+      let latest = body["lists"] as? [String: Any] ?? [:]
+      if shieldWantsUpdates() { await onShieldInfo?(body["shield"] as? [String: Any]) }
       var changed: [String] = []
       var failed: [String] = []
       for id in ids {

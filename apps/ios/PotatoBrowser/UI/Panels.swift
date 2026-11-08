@@ -281,6 +281,9 @@ struct ProtectionsView: View {
   @EnvironmentObject var settings: SettingsStore
   @EnvironmentObject var adblock: AdblockService
   @Environment(\.dismiss) private var dismiss
+  /// Which panel section asked to report a problem, and how it went.
+  @State private var reporting: String?
+  @State private var reported: [String: Bool] = [:]
 
   var body: some View {
     let url = tab.url.flatMap { URLInput.isWeb($0) ? $0 : nil }
@@ -304,6 +307,7 @@ struct ProtectionsView: View {
             ForEach(tab.shield.features, id: \.self) { f in
               Label(f, systemImage: "eye.slash").font(.subheadline)
             }
+            reportRow("shield")
           } header: {
             Text("AI Shield")
           }
@@ -333,6 +337,7 @@ struct ProtectionsView: View {
                 Text("\(h.count)").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
               }
             }
+            reportRow("adblock")
           } header: {
             Text("Ad blocker")
           } footer: {
@@ -349,12 +354,39 @@ struct ProtectionsView: View {
             .foregroundStyle(.secondary)
         }
       }
+      .confirmationDialog("What is wrong on this page?", isPresented: Binding(get: { reporting != nil }, set: { if !$0 { reporting = nil } }), titleVisibility: .visible, presenting: reporting) { feature in
+        Button(feature == "shield" ? "AI still showing" : "Ads still showing") { report(feature, "showing") }
+        Button("Page broken") { report(feature, "broken") }
+        Button("Cancel", role: .cancel) {}
+      } message: { _ in
+        Text("Sends this page's address and your choice to potatobrowser.com. Nothing else.")
+      }
       .navigationTitle(url.map { URLInput.displayHost($0) } ?? "Protections")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
       }
     }
+  }
+
+  @ViewBuilder
+  private func reportRow(_ feature: String) -> some View {
+    switch reported[feature] {
+    case true?:
+      Label("Thanks! A spud will dig into it.", systemImage: "checkmark.circle").font(.subheadline).foregroundStyle(.secondary)
+        .accessibilityIdentifier("\(feature)-report-sent")
+    case false?:
+      Button("Could not send it. Try again", systemImage: "exclamationmark.bubble") { reporting = feature }
+        .font(.subheadline)
+    case nil:
+      Button("Report a problem on this page", systemImage: "exclamationmark.bubble") { reporting = feature }
+        .font(.subheadline)
+        .accessibilityIdentifier("\(feature)-report")
+    }
+  }
+
+  private func report(_ feature: String, _ problem: String) {
+    Task { @MainActor in reported[feature] = await app.report(feature: feature, problem: problem) }
   }
 
   private func shieldStatus(_ url: URL) -> String {

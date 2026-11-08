@@ -4,3 +4,4 @@ export { createEngineApi, ENGINE_OPTIONS } from './engine-api';
 export { RULES } from '../../browser/src/content/shield/rules';
 export { ADAPTERS } from '../../browser/src/content/flags/adapters';
 export { AI_GLOBALS } from './ai';
+export { SHIELD_RULES_KEYS } from '@potato/shared';

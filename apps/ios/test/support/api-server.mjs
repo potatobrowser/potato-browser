@@ -20,14 +20,26 @@ function freePort() {
   });
 }
 
+const ADMIN_TOKEN = 'e2e-admin';
+
+/** What the test Worker stored (its /admin summary): installs, reports, crash reports. */
+export async function apiSummary(base) {
+  const res = await fetch(`${base}/admin/api/summary`, { headers: { authorization: 'Basic ' + Buffer.from(`admin:${ADMIN_TOKEN}`).toString('base64') } });
+  if (!res.ok) throw new Error(`admin summary: ${res.status}`);
+  return res.json();
+}
+
 export async function startApiServer() {
   const persist = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-ios-d1-'));
   const wrangler = path.join(WEB, 'node_modules', '.bin', 'wrangler');
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
+  // The Worker serves the AI Shield rules signed with a throwaway key (apps/web/scripts/shield-rules.mjs).
+  const rules = spawnSync(process.execPath, [path.join(WEB, 'scripts', 'shield-rules.mjs')], { cwd: WEB, env, encoding: 'utf8' });
+  if (rules.status !== 0) throw new Error(`shield rules failed:\n${rules.stdout}\n${rules.stderr}`);
   const migrate = spawnSync(wrangler, ['d1', 'migrations', 'apply', 'noaibrowser', '--local', '--persist-to', persist], { cwd: WEB, env, encoding: 'utf8' });
   if (migrate.status !== 0) throw new Error(`D1 migrations failed:\n${migrate.stdout}\n${migrate.stderr}`);
   const port = await freePort();
-  const child = spawn(wrangler, ['dev', '--local', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', persist, '--var', 'VOTER_SALT:e2e-salt', '--show-interactive-dev-session=false'], {
+  const child = spawn(wrangler, ['dev', '--local', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', persist, '--var', 'VOTER_SALT:e2e-salt', '--var', `ADMIN_TOKEN:${ADMIN_TOKEN}`, '--show-interactive-dev-session=false'], {
     cwd: WEB,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -56,6 +68,14 @@ export async function startApiServer() {
       fs.rmSync(persist, { recursive: true, force: true });
     },
   };
+}
+
+/** AI flags (n) and Not AI votes (d) of a key, as the server counts them. */
+export async function voteCounts(api, key) {
+  const h = hashKey(key);
+  const res = await fetch(`${api}/api/v1/lookup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prefixes: [h.slice(0, 5)], v: 2 }) });
+  const item = (await res.json()).items.find((i) => i.h === h);
+  return { n: item?.n ?? 0, d: item?.d ?? 0 };
 }
 
 export const hashKey = (key) => createHash('sha256').update(`noai-flag:v1:${key}`).digest('hex');

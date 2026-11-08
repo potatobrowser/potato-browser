@@ -12,6 +12,7 @@ import { FlagsEngine } from '../../browser/src/content/flags/engine';
 import type { FlagsBridge, FlagStatus } from '../../browser/src/content/flags/types';
 import { setOpenShadowRoots } from '../../browser/src/content/flags/ui';
 import { ShieldEngine } from '../../browser/src/content/shield/engine';
+import { validateRules } from '../../browser/src/content/shield/validate';
 import type { PageConfig } from '../../browser/src/shared/types';
 import { Styles } from './styles';
 
@@ -29,6 +30,8 @@ interface Bridge {
 declare global {
   interface Window {
     __potatoConfig?: IosPageConfig;
+    /** A signed AI Shield rule update, when the app has one (checked again here). */
+    __potatoShieldRules?: unknown;
     __potatoApply?: (config: IosPageConfig) => void;
     webkit?: { messageHandlers?: Record<string, Bridge | undefined> };
   }
@@ -160,6 +163,7 @@ function start(config: IosPageConfig): void {
     },
     location.hostname,
     location.pathname,
+    validateRules(window.__potatoShieldRules) ?? undefined,
   );
   try {
     if (shield.active) shield.apply(current.shield);
@@ -168,7 +172,7 @@ function start(config: IosPageConfig): void {
   const adapter = isTop ? adapterFor(location.hostname) : null;
   const flagsBridge: FlagsBridge = {
     lookup: (keys, localOnly) => call<Record<string, FlagStatus>>('flagsLookup', { keys, localOnly }),
-    set: (keys, flag) => call<Record<string, FlagStatus>>('flagsSet', { keys, flag }),
+    set: (keys, vote) => call<Record<string, FlagStatus>>('flagsSet', { keys, vote }),
     report: (r) => send('flagsReport', { platform: r.platform, hidden: r.hidden, labeled: r.labeled }),
     insertCSS: (css) => styles.insert(css),
     removeCSS: (key) => styles.remove(key),

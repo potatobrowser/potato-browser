@@ -24,6 +24,8 @@ struct Settings: Codable, Equatable {
     var disabledSites: [String] = []
     /// Rule ids (`rule` or `rule:feature`) the user turned off everywhere.
     var disabledRules: [String] = []
+    /// Download rule fixes from potatobrowser.com once a day.
+    var autoUpdate = true
   }
 
   struct Flags: Codable, Equatable {
@@ -36,6 +38,8 @@ struct Settings: Codable, Equatable {
   struct Privacy: Codable, Equatable {
     var globalPrivacyControl = true
     var blockAiChatbots = false
+    /// Opt-in: send crash reports (MetricKit diagnostics) to potatobrowser.com.
+    var crashReports = false
   }
 
   struct Adblock: Codable, Equatable {
@@ -109,6 +113,7 @@ extension Settings.Shield {
     enabled = (try? c.decodeIfPresent(Bool.self, forKey: .enabled)) ?? true
     disabledSites = (try? c.decodeIfPresent([String].self, forKey: .disabledSites)) ?? []
     disabledRules = (try? c.decodeIfPresent([String].self, forKey: .disabledRules)) ?? []
+    autoUpdate = (try? c.decodeIfPresent(Bool.self, forKey: .autoUpdate)) ?? true
   }
 }
 
@@ -127,6 +132,7 @@ extension Settings.Privacy {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     globalPrivacyControl = (try? c.decodeIfPresent(Bool.self, forKey: .globalPrivacyControl)) ?? true
     blockAiChatbots = (try? c.decodeIfPresent(Bool.self, forKey: .blockAiChatbots)) ?? false
+    crashReports = (try? c.decodeIfPresent(Bool.self, forKey: .crashReports)) ?? false
   }
 }
 

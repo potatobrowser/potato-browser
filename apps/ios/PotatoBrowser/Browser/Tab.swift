@@ -302,6 +302,7 @@ final class Tab: NSObject, ObservableObject, Identifiable {
     controller.removeAllUserScripts()
     controller.addUserScript(app.pageScript)
     controller.addUserScript(WKUserScript(source: "window.__potatoConfig = \(pageConfig(for: url, cosmetics: cosmeticsForConfig));", injectionTime: .atDocumentStart, forMainFrameOnly: false, in: app.world))
+    if let rules = app.shield.rulesScript { controller.addUserScript(rules) }
     controller.addUserScript(app.contentScript)
     if !scriptlets.isEmpty, let host = url.host {
       let hostJSON = (try? JSONSerialization.data(withJSONObject: [host])).map { String(decoding: $0, as: UTF8.self) } ?? "[]"
@@ -316,6 +317,7 @@ final class Tab: NSObject, ObservableObject, Identifiable {
   private func installBaseScripts(for url: URL?) {
     controller.removeAllUserScripts()
     controller.addUserScript(app.pageScript)
+    if let rules = app.shield.rulesScript { controller.addUserScript(rules) }
     controller.addUserScript(app.contentScript)
   }
 
@@ -632,10 +634,11 @@ final class ScriptHandler: NSObject, WKScriptMessageHandlerWithReply {
       Task { @MainActor in replyHandler(await tab.app.flags.lookup(keys: keys, isPrivate: tab.isPrivate, localOnly: localOnly), nil) }
     case "flagsSet":
       let keys = strings(body["keys"]).filter { $0.count < 300 }
-      let flag = body["flag"] as? Bool ?? false
+      // "ai", "human", or null to take the vote back; `flag` is how 0.5 scripts asked.
+      let vote = (body["vote"] as? String).flatMap { ["ai", "human"].contains($0) ? $0 : nil } ?? ((body["flag"] as? Bool) == true ? "ai" : nil)
       Task { @MainActor in
         do {
-          replyHandler(try await tab.app.flags.set(keys: keys, flag: flag, isPrivate: tab.isPrivate), nil)
+          replyHandler(try await tab.app.flags.set(keys: keys, vote: vote, isPrivate: tab.isPrivate), nil)
         } catch {
           replyHandler(nil, error.localizedDescription)
         }

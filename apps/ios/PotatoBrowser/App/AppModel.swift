@@ -16,6 +16,7 @@ final class AppModel: ObservableObject {
   let adblock: AdblockService
   let flags: FlagsService
   let downloads: DownloadManager
+  private(set) var crashes: CrashReporter!
   private(set) var tabs: TabManager!
   let isTest: Bool
   let apiBase: URL
@@ -49,7 +50,8 @@ final class AppModel: ObservableObject {
     self.settings = settings
     let store = (try? Store(path: dir.appendingPathComponent("profile.sqlite").path)) ?? (try! Store(path: ":memory:"))
     self.store = store
-    shield = ShieldService(settings: settings)
+    let testKeys = isTest ? env["POTATO_SHIELD_KEYS"].map { $0.split(separator: ",").map(String.init) } : nil
+    shield = ShieldService(settings: settings, directory: dir, world: world, testKeys: testKeys)
     adblock = AdblockService(settings: settings, store: store, apiBase: apiBase, directory: dir)
     flags = FlagsService(apiBase: apiBase, store: store, settings: settings)
     downloads = DownloadManager(store: store, directory: fm.urls(for: .documentDirectory, in: .userDomainMask)[0])
@@ -58,6 +60,12 @@ final class AppModel: ObservableObject {
     contentScript = WKUserScript(source: WebResources.contentScript, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: world)
     if isTest { TestRunner.configure(app: self) }
     tabs = TabManager(app: self)
+    crashes = CrashReporter(apiBase: apiBase) { [weak settings] in settings?.value.privacy.crashReports ?? false }
+    adblock.shieldWantsUpdates = { [weak settings] in settings?.value.shield.autoUpdate ?? false }
+    adblock.onShieldInfo = { [weak self] info in
+      guard let self, await self.shield.update(info, apiBase: self.apiBase) else { return }
+      self.tabs.settingsChanged()
+    }
 
     settings.changes.sink { [weak self] new, prev in self?.settingsChanged(new, prev) }.store(in: &bag)
     if !s.firstRunDone && !isTest { panel = .welcome }
@@ -116,6 +124,12 @@ final class AppModel: ObservableObject {
       try? await Task.sleep(nanoseconds: 2_500_000_000)
       if toast == text { toast = nil }
     }
+  }
+
+  /// "Report this site" for the selected tab's page.
+  func report(feature: String, problem: String) async -> Bool {
+    guard let url = tabs.selected?.url else { return false }
+    return await SiteReports.send(url, feature: feature, problem: problem, apiBase: apiBase)
   }
 
   /// Clears cookies, caches and site data (and history since `since`).

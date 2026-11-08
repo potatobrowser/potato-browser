@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import WebKit
 
@@ -7,6 +8,16 @@ struct ShieldRule: Decodable, Identifiable {
     let id: String
     let name: String
     let block: [String]
+
+    enum CodingKeys: String, CodingKey { case id, name, block }
+
+    // Rule updates carry the full catalog, where most features block nothing.
+    init(from decoder: Decoder) throws {
+      let c = try decoder.container(keyedBy: CodingKeys.self)
+      id = try c.decode(String.self, forKey: .id)
+      name = try c.decode(String.self, forKey: .name)
+      block = try c.decodeIfPresent([String].self, forKey: .block) ?? []
+    }
   }
   let id: String
   let site: String
@@ -19,16 +30,92 @@ struct ShieldRule: Decodable, Identifiable {
 /// the rule list that blocks requests which only fetch AI answers. Hiding runs in the pages.
 @MainActor
 final class ShieldService {
-  let rules: [ShieldRule]
+  private(set) var rules: [ShieldRule]
+  /// Where the rules in use come from: the app, or a signed update from potatobrowser.com.
+  private(set) var source = "app"
+  private(set) var version: Int
+  private(set) var lastCheck: Date?
+  /// Downloaded rules for the pages (content world), checked again there; nil while the app's own apply.
+  private(set) var rulesScript: WKUserScript?
+  private var hash: String
   private let settings: SettingsStore
+  private let world: WKContentWorld
+  private let file: URL
+  private let keys: [String]
   private var regexes: [String: NSRegularExpression] = [:]
   private(set) var blockList: WKContentRuleList?
   private var blockListKey = ""
+  private var fetching = false
 
-  init(settings: SettingsStore) {
+  init(settings: SettingsStore, directory: URL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), world: WKContentWorld = .world(name: "potato"), testKeys: [String]? = nil) {
     self.settings = settings
+    self.world = world
     let data = (try? Data(contentsOf: WebResources.url("shield.json"))) ?? Data()
     rules = (try? JSONDecoder().decode([ShieldRule].self, from: data)) ?? []
+    let bundled = WebResources.manifest.shieldRules
+    version = bundled?.version ?? 0
+    hash = bundled?.hash ?? ""
+    keys = testKeys ?? bundled?.keys ?? []
+    file = directory.appendingPathComponent("Shield/rules.json")
+    if let saved = try? Data(contentsOf: file), let env = try? JSONSerialization.jsonObject(with: saved) as? [String: Any] {
+      lastCheck = (env["checkedAt"] as? Double).map { Date(timeIntervalSince1970: $0) }
+      if let opened = Self.open(env, keys: keys), opened.version > version, opened.hash != hash { use(opened) }
+    }
+  }
+
+  struct Opened {
+    let rules: [ShieldRule]
+    let json: String
+    let version: Int
+    let hash: String
+  }
+
+  /// A rule update whose Ed25519 signature checks out against `keys`, or nil.
+  static func open(_ envelope: [String: Any], keys: [String]) -> Opened? {
+    guard let payload = envelope["payload"] as? String, payload.utf8.count < 2_000_000,
+      let sigText = envelope["signature"] as? String, let sig = Data(base64Encoded: sigText)
+    else { return nil }
+    let data = Data(payload.utf8)
+    let signed = keys.contains { k in
+      guard let raw = Data(base64Encoded: k), let key = try? Curve25519.Signing.PublicKey(rawRepresentation: raw) else { return false }
+      return key.isValidSignature(sig, for: data)
+    }
+    guard signed, let p = try? JSONSerialization.jsonObject(with: data) as? [String: Any], p["format"] as? Int == 1,
+      let version = p["version"] as? Int, let hash = p["hash"] as? String, let list = p["rules"] as? [Any], !list.isEmpty,
+      let rulesData = try? JSONSerialization.data(withJSONObject: list),
+      let rules = try? JSONDecoder().decode([ShieldRule].self, from: rulesData),
+      rules.allSatisfy({ r in r.features.allSatisfy { f in f.block.allSatisfy { $0.contains("/") && $0.count >= 4 && $0.count <= 200 } } })
+    else { return nil }
+    return Opened(rules: rules, json: String(decoding: rulesData, as: UTF8.self), version: version, hash: hash)
+  }
+
+  private func use(_ o: Opened) {
+    rules = o.rules
+    version = o.version
+    hash = o.hash
+    source = "update"
+    regexes = [:]
+    rulesScript = WKUserScript(source: "window.__potatoShieldRules = \(o.json);", injectionTime: .atDocumentStart, forMainFrameOnly: false, in: world)
+  }
+
+  /// From the daily check: downloads newer rules, keeps them only if signed by us. True when they changed.
+  func update(_ latest: [String: Any]?, apiBase: URL) async -> Bool {
+    lastCheck = Date()
+    guard let v = latest?["version"] as? Int, let h = latest?["hash"] as? String, h != hash, v > version, !fetching else { return false }
+    fetching = true
+    defer { fetching = false }
+    let session = URLSession(configuration: .ephemeral)
+    guard let (data, res) = try? await session.data(from: apiBase.appendingPathComponent("api/v1/shield/rules")),
+      (res as? HTTPURLResponse)?.statusCode == 200,
+      var env = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let opened = Self.open(env, keys: keys), opened.version > version
+    else { return false }
+    env["checkedAt"] = lastCheck?.timeIntervalSince1970
+    try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+    if let out = try? JSONSerialization.data(withJSONObject: env) { try? out.write(to: file, options: .atomic) }
+    use(opened)
+    await prepareBlockList()
+    return true
   }
 
   // MARK: Matching (as apps/browser/src/content/shield/match.ts)

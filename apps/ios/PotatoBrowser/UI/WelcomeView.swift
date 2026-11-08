@@ -37,6 +37,21 @@ struct WelcomeView: View {
             choice(selected: settings.value.flags.mode == .label, title: "Label them", detail: "Shown with an amber outline, like a sticker on the sack.") { settings.update { $0.flags.mode = .label } }
             choice(selected: settings.value.flags.mode == .ignore, title: "Leave them", detail: "Shown as usual. You can still flag posts for everyone else.") { settings.update { $0.flags.mode = .ignore } }
           }
+
+          VStack(alignment: .leading, spacing: 10) {
+            Text("3. Crash reports").font(.headline)
+            Toggle(isOn: Binding(get: { settings.value.privacy.crashReports }, set: { v in settings.update { $0.privacy.crashReports = v } })) {
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Send crash reports").font(.body.weight(.medium))
+                Text("If the app crashes or freezes, the report iOS makes goes to potatobrowser.com so we can fix it: the version, the device model and where in the code it happened. Kept 90 days, never shared. Off unless you switch it on.")
+                  .font(.footnote).foregroundStyle(.secondary)
+              }
+            }
+            .tint(Color.potato)
+            .padding(12)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("welcome-crash-reports")
+          }
         }
         .padding(24)
         .frame(maxWidth: 640)

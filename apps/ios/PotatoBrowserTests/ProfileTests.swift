@@ -72,11 +72,15 @@ final class ProfileTests: XCTestCase {
 
   func testOwnFlagsAndStats() throws {
     let store = try Store(path: tempDir().appendingPathComponent("p.sqlite").path)
-    store.setMyFlag(key: "reddit:t3_abc", hash: FlagsService.hash("reddit:t3_abc"), platform: "reddit", on: true)
-    XCTAssertEqual(store.myFlags(["reddit:t3_abc", "reddit:t3_other"]), ["reddit:t3_abc"])
+    store.setMyFlag(key: "reddit:t3_abc", hash: FlagsService.hash("reddit:t3_abc"), platform: "reddit", vote: "ai")
+    store.setMyFlag(key: "reddit:t3_human", hash: FlagsService.hash("reddit:t3_human"), platform: "reddit", vote: "human")
+    XCTAssertEqual(store.myFlags(["reddit:t3_abc", "reddit:t3_other", "reddit:t3_human"]), ["reddit:t3_abc": "ai", "reddit:t3_human": "human"])
     XCTAssertEqual(store.myFlagCount(), 1)
-    store.setMyFlag(key: "reddit:t3_abc", hash: "", platform: "reddit", on: false)
+    XCTAssertEqual(store.myDisputeCount(), 1)
+    store.setMyFlag(key: "reddit:t3_abc", hash: "", platform: "reddit", vote: nil)
+    store.setMyFlag(key: "reddit:t3_human", hash: "", platform: "reddit", vote: nil)
     XCTAssertEqual(store.myFlagCount(), 0)
+    XCTAssertEqual(store.myDisputeCount(), 0)
     store.addShieldHidden(3)
     store.addAdsBlocked(5)
     store.addAdsBlocked(2)

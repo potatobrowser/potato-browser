@@ -38,6 +38,10 @@ struct SettingsView: View {
         Section {
           Toggle("Hide AI features on websites", isOn: bind(\.shield.enabled))
             .accessibilityIdentifier("shield-global")
+          Toggle(isOn: bind(\.shield.autoUpdate)) {
+            described("Update the rules daily", "\(app.shield.source == "update" ? "Rules updated" : "Rules from this version"), \(Date(timeIntervalSince1970: Double(app.shield.version)).formatted(date: .long, time: .omitted)). Sites change their AI features often; fixes arrive the same day, signed by us.")
+          }
+          .accessibilityIdentifier("shield-auto-update")
           NavigationLink("AI features by site") { ShieldRulesView() }
           NavigationLink {
             SiteListView(title: "Sites where AI features are shown", empty: "None. Every AI feature we know of is peeled off, everywhere.", sites: bind(\.shield.disabledSites))
@@ -96,6 +100,10 @@ struct SettingsView: View {
           Toggle(isOn: bind(\.privacy.globalPrivacyControl)) { described("Send Global Privacy Control", "Tells websites not to sell or share your data.") }
           Toggle(isOn: bind(\.privacy.blockAiChatbots)) { described("Block AI chatbot sites", "ChatGPT, Gemini, Claude, Copilot, Perplexity and others. You can still open them once from the block page.") }
             .accessibilityIdentifier("block-chatbots")
+          Toggle(isOn: bind(\.privacy.crashReports)) {
+            described("Send crash reports", "When the app crashes or freezes, send the report iOS makes to potatobrowser.com: the version, the device model and where in the code it happened. Kept 90 days, never shared.")
+          }
+          .accessibilityIdentifier("crash-reports")
           NavigationLink("Clear browsing data") { ClearDataView() }
         } header: {
           Text("Privacy")
@@ -142,6 +150,11 @@ struct SettingsView: View {
 }
 
 extension Bundle {
+  /// CFBundleShortVersionString, as the service expects it (0.6.0).
+  var marketingVersion: String {
+    infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+  }
+
   var versionString: String {
     let v = infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
     let b = infoDictionary?["CFBundleVersion"] as? String ?? "?"

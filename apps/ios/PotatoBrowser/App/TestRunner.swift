@@ -154,6 +154,14 @@ enum TestRunner {
     case "userScripts":
       guard let tab = tabs.selected else { return }
       out["scripts"] = tab.webView.configuration.userContentController.userScripts.map { "\($0.isForMainFrameOnly ? "main" : "all") \($0.source.count): \($0.source.prefix(120))" }
+    case "report":
+      let parts = (step.text ?? "shield:showing").split(separator: ":").map(String.init)
+      out["ok"] = await app.report(feature: parts.first ?? "", problem: parts.last ?? "")
+    case "crashUpload":
+      out["ok"] = await app.crashes.upload(Data((step.js ?? "{}").utf8))
+    case "checkUpdates":
+      await app.adblock.checkForUpdates()
+      out["shield"] = ["source": app.shield.source, "version": app.shield.version]
     case "engineCheck":
       let check = EngineCheck()
       await check.run(app: app)
@@ -188,6 +196,9 @@ enum TestRunner {
       case ("startup", .string(let m)): s.startup = StartupMode(rawValue: m) ?? s.startup
       case ("privacy.blockAiChatbots", .bool(let b)): s.privacy.blockAiChatbots = b
       case ("privacy.globalPrivacyControl", .bool(let b)): s.privacy.globalPrivacyControl = b
+      case ("privacy.crashReports", .bool(let b)): s.privacy.crashReports = b
+      case ("shield.autoUpdate", .bool(let b)): s.shield.autoUpdate = b
+      case ("adblock.autoUpdate", .bool(let b)): s.adblock.autoUpdate = b
       case ("searchEngine", .string(let e)): s.searchEngine = e
       case ("firstRunDone", .bool(let b)): s.firstRunDone = b
       default: print("POTATO_TEST unknown setting \(key)")
