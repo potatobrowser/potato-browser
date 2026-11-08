@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Potato Browser: the web, no artificial ingredients</title>
-  <meta name="description" content="A fast Chromium browser for Mac that peels AI Overviews, chatbots and AI buttons off major sites, mashes ads and trackers before they load, grows without AI in the engine, and lets people flag AI-generated posts. Grown, not generated.">
+  <meta name="description" content="A fast Chromium browser for Mac that peels AI Overviews, chatbots and AI buttons off major sites, mashes ads and trackers before they load, and lets people flag AI-generated posts. Grown, not generated.">
   <meta name="theme-color" content="#ffffff">
   <link rel="canonical" href="https://potatobrowser.com/">
   <link rel="icon" href="/favicon.png" type="image/png">
@@ -42,52 +42,92 @@
     <section class="hero" aria-labelledby="hero-title">
       <h1 id="hero-title"><span>Grown,</span> <span>not generated.</span></h1>
       <div class="hero-copy">
-        <p class="lede">A fast Chromium browser for Mac that peels AI Overviews, chatbots and "help me write" buttons off the sites you use, mashes ads and trackers before they load, and lets people flag AI-generated posts for each other. The web, with no artificial ingredients.</p>
+        <p class="lede">The Mac browser that peels the AI off the web, mashes the ads and lets people flag AI posts.</p>
         <div class="cta-row">
           <a class="btn primary" href="/download/mac-arm64" data-download="arm64">Download for Mac</a>
           <a class="btn quiet" href="/download/mac-x64" data-download="x64">Intel Mac</a>
         </div>
-        <p class="fine" data-release>Free, like dirt. For Apple Silicon and Intel Macs running macOS 13 Ventura or later.</p>
+        <p class="fine" data-release>Free and open source. macOS 13 or later.</p>
       </div>
 
-      <figure class="demo" data-ai="shown" aria-label="Example: a search results page whose AI Overview gets struck out and peeled away">
+      <figure class="demo hero-demo" aria-label="Example: the AI Shield peeling AI features off a search page, an inbox and a video page">
         <div class="win">
-          <div class="win-bar">
+          <div class="win-tabs">
             <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="win-url">search results for "how do potatoes grow"</span>
-            <button class="shield" type="button" aria-pressed="false" data-shield>
+            <div class="tabs" role="tablist" aria-label="Example sites">
+              <button class="tab" type="button" role="tab" id="tab-search" aria-controls="page-search" aria-selected="true" data-tab="search"><i class="fav search" aria-hidden="true"></i>Search</button>
+              <button class="tab" type="button" role="tab" id="tab-mail" aria-controls="page-mail" aria-selected="false" tabindex="-1" data-tab="mail"><i class="fav mail" aria-hidden="true"></i>Mail</button>
+              <button class="tab" type="button" role="tab" id="tab-video" aria-controls="page-video" aria-selected="false" tabindex="-1" data-tab="video"><i class="fav video" aria-hidden="true"></i>Video</button>
+            </div>
+          </div>
+          <div class="win-bar">
+            <span class="win-url" data-url>search.example/?q=how+do+potatoes+grow</span>
+            <button class="shield" type="button" aria-pressed="false" data-shield data-on="AI peeled" data-off="Peel the AI">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 13 3.6v4c0 3.1-2.1 5.4-5 6.6-2.9-1.2-5-3.5-5-6.6v-4z"/></svg>
               <span data-shield-label>Peel the AI</span>
             </button>
           </div>
-          <div class="page">
-            <p class="query">how do potatoes grow</p>
-            <div class="ai-wrap" data-ai-block>
-              <div class="ai-clip"><div class="ai-box">
+          <div class="pages">
+            <div class="page on" id="page-search" role="tabpanel" aria-labelledby="tab-search" data-page="search" data-url="search.example/?q=how+do+potatoes+grow" data-peeled="false">
+              <p class="query">how do potatoes grow</p>
+              <div class="fold"><div class="clip"><div class="ai-box">
                 <p class="ai-title"><span class="sparkle" aria-hidden="true">&#10022;</span> AI Overview</p>
                 <p class="ai-text">Potatoes grow from tubers, which are swollen underground stems. Each tuber has eyes that, in today's fast-paced world, invite us to delve into the rich tapestry of...</p>
                 <p class="ai-chips"><span>Ask a follow up</span><span>Dive deeper in AI Mode</span></p>
-                <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
-                  <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
-                </svg>
-              </div></div>
+                <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/><path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/></svg>
+              </div></div></div>
+              <ol class="results">
+                <li><span class="r-url">extension.example.edu</span><span class="r-title">Growing potatoes, from a soil scientist</span><span class="r-text">Plant seed potatoes in spring, two weeks after the last frost, eyes facing up.</span></li>
+                <li><span class="r-url">garden.example.org</span><span class="r-title">Why are my potatoes turning green?</span><span class="r-text">A photo guide to hilling your rows, from the community garden.</span></li>
+                <li><span class="r-url">forum.example.net</span><span class="r-title">First year growing spuds, what went wrong?</span><span class="r-text">Answers from people with dirt under their nails.</span></li>
+                <li><span class="r-url">seedsavers.example.org</span><span class="r-title">Saving your own seed potatoes</span><span class="r-text">Pick tubers from your healthiest plants and keep them cool and dark.</span></li>
+                <li><span class="r-url">allotment.example.net</span><span class="r-title">Earthing up, explained with drawings</span><span class="r-text">Why the tubers need covering, and how often to do it.</span></li>
+              </ol>
             </div>
-            <ol class="results">
-              <li><span class="r-url">extension.example.edu</span><span class="r-title">Growing potatoes, from a soil scientist</span><span class="r-text">Plant seed potatoes in spring, two weeks after the last frost, with the eyes facing up...</span></li>
-              <li><span class="r-url">garden.example.org</span><span class="r-title">Why are my potatoes turning green?</span><span class="r-text">A page from the community garden, with a photo guide to hilling your rows.</span></li>
-              <li><span class="r-url">forum.example.net</span><span class="r-title">First year growing spuds, what went wrong?</span><span class="r-text">Answers from gardeners, written by people with dirt under their nails.</span></li>
-            </ol>
+
+            <div class="page mail" id="page-mail" role="tabpanel" aria-labelledby="tab-mail" data-page="mail" data-url="mail.example/inbox/potluck" data-peeled="false">
+              <p class="mail-subject">Potluck on Saturday</p>
+              <p class="mail-from"><span class="avatar sm" aria-hidden="true"></span><span><b>Ruth from the allotment</b><small>to you, 9:14</small></span></p>
+              <div class="fold"><div class="clip"><div class="ai-box">
+                <p class="ai-title"><span class="sparkle" aria-hidden="true">&#10022;</span> Summary of this email</p>
+                <p class="ai-text">Ruth is hosting a potluck. This email is about a potluck, a gathering where guests bring food to share, fostering a sense of...</p>
+                <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/><path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/></svg>
+              </div></div></div>
+              <p class="mail-body">Hi all, the first spuds are up! Potluck at the allotment, Saturday at noon. Bring anything with potatoes in it. I'll do the soup.</p>
+              <p class="actions"><span>Reply</span><span>Forward</span><span class="ai-chip"><span class="sparkle" aria-hidden="true">&#10022;</span> Help me write</span></p>
+              <ul class="thread">
+                <li><span class="avatar sm" aria-hidden="true"></span><span><b>Tom</b>Count me in. Bringing roasties.</span></li>
+                <li><span class="avatar sm" aria-hidden="true"></span><span><b>Priya</b>Latkes from me! Do we need a table?</span></li>
+                <li><span class="avatar sm" aria-hidden="true"></span><span><b>Ruth</b>Yes please, and chairs if you have them.</span></li>
+              </ul>
+            </div>
+
+            <div class="page video" id="page-video" role="tabpanel" aria-labelledby="tab-video" data-page="video" data-url="video.example/watch?v=hilling" data-peeled="false">
+              <div class="player" aria-hidden="true"><span class="play"></span></div>
+              <p class="v-title">Hilling potatoes, start to finish</p>
+              <p class="actions"><span class="avatar sm" aria-hidden="true"></span><span class="v-chan">Allotment Ruth</span><span>Like</span><span>Share</span><span class="ai-chip"><span class="sparkle" aria-hidden="true">&#10022;</span> Ask</span></p>
+              <div class="fold"><div class="clip"><div class="ai-box">
+                <p class="ai-title"><span class="sparkle" aria-hidden="true">&#10022;</span> AI video summary</p>
+                <p class="ai-text">In this video, Ruth embarks on a journey into the world of hilling, unlocking key insights that...</p>
+                <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/><path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/></svg>
+              </div></div></div>
+              <p class="next-title">Up next</p>
+              <ul class="next">
+                <li><span class="thumb" aria-hidden="true"></span><span><b>Chitting seed potatoes on a windowsill</b><small>Allotment Ruth</small></span></li>
+                <li><span class="thumb" aria-hidden="true"></span><span><b>Harvest day: 40 kilos from one bed</b><small>Spud Club</small></span></li>
+                <li><span class="thumb" aria-hidden="true"></span><span><b>Why I only grow Pink Fir Apple</b><small>Plot 17</small></span></li>
+              </ul>
+            </div>
           </div>
         </div>
-        <figcaption>Press the shield to see what it peels off. On real sites it works the same way, one site at a time.</figcaption>
+        <figcaption>Peeled on every page. The shield brings it back, one site at a time.</figcaption>
       </figure>
     </section>
 
     <section class="hidden-list" id="hidden" aria-labelledby="hidden-title">
       <div class="section-head">
         <h2 id="hidden-title">What gets peeled</h2>
-        <p>The AI Shield knows the AI features of the sites people use most and peels them off before the page finishes loading. The articles, results and messages stay put, like a potato on a couch. Want the AI back on one site? The shield button in the toolbar brings it back there and nowhere else.</p>
+        <p>The AI goes. The articles, results and messages stay.</p>
       </div>
       <dl class="struck">
         <div><dt>Google Search</dt><dd><s>AI Overviews</s> <s>AI Mode</s> <s>AI answers in People also ask</s></dd></div>
@@ -103,68 +143,54 @@
         <div><dt>DuckDuckGo, Brave Search</dt><dd><s>Search Assist</s> <s>Duck.ai</s> <s>Answer with AI</s></dd></div>
         <div><dt>GitHub, Stack Overflow, Notion</dt><dd><s>Copilot</s> <s>AI Assist</s> <s>Notion AI</s></dd></div>
       </dl>
-      <p class="aside">The default search engine is DuckDuckGo with its AI switched off: plain results, like a plain baked potato. Prefer Google? Its plain web results are one click away in Settings.</p>
+      <p class="aside">Default search: DuckDuckGo, with its AI switched off.</p>
     </section>
 
     <section class="ads" id="ads" aria-labelledby="ads-title">
       <div class="ads-copy">
         <h2 id="ads-title">Ads and trackers, mashed</h2>
-        <p>Potato Browser comes with an ad blocker, switched on from the first page. Banners, pop-ups, video ads and the tracking scripts that follow you from site to site never load, so pages come up lighter and faster and nobody keeps notes on what you read.</p>
-        <p>It runs on the same open filter lists as uBlock Origin: EasyList, EasyPrivacy and uBlock's own, including the fixes that keep video ads off YouTube. Nothing to install, nothing to set up.</p>
-        <ul class="off" aria-label="What the ad blocker stops">
-          <li>Banner ads</li>
-          <li>Video ads</li>
-          <li>Pop-ups</li>
-          <li>Tracking pixels</li>
-          <li>Analytics scripts</li>
-        </ul>
-        <p class="fine">Want to support a site? The ad blocker button in the toolbar lets its ads through, there and nowhere else. Cookie banners and newsletter pop-ups can go too, one switch each in Settings. The lists freshen up daily through this site; the request names the lists, never you or the pages you visit.</p>
+        <p>Built in and on from the first page, with uBlock Origin's filter lists. Nothing to set up.</p>
+        <p class="fine">One click lets a site's ads through. Cookie banners can go too.</p>
       </div>
 
-      <figure class="ads-demo" data-ads="shown" aria-label="Example: a news article whose ads get struck out and mashed away">
+      <figure class="demo ads-demo" aria-label="Example: a news article whose ads and trackers get struck out and mashed away">
         <div class="win">
           <div class="win-bar">
             <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="win-url">the-daily-spud.example/record-potato</span>
-            <button class="shield" type="button" aria-pressed="false" data-mash>
+            <button class="shield" type="button" aria-pressed="false" data-shield data-on="Ads mashed" data-off="Mash the ads">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.6 1.9h4.8l3.7 3.7v4.8l-3.7 3.7H5.6l-3.7-3.7V5.6z"/></svg>
-              <span data-mash-label>Mash the ads</span>
+              <span data-shield-label>Mash the ads</span>
             </button>
           </div>
-          <div class="page article">
-            <div class="ad-wrap"><div class="ai-clip"><div class="ad-box ad-banner">
+          <div class="page article" data-peeled="false">
+            <div class="fold"><div class="clip"><div class="ad-box ad-banner">
               <span class="ad-tag">Advertisement</span>
               <p class="ad-head">Buy 2 sacks, get 1 free!</p>
               <p class="ad-sub">Limited time. Act now. Hurry. Seriously, hurry.</p>
-              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
-                <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
-              </svg>
+              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/><path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/></svg>
             </div></div></div>
             <p class="kicker">Local news</p>
             <p class="headline">Farmer grows an eleven pound potato</p>
             <p class="body-text">The tuber broke the county record by two pounds. "I just kept hilling the rows," she said, holding it with both hands.</p>
-            <div class="ad-wrap"><div class="ai-clip"><div class="ad-box ad-inline">
+            <div class="fold"><div class="clip"><div class="ad-box ad-inline">
               <span class="ad-tag">Sponsored</span>
               <span class="ad-thumb" aria-hidden="true"></span>
               <p class="ad-head small">7 potato hacks doctors don't want you to know</p>
-              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/>
-                <path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/>
-              </svg>
+              <svg class="pen" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true"><path d="M14 140 C 90 112, 150 96, 214 70 S 330 26, 388 14"/><path d="M22 26 C 110 52, 196 82, 262 104 S 352 132, 384 146"/></svg>
             </div></div></div>
             <p class="body-text">Judges will weigh the next contenders at the fair on Saturday.</p>
-            <p class="trackers"><span>Never loaded:</span> <s>doubleclick.net</s> <s>google-analytics.com</s> <s>facebook.net</s> <s>taboola.com</s></p>
+            <p class="trackers"><span>Trackers:</span> <s>doubleclick.net</s> <s>google-analytics.com</s> <s>facebook.net</s> <s>taboola.com</s></p>
           </div>
         </div>
-        <figcaption>Press the button to watch the ads get mashed. In the browser it happens before the page even loads.</figcaption>
+        <figcaption>In the browser they never load at all.</figcaption>
       </figure>
     </section>
 
     <section class="engine" aria-labelledby="engine-title">
       <h2 id="engine-title">Nothing artificial under the skin</h2>
       <div class="engine-body">
-        <p>Chrome now ships language models inside the browser and lets websites use them. Potato Browser grows from the same Chromium engine with all of that switched off: no Gemini Nano, no model downloads in the background, and none of the built-in AI interfaces a page could call. Just a plain, honest spud.</p>
+        <p>Chromium, with its built-in AI switched off. No Gemini Nano, no model downloads, nothing for pages to call.</p>
         <ul class="off">
           <li>Prompt API</li>
           <li>Summarizer</li>
@@ -180,52 +206,55 @@
     <section class="flags" id="flags" aria-labelledby="flags-title">
       <div class="flags-copy">
         <h2 id="flags-title">Keep your eyes peeled. Flag the AI posts.</h2>
-        <p>A potato has plenty of eyes, and so does this browser. Every post on Reddit, X, Instagram, Facebook, Threads, LinkedIn, YouTube, Bluesky and TikTok gets a small "AI?" button. When enough people flag a post, your browser does what you chose:</p>
+        <p>Posts on Reddit, X, Instagram, YouTube and more get an "AI?" button. Once enough people flag one, you choose:</p>
         <div class="modes" role="radiogroup" aria-label="What happens to flagged posts">
           <button type="button" role="radio" aria-checked="true" data-mode="label">Label it</button>
           <button type="button" role="radio" aria-checked="false" data-mode="hide">Bury it</button>
           <button type="button" role="radio" aria-checked="false" data-mode="ignore">Leave it</button>
         </div>
-        <p class="mode-note" data-mode-note>Flagged posts stay in your feed with an AI label, like a sticker on the sack.</p>
-        <p>Flags are anonymous. No account, no email. When your browser checks a page, it sends only the first five characters of a fingerprint of each post, which thousands of other posts share. Post ids, links and page contents never leave your Mac. Your own flag is stored under a scrambled id that cannot be traced back to you, and private windows flag under a new one each time. Hashed, like the browns.</p>
+        <p class="fine">Anonymous. No account, and post links never leave your Mac.</p>
       </div>
-      <div class="post-stage" data-flag-mode="label" aria-hidden="true">
-        <div class="post-hidden">Buried: flagged as AI-generated by 214 people. <u>Show</u></div>
+      <figure class="post-stage" data-flag-mode="label" data-flagged="false" aria-label="Example: a social post being flagged as AI-generated">
+        <div class="post-hidden"><span>Buried: flagged as AI-generated by 3 people.</span> <button type="button" data-reveal>Show</button></div>
         <article class="post">
-          <header><span class="avatar"></span><span><b>growth_mindset_daily</b><small>2 h</small></span><span class="pill">AI &middot; 214</span></header>
+          <header>
+            <span class="avatar" aria-hidden="true"></span>
+            <span><b>growth_mindset_daily</b><small>2 h</small></span>
+            <button class="flag-btn" type="button" aria-pressed="false" data-flag>AI? &middot; 2</button>
+          </header>
           <p>In today's fast-paced world, it's important to delve into the tapestry of productivity. Here are 10 game-changing tips that will unlock your potential.</p>
-          <div class="post-img"></div>
+          <div class="post-img" aria-hidden="true"></div>
         </article>
-      </div>
+        <figcaption class="mode-note" data-mode-note>Two flags so far. Press "AI?" to add the third.</figcaption>
+      </figure>
     </section>
 
     <section class="browser" aria-labelledby="browser-title">
       <h2 id="browser-title">Plus all the meat and potatoes</h2>
       <ul class="plain">
-        <li><b>Replant your stuff.</b> Import bookmarks and history from Chrome, Safari, Firefox, Arc, Edge, Brave, Vivaldi and Opera.</li>
-        <li><b>Private windows.</b> Nothing is saved, and everything is peeled away when the last one closes.</li>
-        <li><b>Tabs, history, bookmarks, downloads.</b> Search your history, pin sites to the bookmarks bar, pick up where you left off.</li>
-        <li><b>Fast.</b> No couch potato here. The current Chromium engine, so sites work the way they do in Chrome.</li>
-        <li><b>No telemetry.</b> The browser does not report what you do. This website has no cookies either, just a self-hosted Plausible that counts visits without personal data or anything that follows you around. We prefer chips.</li>
+        <li><b>Bring your stuff</b><span>Bookmarks and history from Chrome, Safari, Arc, Firefox and more.</span></li>
+        <li><b>Private windows</b><span>Nothing saved, ever.</span></li>
+        <li><b>Tabs, history, bookmarks</b><span>Pick up where you left off.</span></li>
+        <li><b>Current Chromium</b><span>Sites work like they do in Chrome.</span></li>
+        <li><b>No telemetry</b><span>The browser reports nothing.</span></li>
+        <li><b>Signed and notarized</b><span>Opens like any Mac app, no warnings.</span></li>
       </ul>
     </section>
 
     <section class="source" id="source" aria-labelledby="source-title">
       <h2 id="source-title">Open source, down to the roots</h2>
       <div class="source-body">
-        <p>Every line of Potato Browser is on GitHub under the MIT license: the browser, the AI Shield rules and the flag service behind this site. Read it, fix it, or plant your own.</p>
-        <p>The downloads here are built in public. GitHub Actions grows each release from its tagged commit, keeps the build log, and signs an attestation that ties every DMG to the exact source it came from. Nothing gets added in a back room.</p>
+        <p>MIT licensed. Every release is built in public on GitHub, with a signed attestation tying each DMG to its source.</p>
         <div class="cta-row">
           <a class="btn primary" href="https://github.com/potatobrowser/potato-browser">Browse the source</a>
           <a class="btn quiet" href="https://github.com/potatobrowser/potato-browser/releases">Releases and build logs</a>
         </div>
         <h3>Grow your own</h3>
-        <p>On a Mac with macOS 13 or later, Node.js 22 and pnpm 12:</p>
         <pre class="code"><code>git clone https://github.com/potatobrowser/potato-browser
 cd potato-browser
 pnpm install
 pnpm --filter @potato/browser dist --arch host</code></pre>
-        <p class="fine">The DMG for your Mac lands in apps/browser/release. A potato you grew yourself opens without a warning too.</p>
+        <p class="fine">Needs macOS 13, Node.js 22 and pnpm 12. The DMG lands in apps/browser/release.</p>
       </div>
     </section>
 
@@ -235,14 +264,13 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
         <a class="btn primary big" href="/download/mac-arm64" data-download="arm64">Download for Apple Silicon</a>
         <a class="btn quiet big" href="/download/mac-x64" data-download="x64">Download for Intel</a>
       </div>
-      <p class="fine" data-release-detail>Free. macOS 13 Ventura or later. Not sure which Mac you have? Apple menu, About This Mac: "Apple M" means Apple Silicon.</p>
-      <p class="fine">Downloads come straight from the project's <a href="https://github.com/potatobrowser/potato-browser/releases">GitHub Releases</a>, built in public from the source.</p>
-      <p class="fine sums" data-checksums hidden></p>
+      <p class="fine">Free. macOS 13 or later. "Apple M" in About This Mac means Apple Silicon.</p>
       <p class="fine">Prefer Homebrew? <code>brew install --cask potatobrowser/tap/potato-browser</code></p>
+      <p class="fine sums" data-checksums hidden></p>
       <ol class="steps">
-        <li><b>Open the downloaded file</b> and drag the potato into Applications.</li>
-        <li><b>Open the app</b> from Applications or Launchpad.</li>
-        <li><b>That's it.</b> It is signed by its grower and checked by Apple, so macOS opens it like any app, no warnings.</li>
+        <li><b>Open the DMG</b></li>
+        <li><b>Drag the potato into Applications</b></li>
+        <li><b>Open it.</b> No warnings.</li>
       </ol>
     </section>
 
@@ -250,47 +278,51 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
       <h2 id="faq-title">Questions</h2>
       <details>
         <summary>Why a potato?</summary>
-        <p>Potatoes are about as un-artificial as it gets. They grow in dirt, they don't write your emails, and nobody has ever asked one to summarize a meeting. That's the browser we wanted.</p>
+        <p>Potatoes are about as un-artificial as it gets. They grow in dirt and have never summarized a meeting.</p>
       </details>
       <details>
         <summary>Is it free?</summary>
-        <p>Yes, and open source under the MIT license. No account, no subscription, and no ads (we block those). Cheaper than a sack of spuds.</p>
+        <p>Yes, and open source under the MIT license. No account, no subscription, no ads.</p>
       </details>
       <details>
-        <summary>Can I see the AI on a site when I actually want it?</summary>
-        <p>Yes, and we won't judge. Click the shield in the toolbar and switch it off for that site. Everything comes back right away, on that site only. Settings has the full list of covered sites and features if you'd like to keep a few of them.</p>
+        <summary>Can I get the AI back on a site?</summary>
+        <p>Click the shield in the toolbar. It comes back on that site only. Settings lists every covered feature if you want to keep a few.</p>
       </details>
       <details>
         <summary>Why block ads in a no-AI browser?</summary>
-        <p>Because they grow in the same patch. A lot of the generated filler on the web exists only to show ads, and the ad networks are the trackers that follow you from site to site. Keeping the web human means keeping those off your plate too.</p>
+        <p>They grow in the same patch. Much of the generated filler online exists to show ads, and ad networks are the trackers that follow you around.</p>
       </details>
       <details>
         <summary>Will the ad blocker break sites?</summary>
-        <p>Rarely. It uses uBlock Origin's lists, which carry fixes for sites that misbehave and update every day. If a site still acts up, press the ad blocker button in the toolbar and switch it off for that site. The page reloads with everything back, on that site only.</p>
+        <p>Rarely. uBlock Origin's lists carry fixes and update daily. If a site acts up, switch the ad blocker off for it from the toolbar.</p>
       </details>
       <details>
         <summary>What does the ad blocker send?</summary>
-        <p>Nothing about you. All matching happens on your Mac. Once a day the browser asks this site which version of each filter list is current and downloads the ones that changed. The request names the lists, never you or the pages you visit. You can turn updates off in Settings.</p>
+        <p>Nothing about you. Matching happens on your Mac. Once a day the browser asks this site which filter lists changed; the request names the lists, never you or your pages. You can turn updates off in Settings.</p>
+      </details>
+      <details>
+        <summary>How are flags anonymous?</summary>
+        <p>No account, no email. To check a page, the browser sends only the first five characters of each post's fingerprint, which thousands of posts share. Post ids, links and page contents never leave your Mac. Your flags are stored under a scrambled id, and private windows use a new one each time.</p>
       </details>
       <details>
         <summary>Can't people just flag everything?</summary>
-        <p>Not easily. Each install counts once per post, and so does each network: flags coming from one home or office connection count once, however many installs they claim to be. There is also a daily limit per install. You choose how many flags it takes before a post counts as AI-generated, and a buried post is always one click away.</p>
+        <p>Not easily. Each install counts once per post, and so does each network, with a daily limit per install. You choose how many flags it takes, and a buried post is one click away.</p>
       </details>
       <details>
-        <summary>What exactly does the flag service store?</summary>
-        <p>For each flagged post: a one-way fingerprint of the post's id, the platform name, and a count. For each flag: a scrambled version of your browser's random id, so you can undo it, the hour it was made, for the daily limit, and a network bucket, a number from 0 to 65,535 derived from the first part of your IP address. Hundreds of networks share every bucket, so it identifies no one; it only stops one connection from flagging a post twice. No IP addresses, no URLs, no accounts.</p>
+        <summary>What does the flag service store?</summary>
+        <p>Per post: a one-way fingerprint of its id, the platform and a count. Per flag: a scrambled version of your browser's random id (so you can undo it), the hour (for the daily limit) and a network bucket from 0 to 65,535 derived from the first part of your IP address. Hundreds of networks share each bucket, so it identifies no one. No IP addresses, no URLs, no accounts.</p>
       </details>
       <details>
         <summary>Why do downloads come from GitHub?</summary>
-        <p>So you can check them. Each release is built by GitHub Actions from the public source, and GitHub keeps the build log and a signed record of the commit it came from. Run <code>gh attestation verify</code> on the file to confirm it. GitHub serves the file, so it sees the download like any website would. This site only counts downloads per day.</p>
+        <p>So you can check them. GitHub Actions builds each release from the public source and keeps the build log and a signed record of the commit. Run <code>gh attestation verify</code> on the file to confirm. This site only counts downloads per day.</p>
       </details>
       <details>
         <summary>Is the app signed?</summary>
-        <p>Yes. Every release is signed with an Apple Developer ID and notarized by Apple, so macOS opens it without a warning. Check it yourself with <code>spctl --assess -vv "/Applications/Potato Browser.app"</code>: it should say Notarized Developer ID.</p>
+        <p>Yes, with an Apple Developer ID, and notarized by Apple. <code>spctl --assess -vv "/Applications/Potato Browser.app"</code> should say Notarized Developer ID.</p>
       </details>
       <details>
-        <summary>Does it support extensions and saved passwords?</summary>
-        <p>Not yet, they're still sprouting. You won't miss an ad blocker extension, since one is built in. Your password manager's own app works alongside it in the meantime.</p>
+        <summary>Extensions and saved passwords?</summary>
+        <p>Not yet, they're still sprouting. The ad blocker is built in, and your password manager's own app works alongside it.</p>
       </details>
       <details>
         <summary>Windows or Linux?</summary>
@@ -302,6 +334,7 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
   <footer class="foot">
     <p><img src="/mark.svg" alt="" width="18" height="18"> Potato Browser. Grown on Chromium. Not affiliated with Google, Apple, any site named here, or any actual potato.</p>
     <p><a href="https://github.com/potatobrowser/potato-browser">Source on GitHub</a> <span data-stats></span></p>
+    <p class="foot-note">No cookies here, just a self-hosted Plausible that counts visits without personal data.</p>
   </footer>
 
   <script src="/app.js" defer></script>

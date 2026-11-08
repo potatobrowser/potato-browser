@@ -1,90 +1,214 @@
 (() => {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hasIO = 'IntersectionObserver' in window;
+  const timers = new WeakMap();
 
-  // Hero demo: the red pen strikes the AI Overview, then it folds away.
-  const demo = document.querySelector('.demo');
-  const shield = document.querySelector('[data-shield]');
-  const label = document.querySelector('[data-shield-label]');
-  let timer = 0;
-  const setShield = (on) => {
-    shield.setAttribute('aria-pressed', String(on));
-    label.textContent = on ? 'AI peeled' : 'Peel the AI';
-  };
-  const hideAi = (animate) => {
-    clearTimeout(timer);
-    setShield(true);
+  // The red pen strikes a page's AI (or ads), then it folds away.
+  const peel = (page, animate) => {
+    clearTimeout(timers.get(page));
     if (!animate) {
-      demo.dataset.ai = 'hidden';
+      page.classList.remove('striking');
+      page.dataset.peeled = 'true';
       return;
     }
-    demo.classList.add('striking');
-    timer = setTimeout(() => (demo.dataset.ai = 'hidden'), 900);
+    page.classList.add('striking');
+    timers.set(page, setTimeout(() => (page.dataset.peeled = 'true'), 900));
   };
-  const showAi = () => {
-    clearTimeout(timer);
-    demo.classList.remove('striking');
-    demo.dataset.ai = 'shown';
-    setShield(false);
+  const unpeel = (page) => {
+    clearTimeout(timers.get(page));
+    page.classList.remove('striking');
+    page.dataset.peeled = 'false';
   };
-  if (demo && shield) {
-    shield.addEventListener('click', () => (demo.dataset.ai === 'hidden' ? showAi() : hideAi(!reduce)));
-    if (reduce) hideAi(false);
-    else setTimeout(() => hideAi(true), 1100);
-  }
+  const isPeeled = (page) => page.dataset.peeled === 'true' || page.classList.contains('striking');
+  const syncButton = (btn, on) => {
+    btn.setAttribute('aria-pressed', String(on));
+    btn.querySelector('[data-shield-label]').textContent = on ? btn.dataset.on : btn.dataset.off;
+  };
+  const whenSeen = (el, threshold, fn) => {
+    if (!hasIO) return fn(true);
+    new IntersectionObserver((entries) => entries.forEach((e) => fn(e.isIntersecting)), { threshold }).observe(el);
+  };
 
-  // Ad blocker demo: the pen strikes each ad, then it folds away. Runs when scrolled into view.
-  const ads = document.querySelector('.ads-demo');
-  const mash = document.querySelector('[data-mash]');
-  const mashLabel = document.querySelector('[data-mash-label]');
-  let adsTimer = 0;
-  const setMash = (on) => {
-    mash.setAttribute('aria-pressed', String(on));
-    mashLabel.textContent = on ? 'Ads mashed' : 'Mash the ads';
-  };
-  const hideAds = (animate) => {
-    clearTimeout(adsTimer);
-    setMash(true);
-    if (!animate) {
-      ads.dataset.ads = 'hidden';
-      return;
-    }
-    ads.classList.add('striking');
-    adsTimer = setTimeout(() => (ads.dataset.ads = 'hidden'), 900);
-  };
-  const showAds = () => {
-    clearTimeout(adsTimer);
-    ads.classList.remove('striking');
-    ads.dataset.ads = 'shown';
-    setMash(false);
-  };
-  if (ads && mash) {
-    mash.addEventListener('click', () => (ads.dataset.ads === 'hidden' ? showAds() : hideAds(!reduce)));
-    if (reduce || !('IntersectionObserver' in window)) hideAds(false);
-    else {
-      const io = new IntersectionObserver((entries) => {
-        if (!entries.some((e) => e.isIntersecting)) return;
-        io.disconnect();
-        if (mash.getAttribute('aria-pressed') === 'false') adsTimer = setTimeout(() => hideAds(true), 700);
-      }, { threshold: 0.6 });
-      io.observe(ads);
-    }
-  }
+  // Hero: a window cycling through three sites, peeling each one, until the visitor takes over.
+  const hero = document.querySelector('.hero-demo');
+  if (hero) {
+    const tabs = [...hero.querySelectorAll('[data-tab]')];
+    const pages = [...hero.querySelectorAll('[data-page]')];
+    const url = hero.querySelector('[data-url]');
+    const shield = hero.querySelector('[data-shield]');
+    const shieldOff = new Set();
+    let current = pages[0];
+    let auto = !reduce;
+    let visible = !hasIO;
+    let tick = 0;
 
-  // Flag modes.
-  const notes = {
-    label: 'Flagged posts stay in your feed with an AI label, like a sticker on the sack.',
-    hide: 'Flagged posts get buried behind a one-line notice. One click digs them up.',
-    ignore: 'Nothing changes for you. You can still flag posts for everyone else.',
-  };
-  const stage = document.querySelector('.post-stage');
-  const note = document.querySelector('[data-mode-note]');
-  document.querySelectorAll('[data-mode]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-checked', String(b === btn)));
-      stage.dataset.flagMode = btn.dataset.mode;
-      note.textContent = notes[btn.dataset.mode];
+    const sync = () => syncButton(shield, isPeeled(current));
+    const select = (page) => {
+      current = page;
+      pages.forEach((p) => p.classList.toggle('on', p === page));
+      tabs.forEach((t) => {
+        const on = t.dataset.tab === page.dataset.page;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+      });
+      url.textContent = page.dataset.url;
+      sync();
+    };
+    const step = () => {
+      clearTimeout(tick);
+      if (!auto || !visible) return;
+      if (isPeeled(current)) {
+        tick = setTimeout(next, 3000);
+        return;
+      }
+      tick = setTimeout(() => {
+        peel(current, true);
+        sync();
+        tick = setTimeout(next, 3000);
+      }, 1000);
+    };
+    const next = () => {
+      const prev = current;
+      select(pages[(pages.indexOf(current) + 1) % pages.length]);
+      // Reset the page just left once it has faded out, so the next round peels it again.
+      setTimeout(() => auto && unpeel(prev), 300);
+      step();
+    };
+    const stop = () => {
+      auto = false;
+      clearTimeout(tick);
+    };
+
+    tabs.forEach((t) =>
+      t.addEventListener('click', () => {
+        stop();
+        const page = pages.find((p) => p.dataset.page === t.dataset.tab);
+        if (page === current) return;
+        select(page);
+        // The shield is on by default, so a fresh page gets peeled unless the visitor turned it off there.
+        if (!isPeeled(page) && !shieldOff.has(page)) {
+          tick = setTimeout(() => {
+            peel(page, !reduce);
+            sync();
+          }, reduce ? 0 : 500);
+        }
+      }),
+    );
+    hero.querySelector('[role="tablist"]').addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      const i = tabs.indexOf(document.activeElement);
+      if (!d || i < 0) return;
+      e.preventDefault();
+      const t = tabs[(i + d + tabs.length) % tabs.length];
+      t.focus();
+      t.click();
     });
-  });
+    shield.addEventListener('click', () => {
+      stop();
+      if (isPeeled(current)) {
+        unpeel(current);
+        shieldOff.add(current);
+      } else {
+        peel(current, !reduce);
+        shieldOff.delete(current);
+      }
+      sync();
+    });
+
+    if (reduce) {
+      pages.forEach((p) => peel(p, false));
+      sync();
+    } else {
+      whenSeen(hero, 0.3, (seen) => {
+        visible = seen;
+        seen ? step() : clearTimeout(tick);
+      });
+    }
+  }
+
+  // Ad blocker: the pen mashes each ad and strikes the trackers once the window scrolls into view.
+  const ads = document.querySelector('.ads-demo');
+  if (ads) {
+    const page = ads.querySelector('[data-peeled]');
+    const btn = ads.querySelector('[data-shield]');
+    let touched = false;
+    const sync = () => syncButton(btn, isPeeled(page));
+    btn.addEventListener('click', () => {
+      touched = true;
+      isPeeled(page) ? unpeel(page) : peel(page, !reduce);
+      sync();
+    });
+    if (reduce) {
+      peel(page, false);
+      sync();
+    } else {
+      let done = false;
+      whenSeen(ads, 0.6, (seen) => {
+        if (!seen || done) return;
+        done = true;
+        setTimeout(() => {
+          if (touched) return;
+          peel(page, true);
+          sync();
+        }, 700);
+      });
+    }
+  }
+
+  // Flags: the third flag tips the post over the threshold, then the chosen mode applies.
+  const stage = document.querySelector('.post-stage');
+  if (stage) {
+    const flag = stage.querySelector('[data-flag]');
+    const note = stage.querySelector('[data-mode-note]');
+    const modes = [...document.querySelectorAll('[data-mode]')];
+    const notes = {
+      label: 'Flagged posts get an AI label.',
+      hide: 'Flagged posts get buried. One click digs them up.',
+      ignore: 'Nothing changes for you. You can still flag.',
+    };
+    let touched = false;
+    const render = () => {
+      const on = stage.dataset.flagged === 'true';
+      flag.setAttribute('aria-pressed', String(on));
+      flag.textContent = on ? 'Flagged as AI · 3' : 'AI? · 2';
+      note.textContent = on ? notes[stage.dataset.flagMode] : 'Two flags so far. Press "AI?" to add the third.';
+    };
+    flag.addEventListener('click', () => {
+      touched = true;
+      stage.dataset.flagged = String(stage.dataset.flagged !== 'true');
+      stage.removeAttribute('data-revealed');
+      render();
+    });
+    stage.querySelector('[data-reveal]').addEventListener('click', () => {
+      stage.dataset.revealed = '';
+    });
+    modes.forEach((btn) =>
+      btn.addEventListener('click', () => {
+        touched = true;
+        modes.forEach((b) => b.setAttribute('aria-checked', String(b === btn)));
+        stage.dataset.flagMode = btn.dataset.mode;
+        stage.removeAttribute('data-revealed');
+        if (stage.dataset.flagged !== 'true') stage.dataset.flagged = 'true';
+        render();
+      }),
+    );
+    render();
+    if (reduce) {
+      stage.dataset.flagged = 'true';
+      render();
+    } else {
+      let done = false;
+      whenSeen(stage, 0.6, (seen) => {
+        if (!seen || done) return;
+        done = true;
+        setTimeout(() => {
+          if (touched) return;
+          stage.dataset.flagged = 'true';
+          render();
+        }, 900);
+      });
+    }
+  }
 
   // Release details from the download service.
   const mb = (n) => (n ? `${Math.round(n / 1048576)} MB` : '');
@@ -93,14 +217,12 @@
     .then((info) => {
       if (!info || !info.version) return;
       const sizes = info.sizes || {};
-      const parts = [`Free, like dirt. Version ${info.version}.`];
-      if (sizes.arm64) parts.push(`${mb(sizes.arm64)} download.`);
-      parts.push('For Apple Silicon and Intel Macs running macOS 13 Ventura or later.');
+      const version = sizes.arm64 ? `Version ${info.version}, ${mb(sizes.arm64)}.` : `Version ${info.version}.`;
       const fine = document.querySelector('[data-release]');
-      if (fine) fine.textContent = parts.join(' ');
+      if (fine) fine.textContent = `Free and open source. ${version} macOS 13 or later.`;
       const sums = document.querySelector('[data-checksums]');
       if (sums && info.sha256 && info.sha256.arm64) {
-        sums.textContent = `SHA-256 checksums for version ${info.version}. Apple Silicon: ${info.sha256.arm64}. Intel: ${info.sha256.x64}.`;
+        sums.textContent = `SHA-256 for version ${info.version}. Apple Silicon: ${info.sha256.arm64}. Intel: ${info.sha256.x64}.`;
         const src = info.source;
         if (src && /^[0-9a-f]{40}$/.test(src.commit) && /^https:\/\/github\.com\//.test(src.release)) {
           const a = document.createElement('a');
