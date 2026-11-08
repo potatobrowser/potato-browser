@@ -77,7 +77,9 @@ module.exports = {
   },
   electronFuses: {
     runAsNode: false,
-    enableCookieEncryption: false,
+    // Cookies encrypted with the "Potato Browser Safe Storage" key in the Keychain, as Chrome does.
+    // Plain cookies from older versions stay readable and are encrypted when next written.
+    enableCookieEncryption: true,
     enableNodeOptionsEnvironmentVariable: false,
     enableNodeCliInspectArguments: testBuild,
     enableEmbeddedAsarIntegrityValidation: !testBuild,
