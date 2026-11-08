@@ -52,10 +52,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
     }
     case 'tab.mute': {
       const t = tabById(cmd.tabId);
-      if (t) {
-        t.wc.setAudioMuted(!t.wc.isAudioMuted());
-        win.update();
-      }
+      t?.setMuted(!t.muted);
       break;
     }
     case 'nav.go': {
@@ -64,7 +61,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
       if (cmd.newTab || !active) win.newTab(url, { typed: true, background: !!cmd.background });
       else {
         active.navigate(url, { typed: true });
-        active.wc.focus();
+        active.wc?.focus();
       }
       break;
     }
@@ -74,22 +71,21 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
       if (cmd.newTab || !active) win.newTab(url, { typed: true, background: !!cmd.background });
       else {
         active.navigate(url, { typed: true });
-        active.wc.focus();
+        active.wc?.focus();
       }
       break;
     }
     case 'nav.back':
-      if (active?.wc.navigationHistory.canGoBack()) active.wc.navigationHistory.goBack();
+      active?.goBack();
       break;
     case 'nav.forward':
-      if (active?.wc.navigationHistory.canGoForward()) active.wc.navigationHistory.goForward();
+      active?.goForward();
       break;
     case 'nav.reload':
-      if (cmd.hard) active?.wc.reloadIgnoringCache();
-      else active?.wc.reload();
+      active?.reload(!!cmd.hard);
       break;
     case 'nav.stop':
-      active?.wc.stop();
+      active?.wc?.stop();
       break;
     case 'ui.overlay':
       win.setOverlay(!!cmd.open);
@@ -104,7 +100,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
       void ctx.updates.install();
       break;
     case 'ui.focusPage':
-      active?.wc.focus();
+      active?.wc?.focus();
       break;
     case 'ui.titlebarDoubleClick':
       if (win.base.isMaximized()) win.base.unmaximize();
@@ -120,7 +116,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
       // Scriptlets and blocked requests only change on a fresh load.
       if (active && /^https?:/.test(active.url)) {
         ctx.adblock.setSiteEnabled(active.url, !!cmd.enabled);
-        active.wc.reload();
+        active.reload();
       }
       break;
     case 'adblock.openSettings':
@@ -150,7 +146,7 @@ function handleUiCommand(win: BrowserWindowController, cmd: Cmd): void {
       break;
     case 'find.close':
       win.closeFind();
-      active?.wc.focus();
+      active?.wc?.focus();
       break;
     case 'permission.respond':
       ctx.permissions.respond(num(cmd.id), !!cmd.allow);

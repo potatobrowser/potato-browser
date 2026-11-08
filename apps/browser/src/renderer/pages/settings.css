@@ -50,6 +50,10 @@
   align-items: stretch;
   gap: 10px;
 }
+/* A long hint wraps instead of cutting off the choice next to it. */
+.row > select {
+  flex: none;
+}
 .input.wide {
   width: 320px;
 }

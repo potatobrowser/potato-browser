@@ -5,21 +5,11 @@ import { ctx } from './context';
 import { showPageContextMenu } from './menus';
 import { paths } from './paths';
 import { configureSession } from './sessions';
+import { parseSession, persistable, toDisk, trimHistory, type DiskSession, type SavedSession, type TabHistory } from './sessionfile';
+import { TabSleeper } from './sleep';
 import { JsonFile } from './store';
 import type { Tab } from './tab';
 import { BrowserWindowController, type ClosedTab } from './window';
-
-interface SavedWindow {
-  bounds: Rectangle;
-  tabs: string[];
-  active: number;
-}
-
-interface SavedSession {
-  windows: SavedWindow[];
-  /** Written by a restart into an update: the next launch restores, whatever the startup setting. */
-  restore?: boolean;
-}
 
 export class WindowManager {
   windows: BrowserWindowController[] = [];
@@ -29,7 +19,9 @@ export class WindowManager {
   private privateSeq = 0;
   private lastFocused: BrowserWindowController | null = null;
   private tabsByWc = new Map<number, Tab>();
-  private sessionFile: JsonFile<SavedSession>;
+  private sessionFile: JsonFile<DiskSession>;
+  private saveTimer: NodeJS.Timeout | null = null;
+  readonly sleeper = new TabSleeper();
   private recentlyClosed: { win: BrowserWindowController; tab: ClosedTab }[] = [];
   /** "host|fingerprint" exceptions per session, so private windows never inherit them. */
   private certAllowed = new WeakMap<Session, Set<string>>();
@@ -42,21 +34,29 @@ export class WindowManager {
     configureSession(this.mainSession, { isPrivate: false });
     this.uiSession = electronSession.fromPartition('persist:ui');
     configureSession(this.uiSession, { isPrivate: false, ui: true });
-    this.sessionFile = new JsonFile<SavedSession>(path.join(paths.userData, 'session.json'), 500);
+    this.sessionFile = new JsonFile<DiskSession>(path.join(paths.userData, 'session.json'), 500);
+    this.sleeper.start();
   }
 
   // ---- windows --------------------------------------------------------------------------------
 
-  createWindow(opts: { isPrivate?: boolean; urls?: string[]; active?: number; bounds?: Partial<Rectangle> } = {}): BrowserWindowController {
+  createWindow(
+    opts: { isPrivate?: boolean; urls?: string[]; restore?: TabHistory[]; active?: number; bounds?: Partial<Rectangle> } = {},
+  ): BrowserWindowController {
     const isPrivate = !!opts.isPrivate;
     const ses = isPrivate ? this.getPrivateSession() : this.mainSession;
     const bounds = opts.bounds ?? this.cascadeBounds();
     const win = new BrowserWindowController(this, { isPrivate, session: ses, uiSession: this.uiSession, bounds });
     this.windows.push(win);
     this.lastFocused = win;
-    const urls = opts.urls?.length ? opts.urls : [NEW_TAB_URL];
-    urls.forEach((url, i) => win.createTab({ url, background: i !== (opts.active ?? 0) }));
-    const active = win.tabs[opts.active ?? 0];
+    if (opts.restore?.length) {
+      // Restored tabs stay asleep until opened, so only the active one loads now.
+      for (const history of opts.restore) win.createTab({ history, asleep: true, background: true });
+    } else {
+      const urls = opts.urls?.length ? opts.urls : [NEW_TAB_URL];
+      urls.forEach((url, i) => win.createTab({ url, background: i !== (opts.active ?? 0) }));
+    }
+    const active = win.tabs[opts.active ?? 0] ?? win.tabs[0];
     if (active) win.activate(active);
     this.saveSessionSoon();
     return win;
@@ -141,7 +141,14 @@ export class WindowManager {
   // ---- tabs registry --------------------------------------------------------------------------
 
   registerTab(tab: Tab): void {
-    this.tabsByWc.set(tab.wc.id, tab);
+    const wc = tab.wc;
+    if (wc) this.tabsByWc.set(wc.id, tab);
+  }
+
+  /** A tab's page was unloaded for sleep; a new one is registered when it wakes. */
+  forgetWebContents(wcId: number): void {
+    this.tabsByWc.delete(wcId);
+    this.lastCertError.delete(wcId);
   }
 
   unregisterTab(tab: Tab): void {
@@ -215,20 +222,41 @@ export class WindowManager {
 
   // ---- session restore ------------------------------------------------------------------------
 
+  /** Saves the session shortly; the snapshot is taken then, so bursts of changes cost one. */
   saveSessionSoon(): void {
-    if (this.quitting) return;
-    const snap = this.snapshot();
-    // Closing the last window keeps the previous session, so a later launch can restore it.
-    if (snap.windows.length) this.sessionFile.write(snap);
+    if (this.quitting || this.saveTimer) return;
+    this.saveTimer = setTimeout(() => this.saveSession(), 500);
   }
 
+  /** A window is about to close: a save still waiting is written now, with that window in it. */
+  flushPendingSession(): void {
+    if (this.saveTimer && !this.quitting) this.saveSession();
+  }
+
+  private saveSession(restore = false): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    const snap = this.snapshot();
+    // Closing the last window keeps the previous session, so a later launch can restore it.
+    if (snap.windows.length) this.sessionFile.write(toDisk(restore ? { ...snap, restore: true } : snap));
+    this.sessionFile.flush();
+  }
+
+  /** Each normal window's tabs with their back/forward history, asleep tabs included. */
   private snapshot(): SavedSession {
     return {
       windows: this.windows
         .filter((w) => !w.isPrivate && !w.base.isDestroyed() && !w.isClosing)
         .map((w) => {
-          const tabs = w.tabs.map((t) => t.lastUrl || t.url).filter((u) => u && !u.startsWith('chrome-error:'));
-          const active = w.activeTab ? Math.max(0, w.tabs.indexOf(w.activeTab)) : 0;
+          const tabs: TabHistory[] = [];
+          let active = 0;
+          for (const t of w.tabs) {
+            const fallback = persistable(t.lastUrl) ? { entries: [{ url: t.lastUrl, title: t.title }], index: 0 } : null;
+            const h = trimHistory(t.history()) ?? fallback;
+            if (!h) continue;
+            if (t === w.activeTab) active = tabs.length;
+            tabs.push(h);
+          }
           return { bounds: w.base.getNormalBounds(), tabs, active };
         })
         .filter((w) => w.tabs.length > 0),
@@ -237,9 +265,7 @@ export class WindowManager {
 
   /** Called on quit before windows close, so the session reflects what was open. */
   persistSessionNow(): void {
-    const snap = this.snapshot();
-    if (snap.windows.length) this.sessionFile.write(this.restoreNext ? { ...snap, restore: true } : snap);
-    this.sessionFile.flush();
+    this.saveSession(this.restoreNext);
   }
 
   restoreOnNextLaunch(): void {
@@ -255,8 +281,8 @@ export class WindowManager {
 
   restoreOrOpen(firstRun: boolean, links: string[] = []): void {
     const settings = ctx.settings.get();
-    const saved = this.sessionFile.read();
-    const restore = settings.startup === 'restore' || saved?.restore === true;
+    const saved = parseSession(this.sessionFile.read());
+    const restore = settings.startup === 'restore' || saved.restore === true;
     if (links.length && !firstRun && !restore) {
       this.createWindow({ urls: links });
       return;
@@ -265,16 +291,10 @@ export class WindowManager {
       this.createWindow({ urls: ['potato://welcome/', ...links] });
       return;
     }
-    if (restore) {
-      const wins = (saved?.windows ?? []).filter((w) => Array.isArray(w.tabs) && w.tabs.length);
-      if (wins.length) {
-        for (const w of wins) {
-          const urls = w.tabs.filter((u) => typeof u === 'string').slice(0, 100);
-          this.createWindow({ urls, active: Math.min(w.active ?? 0, urls.length - 1), bounds: this.visibleBounds(w.bounds) });
-        }
-        for (const url of links) this.openUrl(url);
-        return;
-      }
+    if (restore && saved.windows.length) {
+      for (const w of saved.windows) this.createWindow({ restore: w.tabs, active: w.active, bounds: this.visibleBounds(w.bounds) });
+      for (const url of links) this.openUrl(url);
+      return;
     }
     const home = settings.startup === 'homepage' && settings.homepage ? settings.homepage : NEW_TAB_URL;
     this.createWindow({ urls: [home] });

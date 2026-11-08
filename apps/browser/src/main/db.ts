@@ -146,6 +146,10 @@ export class ProfileDb {
     }
   }
 
+  titleFor(url: string): string {
+    return ((this.stmt('SELECT title FROM urls WHERE url = ?').get(url) as Row | undefined)?.title as string) ?? '';
+  }
+
   updateTitle(url: string, title: string): void {
     if (!title) return;
     this.stmt('UPDATE urls SET title = ? WHERE url = ?').run(title, url);

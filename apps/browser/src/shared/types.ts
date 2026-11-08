@@ -60,6 +60,10 @@ export interface Settings {
     /** Origins where saving is never offered. */
     neverSave: string[];
   };
+  tabs: {
+    /** Minutes a background tab is left alone before its page is unloaded (TAB_SLEEP_MINUTES); 0 never. */
+    sleepAfter: number;
+  };
   installId: string;
   firstRunDone: boolean;
 }
@@ -113,6 +117,8 @@ export interface TabState {
   shield: ShieldTabState;
   adblock: AdblockTabState;
   flags: FlagTabState;
+  /** No page loaded: put to sleep, or restored and not opened yet. It loads when activated. */
+  asleep: boolean;
 }
 
 export interface BookmarkNode {

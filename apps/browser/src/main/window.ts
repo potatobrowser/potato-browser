@@ -4,6 +4,7 @@ import { isNewTabUrl, NEW_TAB_URL } from '../shared/urls';
 import { ctx } from './context';
 import { BOOKMARKS_BAR_ID } from './db';
 import { isTest, paths } from './paths';
+import type { TabHistory } from './sessionfile';
 import { Tab, type TabInit } from './tab';
 import type { WindowManager } from './windows';
 
@@ -21,6 +22,7 @@ export interface ClosedTab {
   url: string;
   title: string;
   index: number;
+  history?: TabHistory;
 }
 
 export class BrowserWindowController {
@@ -101,9 +103,11 @@ export class BrowserWindowController {
     this.base.on('moved', () => manager.saveSessionSoon());
     this.base.on('resized', () => manager.saveSessionSoon());
     this.base.on('close', () => {
+      // A session save still waiting includes this window: closing the last one keeps it.
+      manager.flushPendingSession();
       this.closing = true;
       for (const tab of [...this.tabs]) {
-        this.base.contentView.removeChildView(tab.view);
+        if (tab.view) this.base.contentView.removeChildView(tab.view);
         tab.close(true);
       }
     });
@@ -125,7 +129,7 @@ export class BrowserWindowController {
     const full = !!this.htmlFullscreenTab;
     const top = full ? 0 : this.chromeHeight;
     const content = { x: 0, y: top, width, height: Math.max(0, height - top) };
-    if (this.activeTab && !this.activeTab.isDestroyed) this.activeTab.view.setBounds(content);
+    this.activeTab?.view?.setBounds(content);
     this.ui.setVisible(!full);
     this.ui.setBounds({ x: 0, y: 0, width, height: this.overlayOpen ? height : Math.min(height, this.chromeHeight) });
   }
@@ -150,6 +154,10 @@ export class BrowserWindowController {
     this.layout();
   }
 
+  isHtmlFullscreen(tab: Tab): boolean {
+    return this.htmlFullscreenTab === tab;
+  }
+
   setHtmlFullscreen(tab: Tab, on: boolean): void {
     ctx.passwords.dropField(this);
     if (on) {
@@ -167,11 +175,10 @@ export class BrowserWindowController {
 
   createTab(init: TabInit): Tab {
     const tab = new Tab(this, init);
-    tab.view.setBounds(this.contentBounds());
     const index = Math.max(0, Math.min(init.index ?? this.tabs.length, this.tabs.length));
     this.tabs.splice(index, 0, tab);
     this.manager.registerTab(tab);
-    if (!init.background || !this.activeTab) this.activate(tab);
+    if (!init.asleep && (!init.background || !this.activeTab)) this.activate(tab);
     this.update();
     this.manager.saveSessionSoon();
     return tab;
@@ -192,14 +199,33 @@ export class BrowserWindowController {
     }
     const prev = this.activeTab;
     ctx.passwords.dropField(this);
+    // An asleep tab gets its page back here; restored tabs load the first time they are opened.
+    const wc = tab.wake();
     this.activeTab = tab;
-    this.base.contentView.addChildView(tab.view, 0);
-    if (prev && prev !== tab && !prev.isDestroyed) this.base.contentView.removeChildView(prev.view);
+    this.base.contentView.addChildView(tab.view!, 0);
+    if (prev && prev !== tab) {
+      if (prev.view) this.base.contentView.removeChildView(prev.view);
+      prev.lastActive = Date.now();
+    }
     tab.lastActive = Date.now();
     this.closeFind();
     this.layout();
-    if (isNewTabUrl(tab.url || NEW_TAB_URL) && !tab.wc.isLoading()) this.focusOmnibox();
-    else tab.wc.focus();
+    if (isNewTabUrl(tab.url || NEW_TAB_URL) && !wc.isLoading()) this.focusOmnibox();
+    else wc.focus();
+    this.update();
+  }
+
+  /** A background tab's page was unloaded to save memory. */
+  onTabSlept(tab: Tab, oldView: WebContentsView): void {
+    if (this.base.isDestroyed()) return;
+    this.base.contentView.removeChildView(oldView);
+    // It was activated while its page unloaded: bring it straight back.
+    if (this.activeTab === tab && !this.closing) {
+      const wc = tab.wake();
+      this.base.contentView.addChildView(tab.view!, 0);
+      this.layout();
+      wc.focus();
+    }
     this.update();
   }
 
@@ -234,12 +260,13 @@ export class BrowserWindowController {
     this.manager.unregisterTab(tab);
     const url = tab.lastUrl;
     if (url && !isNewTabUrl(url) && !this.closing) {
-      this.closedTabs.push({ url, title: tab.title, index: i });
+      const closed: ClosedTab = { url, title: tab.title, index: i, history: tab.closingHistory ?? undefined };
+      this.closedTabs.push(closed);
       if (this.closedTabs.length > 25) this.closedTabs.shift();
-      this.manager.noteClosedTab(this, { url, title: tab.title, index: i });
+      this.manager.noteClosedTab(this, closed);
     }
     this.tabs.splice(i, 1);
-    if (!this.base.isDestroyed()) this.base.contentView.removeChildView(tab.view);
+    if (!this.base.isDestroyed() && tab.view) this.base.contentView.removeChildView(tab.view);
     if (this.closing) {
       // The window is going away: never re-attach views to it (that keeps the process alive).
       if (this.activeTab === tab) this.activeTab = null;
@@ -263,7 +290,8 @@ export class BrowserWindowController {
   reopenClosedTab(): boolean {
     const last = this.closedTabs.pop();
     if (!last) return false;
-    this.createTab({ url: last.url, index: last.index });
+    // With its back and forward history, when it was closed from the browser.
+    this.createTab({ url: last.url, history: last.history, index: last.index });
     return true;
   }
 
@@ -277,7 +305,9 @@ export class BrowserWindowController {
   }
 
   duplicateTab(tab: Tab): void {
-    this.createTab({ url: tab.url || NEW_TAB_URL, index: this.tabs.indexOf(tab) + 1 });
+    const history = tab.history();
+    const index = this.tabs.indexOf(tab) + 1;
+    this.createTab(history ? { history, index } : { url: tab.url || NEW_TAB_URL, index });
   }
 
   onTabNavigated(tab: Tab): void {
@@ -288,16 +318,16 @@ export class BrowserWindowController {
   // ---- find in page ---------------------------------------------------------------------------
 
   findQuery(text: string, forward = true, findNext = false): void {
-    const tab = this.activeTab;
-    if (!tab) return;
+    const wc = this.activeTab?.wc;
+    if (!wc) return;
     if (!text) {
-      tab.wc.stopFindInPage('clearSelection');
+      wc.stopFindInPage('clearSelection');
       this.find = { text: '', active: 0, matches: 0 };
       this.update();
       return;
     }
     this.find = { text, active: this.find?.active ?? 0, matches: this.find?.matches ?? 0 };
-    tab.wc.findInPage(text, { forward, findNext });
+    wc.findInPage(text, { forward, findNext });
   }
 
   onFindResult(tab: Tab, result: Electron.Result): void {
@@ -316,7 +346,7 @@ export class BrowserWindowController {
   closeFind(): void {
     if (!this.find) return;
     this.find = null;
-    if (this.activeTab && !this.activeTab.isDestroyed) this.activeTab.wc.stopFindInPage('keepSelection');
+    this.activeTab?.wc?.stopFindInPage('keepSelection');
     this.update();
   }
 

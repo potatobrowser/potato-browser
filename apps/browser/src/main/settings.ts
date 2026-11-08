@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { isPlatform } from '@potato/shared';
+import { TAB_SLEEP_MINUTES } from '../shared/constants';
 import type { FlagMode, SearchEngineId, Settings, SettingsPatch, StartupMode, Theme } from '../shared/types';
 import { migrateLegacyUrl, SEARCH_ENGINES } from '../shared/urls';
 import { JsonFile } from './store';
@@ -23,6 +24,8 @@ export function defaultSettings(): Settings {
     privacy: { globalPrivacyControl: true, blockAiChatbots: false },
     adblock: { enabled: true, disabledSites: [], trackers: true, cookieNotices: false, annoyances: false, customFilters: '', autoUpdate: true },
     passwords: { offerToSave: true, autofill: true, neverSave: [] },
+    // As Edge's sleeping tabs: tabs of a work session stay loaded, tabs left alone longer are the ones that pile up.
+    tabs: { sleepAfter: 120 },
     installId: crypto.randomBytes(16).toString('hex'),
     firstRunDone: false,
   };
@@ -40,6 +43,7 @@ export function sanitizeSettings(raw: unknown): Settings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, any>;
   const engines = SEARCH_ENGINES.map((e) => e.id);
   const threshold = Number(r.flags?.threshold);
+  const sleepAfter = typeof r.tabs?.sleepAfter === 'number' ? r.tabs.sleepAfter : NaN;
   return {
     version: 1,
     startup: oneOf<StartupMode>(r.startup, ['restore', 'newtab', 'homepage'], d.startup),
@@ -78,6 +82,9 @@ export function sanitizeSettings(raw: unknown): Settings {
       offerToSave: bool(r.passwords?.offerToSave, d.passwords.offerToSave),
       autofill: bool(r.passwords?.autofill, d.passwords.autofill),
       neverSave: [...new Set(strList(r.passwords?.neverSave).filter((o) => /^https?:\/\/[^/]+$/.test(o)))].slice(0, 5000),
+    },
+    tabs: {
+      sleepAfter: (TAB_SLEEP_MINUTES as readonly number[]).includes(sleepAfter) ? sleepAfter : d.tabs.sleepAfter,
     },
     installId: typeof r.installId === 'string' && /^[0-9a-f]{32}$/.test(r.installId) ? r.installId : d.installId,
     firstRunDone: bool(r.firstRunDone, false),

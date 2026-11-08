@@ -23,7 +23,7 @@ export function openInternal(page: string, hash = ''): void {
   } else {
     const active = w.activeTab;
     // Replace an untouched new tab page instead of piling up tabs.
-    if (active && (active.url === NEW_TAB_URL || active.url === '') && !active.wc.navigationHistory.canGoBack()) active.navigate(url);
+    if (active && (active.url === NEW_TAB_URL || active.url === '') && !active.wc?.navigationHistory.canGoBack()) active.navigate(url);
     else w.newTab(url);
   }
   w.focus();
@@ -45,17 +45,11 @@ export const commands = {
   closeWindow: () => win()?.base.close(),
   reopenClosedTab: () => ctx.windows.reopenClosedTab(),
   focusOmnibox: () => win()?.focusOmnibox(),
-  reload: () => tab()?.wc.reload(),
-  hardReload: () => tab()?.wc.reloadIgnoringCache(),
-  stop: () => tab()?.wc.stop(),
-  back: () => {
-    const t = tab();
-    if (t?.wc.navigationHistory.canGoBack()) t.wc.navigationHistory.goBack();
-  },
-  forward: () => {
-    const t = tab();
-    if (t?.wc.navigationHistory.canGoForward()) t.wc.navigationHistory.goForward();
-  },
+  reload: () => tab()?.reload(),
+  hardReload: () => tab()?.reload(true),
+  stop: () => tab()?.wc?.stop(),
+  back: () => tab()?.goBack(),
+  forward: () => tab()?.goForward(),
   home: () => {
     const t = tab();
     const s = ctx.settings.get();
@@ -103,23 +97,24 @@ export const commands = {
   selectTab: (i: number) => win()?.activateIndex(i),
   selectLastTab: () => win()?.activateIndex(-1),
   toggleDevTools: () => {
-    const t = tab();
-    if (!t) return;
-    if (t.wc.isDevToolsOpened()) t.wc.closeDevTools();
-    else t.wc.openDevTools({ mode: 'detach' });
+    const wc = tab()?.wc;
+    if (!wc) return;
+    if (wc.isDevToolsOpened()) wc.closeDevTools();
+    else wc.openDevTools({ mode: 'detach' });
   },
   viewSource: () => {
     const t = tab();
     if (t?.url && /^https?:/.test(t.url)) t.win.newTab(`view-source:${t.url}`, { index: t.win.tabs.indexOf(t) + 1 });
   },
-  print: () => tab()?.wc.print({}, () => {}),
+  print: () => tab()?.wc?.print({}, () => {}),
   savePage: async () => {
     const t = tab();
-    if (!t || !/^https?:/.test(t.url)) return;
+    const wc = t?.wc;
+    if (!t || !wc || !/^https?:/.test(t.url)) return;
     const res = await dialog.showSaveDialog(t.win.base, {
       defaultPath: `${(t.title || 'page').replace(/[/\\:]/g, '_')}.html`,
     });
-    if (!res.canceled && res.filePath) await t.wc.savePage(res.filePath, 'HTMLComplete').catch(() => {});
+    if (!res.canceled && res.filePath) await wc.savePage(res.filePath, 'HTMLComplete').catch(() => {});
   },
   toggleShieldForSite: () => {
     const t = tab();
@@ -130,14 +125,11 @@ export const commands = {
     const t = tab();
     if (!t || !/^https?:/.test(t.url)) return;
     ctx.adblock.setSiteEnabled(t.url, !ctx.adblock.isEnabledFor(t.url));
-    t.wc.reload();
+    t.reload();
   },
   toggleMute: () => {
     const t = tab();
-    if (t) {
-      t.wc.setAudioMuted(!t.wc.isAudioMuted());
-      t.win.update();
-    }
+    t?.setMuted(!t.muted);
   },
   quit: () => app.quit(),
 };

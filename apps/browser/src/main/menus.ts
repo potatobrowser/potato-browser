@@ -167,6 +167,7 @@ export function showPageContextMenu(manager: WindowManager, tab: Tab, p: Context
   const items: MenuItemConstructorOptions[] = [];
   const win = tab.win;
   const wc = tab.wc;
+  if (!wc) return;
   const engine = getSearchEngine(ctx.settings.get().searchEngine);
 
   if (p.isEditable && p.misspelledWord) {
@@ -218,9 +219,9 @@ export function showPageContextMenu(manager: WindowManager, tab: Tab, p: Context
   }
   if (!p.linkURL && !p.selectionText && !p.isEditable && p.mediaType !== 'image') {
     items.push(
-      { label: 'Back', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() },
-      { label: 'Forward', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() },
-      { label: 'Reload', click: () => wc.reload() },
+      { label: 'Back', enabled: wc.navigationHistory.canGoBack(), click: () => tab.goBack() },
+      { label: 'Forward', enabled: wc.navigationHistory.canGoForward(), click: () => tab.goForward() },
+      { label: 'Reload', click: () => tab.reload() },
       sep,
       { label: 'Save As...', click: () => void commands.savePage() },
       { label: 'Print...', click: () => wc.print({}, () => {}) },
@@ -240,13 +241,14 @@ export function showPageContextMenu(manager: WindowManager, tab: Tab, p: Context
 
 export function showTabContextMenu(win: BrowserWindowController, tab: Tab): void {
   const i = win.tabs.indexOf(tab);
-  const muted = tab.wc.isAudioMuted();
+  const muted = tab.muted;
   Menu.buildFromTemplate([
     { label: 'New Tab to the Right', click: () => win.newTab(undefined, { index: i + 1 }) },
     sep,
-    { label: 'Reload', click: () => tab.wc.reload() },
+    // An asleep tab loads again, staying in the background.
+    { label: 'Reload', click: () => tab.reload() },
     { label: 'Duplicate', click: () => win.duplicateTab(tab) },
-    { label: muted ? 'Unmute Tab' : 'Mute Tab', click: () => { tab.wc.setAudioMuted(!muted); win.update(); } },
+    { label: muted ? 'Unmute Tab' : 'Mute Tab', click: () => tab.setMuted(!muted) },
     sep,
     { label: 'Close Tab', click: () => win.closeTab(tab) },
     { label: 'Close Other Tabs', enabled: win.tabs.length > 1, click: () => win.closeOtherTabs(tab) },
@@ -258,7 +260,7 @@ export function showTabContextMenu(win: BrowserWindowController, tab: Tab): void
 
 export function showOverflowMenu(win: BrowserWindowController, x: number, y: number): void {
   const t = win.activeTab;
-  const zoom = Math.round((t?.wc.getZoomFactor() ?? 1) * 100);
+  const zoom = Math.round((t?.state().zoom ?? 1) * 100);
   const u = ctx.updates.state();
   const update: MenuItemConstructorOptions[] =
     u.phase === 'ready'

@@ -1,6 +1,7 @@
 import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@potato/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { TAB_SLEEP_MINUTES } from '../../shared/constants';
 import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme, UpdateStatus } from '../../shared/types';
 import { SEARCH_ENGINES } from '../../shared/urls';
 import { call, onInternalEvent } from '../shared/api';
@@ -24,6 +25,8 @@ const SECTIONS = [
 ] as const;
 
 type Update = (patch: Parameters<ReturnType<typeof useSettings>[1]>[0]) => Promise<void>;
+
+const sleepLabel = (min: number) => (min === 0 ? 'Never' : min < 60 ? `After ${min} minutes` : `After ${min / 60} ${min === 60 ? 'hour' : 'hours'}`);
 
 function General({ s, update }: { s: Settings; update: Update }) {
   const [isDefault, setDefault] = useState<boolean | null>(null);
@@ -58,6 +61,18 @@ function General({ s, update }: { s: Settings; update: Update }) {
           <input className="input wide" defaultValue={s.homepage} onBlur={(e) => void update({ homepage: e.target.value.trim() || 'potato://newtab/' })} />
         </Row>
       )}
+      <Row
+        title="Put unused tabs to sleep"
+        hint="Tabs you leave alone take a nap and give their memory back. A click wakes them up. Tabs playing sound, sharing your camera or holding unsaved changes stay awake."
+      >
+        <select value={s.tabs.sleepAfter} data-testid="sleep-select" onChange={(e) => void update({ tabs: { sleepAfter: Number(e.target.value) } })}>
+          {TAB_SLEEP_MINUTES.map((m) => (
+            <option key={m} value={m}>
+              {sleepLabel(m)}
+            </option>
+          ))}
+        </select>
+      </Row>
       <Row title="Search engine" hint={engine?.note}>
         <select value={s.searchEngine} data-testid="engine-select" onChange={(e) => void update({ searchEngine: e.target.value as SearchEngineId })}>
           {SEARCH_ENGINES.map((e) => (
