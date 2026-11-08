@@ -11,7 +11,7 @@ describe('session file', () => {
   it('reads the format before 0.8, where tabs are only addresses', () => {
     const s = parseSession({
       windows: [
-        { bounds: { x: 1, y: 2, width: 900, height: 700 }, tabs: ['https://a.test/', 7, 'noai://settings/', ''], active: 2 },
+        { bounds: { x: 1, y: 2, width: 900, height: 700 }, tabs: ['https://a.test/', 7, 'not a url', 'noai://settings/', ''], active: 3 },
         { tabs: [], active: 0 },
         { tabs: 'nope' },
       ],
@@ -83,7 +83,7 @@ describe('session file', () => {
     for (const u of ['https://a.test/', 'http://a.test/x', 'file:///tmp/a.html', 'potato://settings/', 'view-source:https://a.test/', 'about:blank']) {
       expect(persistable(u), u).toBe(true);
     }
-    for (const u of ['', 'data:text/html,x', 'blob:https://a.test/1', 'chrome-error://chromewebdata/', 'javascript:1', 'potato://action/retry', `https://a.test/${'x'.repeat(9000)}`]) {
+    for (const u of ['', 'https://', 'data:text/html,x', 'blob:https://a.test/1', 'chrome-error://chromewebdata/', 'javascript:1', 'potato://action/retry', `https://a.test/${'x'.repeat(9000)}`]) {
       expect(persistable(u), u).toBe(false);
     }
   });

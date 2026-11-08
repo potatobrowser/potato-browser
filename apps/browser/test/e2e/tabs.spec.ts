@@ -141,6 +141,29 @@ test('tabs playing sound or holding unsaved changes stay awake', async () => {
   expect(await b.close(15_000)).toBeLessThan(15_000);
 });
 
+test('sites allowed to notify and tabs linked by window.open stay awake', async () => {
+  b = await TestBrowser.launch(SLEEPY);
+  const ui = await b.uiPage();
+  const geo = await b.goto('https://site.test/geo', ui);
+  await geo.click('#notify');
+  await ui.getByTestId('permission-allow').click();
+  await expect(geo.locator('#out')).toHaveText('notifications:granted');
+  await b.cmd('newTab');
+  await b.goto('https://other.test/', ui);
+  await b.cmd('newTab');
+  const shop = await b.goto('https://shop.test/', ui);
+  await shop.evaluate(() => {
+    (window as any).child = window.open('https://frame.test/', '_blank');
+  });
+  await expect.poll(() => b.activeTabUrl()).toBe('https://frame.test/');
+  await b.cmd('newTab');
+  // Only the plain tab sleeps: the web app may notify, the opener and its popup still talk.
+  await expect.poll(loaded, { timeout: 20_000 }).toEqual([true, false, true, true, true]);
+  await new Promise((r) => setTimeout(r, 3000));
+  expect(await loaded()).toEqual([true, false, true, true, true]);
+  expect(await shop.evaluate(() => (window as any).child.closed)).toBe(false);
+});
+
 test('asleep tabs are kept when quitting and come back on the next launch', async () => {
   b = await TestBrowser.launch({ ...SLEEPY, settings: { ...SLEEPY.settings, startup: 'restore' } });
   const ui = await b.uiPage();

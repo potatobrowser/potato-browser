@@ -42,7 +42,7 @@ const MAX_TITLE = 300;
 
 /** Addresses that load again on the next launch (not data:, blob:, error pages or internal actions). */
 export function persistable(url: string): boolean {
-  if (!url || url.length > MAX_URL || url.startsWith('potato://action/')) return false;
+  if (!url || url.length > MAX_URL || url.startsWith('potato://action/') || !URL.canParse(url)) return false;
   return /^(https?:|file:|potato:|view-source:https?:)/i.test(url) || url === 'about:blank';
 }
 
@@ -79,7 +79,7 @@ function parseHistory(raw: unknown, url: string): TabHistory | null {
   if (!Array.isArray(entries) || typeof index !== 'number' || !Number.isInteger(index)) return null;
   const list: NavEntry[] = [];
   for (const e of entries) {
-    if (!e || typeof e !== 'object' || typeof e.url !== 'string' || !e.url) return null;
+    if (!e || typeof e !== 'object' || typeof e.url !== 'string' || !URL.canParse(e.url)) return null;
     list.push({ url: migrateLegacyUrl(e.url), title: typeof e.title === 'string' ? e.title : '' });
   }
   // A history that does not end up at the tab's own address is not this tab's.
@@ -97,7 +97,7 @@ export function parseSession(raw: unknown): SavedSession {
     const tabs: TabHistory[] = [];
     let active = 0;
     (w.tabs as unknown[]).forEach((u, i) => {
-      if (typeof u !== 'string' || !u || tabs.length >= MAX_TABS_PER_WINDOW) return;
+      if (typeof u !== 'string' || !URL.canParse(u) || tabs.length >= MAX_TABS_PER_WINDOW) return;
       const url = migrateLegacyUrl(u);
       if (i <= wantActive) active = tabs.length;
       tabs.push(parseHistory(history[i], url) ?? { entries: [{ url, title: '' }], index: 0 });
