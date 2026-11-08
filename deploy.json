@@ -10,7 +10,9 @@
         "packages/shared",
         "pnpm-lock.yaml",
         "pnpm-workspace.yaml",
-        "deploy.json"
+        "deploy.json",
+        "apps/browser/src/content/shield",
+        "apps/browser/scripts/shield-rules.mjs"
       ],
       "url": "https://potatobrowser.com/api/v1/health"
     },
@@ -19,6 +21,26 @@
       "install": false,
       "run": "scripts/mirror-public.sh",
       "url": "https://github.com/potatobrowser/potato-browser"
+    },
+    {
+      "name": "testflight",
+      "dir": "apps/ios",
+      "install": "ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install --frozen-lockfile",
+      "run": "scripts/unit-tests.sh && scripts/testflight.sh",
+      "paths": [
+        "apps/ios",
+        "apps/browser/src/content",
+        "apps/browser/src/main/adblock/trust.ts",
+        "apps/browser/filters",
+        "apps/browser/scripts/filters.mjs",
+        "apps/browser/scripts/shield-rules.mjs",
+        "packages/shared",
+        "pnpm-lock.yaml",
+        "deploy.json"
+      ],
+      "local": [
+        "apps/ios/.env"
+      ]
     }
   ]
 }
