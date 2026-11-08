@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { catalog, ensureLists, readLock } from '../../browser/scripts/filters.mjs';
-import { loadShieldRules } from '../../browser/scripts/shield-rules.mjs';
+import { loadShieldRules, STALE_MESSAGE } from '../../browser/scripts/shield-rules.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'WebResources');
@@ -72,8 +72,12 @@ const shield = lib.RULES.map((r) => ({
   features: r.features.map((f) => ({ id: f.id, name: f.name, block: f.block ?? [] })),
 }));
 fs.writeFileSync(path.join(out, 'shield.json'), JSON.stringify(shield));
-// Their git version and hash: a downloaded rule update replaces them only when newer.
+// Their version (rules.lock.json) and hash: a downloaded rule update replaces them only when newer.
 const shieldRules = await loadShieldRules(build, root);
+if (shieldRules.stale) {
+  if (!dev) throw new Error(STALE_MESSAGE);
+  console.warn(STALE_MESSAGE);
+}
 
 const manifest = {
   version: pkg.version,

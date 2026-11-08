@@ -209,17 +209,20 @@ deploy without it. The apps accept rule updates only from the keys in `SHIELD_RU
   shipped Chromium.
 - **AI Shield rule updates**: sites change their markup more often than we release, so the
   daily check also names the version of the rules on potatobrowser.com. When it is newer than
-  the app's own (both carry the git time of the last change to `rules.ts`), the browser
+  the app's own (both read it from `rules.lock.json`, bumped with the rules), the browser
   downloads them, checks their Ed25519 signature against `SHIELD_RULES_KEYS`, validates every
   field (`src/content/shield/validate.ts`: selectors cannot end their rule, raw CSS cannot load
   anything, regexes stay small) and swaps them in for every open page. The key that signs them
   never reaches the Worker: rules are signed when the site is deployed, which srv-deploy does
-  whenever `rules.ts` changes on main, so a fix reaches every install within a day. Settings,
-  AI Shield, turns updates off.
-- **The daily check** (`GET /api/v1/filters?lists=...&app=mac&v=0.8.0`) runs once per calendar
-  day while filter list or rule updates are on. It names the lists, the app and its version; the
-  Worker adds one to a counter for that day, app and version, and keeps nothing else. That
-  counter is how many installs are in use.
+  whenever `rules.ts` changes on main, so a fix reaches every install within a day. After
+  changing the rules, `node apps/browser/scripts/shield-rules.mjs --bump` gives them a new version;
+  a unit test, release builds and the deploy refuse rules without one. Settings, AI Shield, turns
+  updates off.
+- **The daily check** (`GET /api/v1/filters?lists=...&app=mac&v=0.8.0&daily=1`) runs once per
+  calendar day while filter list or rule updates are on. It names the lists, the app and its
+  version; the Worker adds one to a counter for that day, app and version, and keeps nothing
+  else. That counter is how many installs are in use. "Update now" asks the same without
+  `daily=1` and is not counted.
 - **Report a problem** in the shield and ad blocker panels sends the page address (without the
   fragment), the choice (AI still showing, ads still showing, page broken), the app and its
   version. Reports wait at `/admin` for triage and are deleted 30 days after triage, 90 days at
@@ -227,7 +230,9 @@ deploy without it. The apps accept rule updates only from the keys in `SHIELD_RU
 - **Crash reports** are opt-in (welcome page, Settings, Privacy). Only then does Electron's
   crashReporter (Crashpad) start; it uploads minidumps to `/api/v1/crashes`, at most one an hour.
   The Worker keeps the dump in R2 with the version, process type, Electron version and
-  architecture, drops Crashpad's per-install `guid`, and deletes it after 90 days. The iOS app
+  architecture, zeroes Crashpad's per-install client id (the `guid` field and its copy in the
+  dump's Crashpad info stream), refuses uploads that carry browser headers (`Origin`,
+  `Sec-Fetch-*`, so web pages cannot post forged dumps), and deletes it after 90 days. The iOS app
   sends MetricKit's crash and hang diagnostics the same way, without region or process id.
 - **Cookies** are encrypted with the same "Potato Browser Safe Storage" Keychain key as saved
   passwords (Electron's `enableCookieEncryption` fuse), as Chrome does. Cookies from versions

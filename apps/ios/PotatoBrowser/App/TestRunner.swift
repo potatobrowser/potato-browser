@@ -160,7 +160,7 @@ enum TestRunner {
     case "crashUpload":
       out["ok"] = await app.crashes.upload(Data((step.js ?? "{}").utf8))
     case "checkUpdates":
-      await app.adblock.checkForUpdates()
+      await app.adblock.checkForUpdates(daily: true)
       out["shield"] = ["source": app.shield.source, "version": app.shield.version]
     case "engineCheck":
       let check = EngineCheck()

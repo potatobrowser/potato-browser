@@ -20,6 +20,8 @@ interface UserState {
   lists: Record<string, { rev: string; sha256: string; fetchedAt: string }>;
   lastCheck: number | null;
   lastError: string | null;
+  /** UTC day of the last scheduled check, the one that counts the install as used that day. */
+  countedDay?: string;
 }
 
 interface PageCounts {
@@ -97,7 +99,7 @@ export class AdblockService {
     }
     try {
       const raw = JSON.parse(fs.readFileSync(path.join(this.userDir, 'state.json'), 'utf8')) as Partial<UserState>;
-      this.state = { lists: raw.lists ?? {}, lastCheck: raw.lastCheck ?? null, lastError: raw.lastError ?? null };
+      this.state = { lists: raw.lists ?? {}, lastCheck: raw.lastCheck ?? null, lastError: raw.lastError ?? null, countedDay: raw.countedDay };
     } catch {}
     this.customErrors = customFilterErrors(this.settings.customFilters);
 
@@ -123,10 +125,10 @@ export class AdblockService {
     this.timers.push(setInterval(() => this.flushStats(), 15_000));
     if (isTest() && process.env.POTATO_ADBLOCK_UPDATES !== '1') return;
     // Once per calendar day (UTC), so the check also tells how many installs ran that day.
-    const due = () => this.wantsCheck() && utcDay(this.state.lastCheck) !== utcDay(Date.now());
+    const due = () => this.wantsCheck() && this.state.countedDay !== utcDay(Date.now());
     const first = (isTest() && Number(process.env.POTATO_UPDATE_CHECK_DELAY_MS)) || 90_000;
-    setTimeout(() => due() && void this.checkForUpdates().catch(() => {}), first);
-    this.timers.push(setInterval(() => due() && void this.checkForUpdates().catch(() => {}), 3_600_000));
+    setTimeout(() => due() && void this.checkForUpdates(true).catch(() => {}), first);
+    this.timers.push(setInterval(() => due() && void this.checkForUpdates(true).catch(() => {}), 3_600_000));
   }
 
   stop(): void {
@@ -284,7 +286,10 @@ export class AdblockService {
     const url = details.url;
     if (!isWeb(url) && !url.startsWith('wss:') && !url.startsWith('ws:')) return null;
     const { frameUrl, topUrl } = frameUrls(details.frame);
-    const site = topUrl || details.webContents?.getURL() || details.referrer || '';
+    // Right after leaving an internal page the tab may still report it (potato://newtab/) while
+    // the new page's first requests arrive: the referrer names the page then.
+    const tabUrl = details.webContents?.getURL() ?? '';
+    const site = topUrl || (isWeb(tabUrl) ? tabUrl : '') || details.referrer || '';
     // Internal pages, files and error pages are never filtered; nor are requests with no page to
     // judge them by (a service worker without referrer), which the per-site switch could not reach.
     if (!site || !isWeb(site) || this.isSiteDisabled(site)) return null;
@@ -441,8 +446,9 @@ export class AdblockService {
    * recompiles, and hands the AI Shield its rule version. It names the lists, the app and its
    * version, nothing about the user.
    */
-  checkForUpdates(): Promise<void> {
-    this.updating ??= this.update().finally(() => {
+  /** `daily`: the scheduled check, which also counts the install as used today; "Update now" is not. */
+  checkForUpdates(daily = false): Promise<void> {
+    this.updating ??= this.update(daily).finally(() => {
       this.updating = null;
       this.changed();
     });
@@ -450,18 +456,19 @@ export class AdblockService {
     return this.updating;
   }
 
-  private async update(): Promise<void> {
+  private async update(daily: boolean): Promise<void> {
     // Lists only: scriptlet code (uBlock's resources) changes with signed app releases, never
     // through a download. Trusted scriptlets, whose arguments can carry code, only run from
     // uBlock's own lists (see dropTrustedScriptlets), as in uBlock Origin.
     const ids = this.wantsLists() ? this.spec().lists.map(([id]) => id) : [];
     try {
-      const res = await net.fetch(`${apiBase()}/api/v1/filters?lists=${ids.join(',')}&app=mac&v=${APP_VERSION}`, {
+      const res = await net.fetch(`${apiBase()}/api/v1/filters?lists=${ids.join(',')}&app=mac&v=${APP_VERSION}${daily ? '&daily=1' : ''}`, {
         headers: { accept: 'application/json' },
         signal: AbortSignal.timeout(30_000),
         credentials: 'omit',
       });
       if (!res.ok) throw new Error(`the filter service answered ${res.status}`);
+      if (daily) this.state.countedDay = utcDay(Date.now());
       const body = (await res.json()) as { lists?: Record<string, unknown>; shield?: { version?: unknown; hash?: unknown } };
       const latest = body.lists ?? {};
       if (ctx.settings.get().shield.autoUpdate) {

@@ -13,9 +13,10 @@ function legacyApp(req: Request): string {
 }
 
 /**
- * GET /api/v1/filters?lists=a,b&app=mac&v=0.8.0, the daily check of every install: the latest
- * filter list revisions and AI Shield rules. It adds one to today's count for that app and
- * version; nothing else about the request is kept.
+ * GET /api/v1/filters?lists=a,b&app=mac&v=0.8.0&daily=1: the latest filter list revisions and AI
+ * Shield rules. The scheduled check, once per install and day, says `daily=1` and adds one to
+ * today's count for that app and version (checks of older apps count too); "Update now" does
+ * not. Nothing else about the request is kept.
  */
 export async function updateCheck(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   const ids = listIds(url);
@@ -25,12 +26,14 @@ export async function updateCheck(req: Request, env: Env, url: URL, ctx: Executi
   // Apps before 0.8.0 always name lists; newer ones may only want the shield rules.
   if (!ids || (!ids.length && !known)) return error(400, `lists must be 1-${MAX_FILTER_LISTS} list ids`);
   const lists = await filterRevisions(ids);
-  ctx.waitUntil(
-    env.DB.prepare('INSERT INTO installs (day, app, version, n) VALUES (?1, ?2, ?3, 1) ON CONFLICT (day, app, version) DO UPDATE SET n = n + 1')
-      .bind(today(), known ? app : legacyApp(req), known ? version : 'legacy')
-      .run()
-      .catch(() => {}),
-  );
+  if (!known || url.searchParams.get('daily') === '1') {
+    ctx.waitUntil(
+      env.DB.prepare('INSERT INTO installs (day, app, version, n) VALUES (?1, ?2, ?3, 1) ON CONFLICT (day, app, version) DO UPDATE SET n = n + 1')
+        .bind(today(), known ? app : legacyApp(req), known ? version : 'legacy')
+        .run()
+        .catch(() => {}),
+    );
+  }
   const body: UpdateCheckResponse = { lists, shield: shieldInfo() };
   return json(body, 200, { 'cache-control': 'private, max-age=900' });
 }

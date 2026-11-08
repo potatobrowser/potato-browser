@@ -78,7 +78,7 @@
             </tr>
             <tr>
               <th scope="row">Daily check</th>
-              <td data-label="When">Once a day, while filter list or AI Shield rule updates are on</td>
+              <td data-label="When">Once a day, while filter list or AI Shield rule updates are on (Update now in Settings asks too, without being counted)</td>
               <td data-label="What it carries">The filter lists in use, the app (Mac or iOS) and its version number</td>
               <td data-label="What we keep">One added to a counter for that day, app and version. That counter is how we know how many installs are in use.</td>
             </tr>
@@ -97,14 +97,14 @@
             <tr>
               <th scope="row">Site report</th>
               <td data-label="When">Only when you press Report in the AI Shield or ad blocker panel</td>
-              <td data-label="What it carries">The page address (without the part after #), what is wrong (AI still showing, ads still showing, page broken), the app and its version</td>
+              <td data-label="What it carries">The page address, including what follows ? such as search words but without the part after #, what is wrong (AI still showing, ads still showing, page broken), the app and its version</td>
               <td data-label="What we keep">All of it, for fixing the rules. Deleted 30 days after we looked at it, and after 90 days at the latest.</td>
             </tr>
             <tr>
               <th scope="row">Crash report</th>
               <td data-label="When">Only if you switched crash reports on (welcome page or Settings), after a crash</td>
               <td data-label="What it carries"><strong>Mac:</strong> a minidump of the crashed process: the app, Electron and macOS versions, the architecture, the process type and a snapshot of its memory at that moment, which can contain parts of pages you had open. <strong>iPhone and iPad:</strong> the crash or hang diagnostics iOS makes: the version, the device model, the iOS version and where in the code it happened, with the region setting and process number removed.</td>
-              <td data-label="What we keep">The report, stored with Cloudflare R2 and read only to fix the bug. Deleted after 90 days. The random id the Mac crash reporter adds and your IP address are not kept.</td>
+              <td data-label="What we keep">The report, stored with Cloudflare R2 and read only to fix the bug. Deleted after 90 days. The random install id the Mac crash reporter puts in the form and in the report is removed, and your IP address is not kept.</td>
             </tr>
             <tr>
               <th scope="row">Download links</th>

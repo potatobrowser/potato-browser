@@ -443,17 +443,20 @@ Decisions:
   show a high collapsed share once the iOS app is public, the next step is App Attest for iOS
   votes: one vote per genuine device, no accounts, and no IP rule for attested votes.
 - **Install counts from the daily check.** The filter list check runs once per calendar day (UTC)
-  instead of every 24 hours and adds `app` and `v`; the Worker increments `installs(day, app,
-  version)`. No id, so a day's count is the installs that ran that day with updates on. Checks
+  instead of every 24 hours and adds `app`, `v` and `daily=1`; the Worker increments
+  `installs(day, app, version)`. "Update now" leaves out `daily=1`, so it is not counted twice. No id, so a day's count is the installs that ran that day with updates on. Checks
   from older apps count as `legacy`, their app told apart by the HTTP client (CFNetwork or a Mac
   Chrome user agent).
 - **AI Shield rules from the site, signed.** The rules are data, but they inject CSS into every
   page, so a server that could change them could hide anything or, with raw CSS, read form
   values through `url()`. The payload is signed with Ed25519 at deploy time by a key that lives
   only on the deploying machine (`~/.config/potatobrowser/shield-rules-ed25519.pem` on devserver;
-  back it up), and the apps also validate every field. Versions are the git time of the last
-  change to `rules.ts`, so the app's own rules and the site's compare without a counter to bump;
-  the hash decides whether anything changed. The Mac main process sends each frame its host's
+  back it up), and the apps also validate every field; the deploy refuses rules that fail the
+  validator. The version lives in `rules.lock.json` with the hash it was bumped for (`--bump`
+  sets it to the time, always above the last), so the apps and the site agree on it whatever
+  clone they are built from; a unit test, release builds and the deploy refuse a stale lock. (A
+  first version used git commit times, which a shallow release checkout or a merge with an older
+  commit date can order wrongly.) The hash decides whether anything changed. The Mac main process sends each frame its host's
   rules in the page config; iOS adds the catalog as a content world script for the pages.
 - **Site reports** carry the page address without the fragment, the choice, the app and version
   (the version tells whether a report predates a fix). Triage happens on `/admin` (Basic auth,
@@ -461,8 +464,9 @@ Decisions:
   reports after 30 days and all after 90.
 - **Crash reports, opt-in.** Off by default; until switched on Crashpad never starts, so nothing
   is written even locally. Minidumps can contain page content, which is why it is opt-in and the
-  welcome page says so. R2 keeps them 90 days (lifecycle rule plus the cron); the Worker drops
-  Crashpad's per-install `guid`. On iOS, MetricKit delivers crash and hang diagnostics on the next
+  welcome page says so. R2 keeps them 90 days (lifecycle rule plus the cron); the Worker zeroes
+  Crashpad's per-install client id, in the form and in the dump's info stream, and refuses posts
+  with browser headers, since a multipart form needs no CORS preflight. On iOS, MetricKit delivers crash and hang diagnostics on the next
   launch; the app strips region and pid before sending.
 - **Cookie encryption.** The `enableCookieEncryption` fuse is on: cookies use the same Keychain
   key as saved passwords. Checked with two packaged builds on one profile, with the mock and the
@@ -484,3 +488,8 @@ which ATS allows anyway), its privacy manifest lists what reaches the service, t
 TestFlight texts live in `apps/ios/store` with `asc.mjs` commands to upload them, CI runs the
 XCTest units on GitHub's `xcode-27` image, and srv-deploy uploads a TestFlight build when the
 iOS app or what it bundles changes on main.
+
+An independent review of the launch work before release led to: rule versions from a lock file
+instead of git times, Crashpad's client id zeroed inside the dump too, CSS comment tokens refused
+in rule selectors and raw CSS, crash uploads with browser headers refused, only the scheduled
+check counted, and rules validated before they are signed.

@@ -8,16 +8,16 @@ import type { HideTarget, Matcher, PlaceholderRewrite, ShieldFeature, ShieldRule
 
 const LIMITS = { rules: 500, features: 60, selectors: 300, text: 200, selector: 600, list: 200, pattern: 300 };
 
-/** A selector that cannot end its rule and start another (or an at-rule). */
+/** A selector that cannot end its rule and start another, open an at-rule or comment out its neighbours. */
 export function isSafeSelector(s: unknown): s is string {
-  return typeof s === 'string' && s.length > 0 && s.length <= LIMITS.selector && !/[{};@\\]/.test(s);
+  return typeof s === 'string' && s.length > 0 && s.length <= LIMITS.selector && !/[{};@\\]|\/\*|\*\//.test(s);
 }
 
 /** Raw CSS from a rule: one plain `selector { declarations }`, loading nothing. */
 export function isSafeExtraCss(s: unknown): s is string {
   if (typeof s !== 'string' || s.length > 1000) return false;
   const m = /^([^{}]+)\{([^{}]*)\}$/.exec(s.trim());
-  return !!m && isSafeSelector(m[1]!.trim()) && !/[@\\]|url\s*\(|image-set|image\s*\(|expression|attr\s*\(|content\s*:/i.test(m[2]!);
+  return !!m && isSafeSelector(m[1]!.trim()) && !/[@\\]|\/\*|\*\/|url\s*\(|image-set|image\s*\(|expression|attr\s*\(|content\s*:/i.test(m[2]!);
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);

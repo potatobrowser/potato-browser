@@ -103,19 +103,23 @@ describe('daily check', () => {
   const installs = async (app: string, version: string) =>
     (await env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS n FROM installs WHERE app = ? AND version = ?').bind(app, version).first<{ n: number }>())?.n ?? 0;
 
-  it('answers lists and the shield rules, and counts the install by app and version', async () => {
+  it('answers lists and the shield rules, and counts the daily check by app and version', async () => {
     const before = await installs('mac', '0.8.0');
-    const r = await call('GET', '/api/v1/filters?lists=easylist&app=mac&v=0.8.0');
+    const r = await call('GET', '/api/v1/filters?lists=easylist&app=mac&v=0.8.0&daily=1');
     expect(r.status).toBe(200);
     expect(r.json.lists).toEqual({ easylist: 'a'.repeat(64) });
     expect(r.json.shield).toEqual({ version: generated.version, hash: generated.hash });
+    await new Promise((res) => setTimeout(res, 50));
+    expect(await installs('mac', '0.8.0')).toBe(before + 1);
+    // "Update now" checks the same way but is not a new day of use.
+    expect((await call('GET', '/api/v1/filters?lists=easylist&app=mac&v=0.8.0')).status).toBe(200);
     await new Promise((res) => setTimeout(res, 50));
     expect(await installs('mac', '0.8.0')).toBe(before + 1);
   });
 
   it('takes a shield-only check, and counts older apps by their HTTP client', async () => {
     const ios = await installs('ios', '0.6.0');
-    expect((await call('GET', '/api/v1/filters?app=ios&v=0.6.0')).json.lists).toEqual({});
+    expect((await call('GET', '/api/v1/filters?app=ios&v=0.6.0&daily=1')).json.lists).toEqual({});
     const legacyIos = await installs('ios', 'legacy');
     const legacyMac = await installs('mac', 'legacy');
     await call('GET', '/api/v1/filters?lists=easylist', undefined, { 'user-agent': 'PotatoBrowser/120 CFNetwork/3826.400.110 Darwin/25.0.0' });
@@ -137,7 +141,8 @@ describe('AI Shield rules', () => {
     const r = await call('GET', '/api/v1/shield/rules');
     expect(r.status).toBe(200);
     const { payload, signature } = r.json as { payload: string; signature: string };
-    const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(generated.testKey!), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']);
+    const testKey = (generated as { testKey?: string }).testKey!;
+    const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(testKey), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']);
     const sig = Uint8Array.from(atob(signature), (c) => c.charCodeAt(0));
     expect(await crypto.subtle.verify({ name: 'Ed25519' }, key, sig, new TextEncoder().encode(payload))).toBe(true);
     const tampered = new TextEncoder().encode(payload.replace('display', 'Display'));
@@ -213,6 +218,40 @@ describe('crash reports', () => {
     expect(obj!.customMetadata).toEqual({ app: 'mac', version: '0.8.0', process: 'renderer', electron: '45.2.3', arch: 'arm64' });
     expect(JSON.stringify(obj!.customMetadata)).not.toContain('f0a1');
     expect(new Uint8Array(await obj!.arrayBuffer()).slice(0, 4)).toEqual(minidump().slice(0, 4));
+  });
+
+  it('zeroes the install and report ids Crashpad writes into the dump', async () => {
+    // Header, a one-entry stream directory, then a MinidumpCrashpadInfo stream with both ids set.
+    const dump = new Uint8Array(160);
+    const v = new DataView(dump.buffer);
+    dump.set([0x4d, 0x44, 0x4d, 0x50]);
+    v.setUint32(8, 1, true);
+    v.setUint32(12, 32, true);
+    v.setUint32(32, 0x43500001, true);
+    v.setUint32(36, 52, true);
+    v.setUint32(40, 64, true);
+    v.setUint32(64, 1, true);
+    dump.fill(0xab, 68, 100);
+    const guid = '5e1286fc-da97-479e-918b-6bfb0c3d1c72';
+    dump.set(new TextEncoder().encode(guid), 120);
+    const { body, type } = await crashForm({ guid }, dump);
+    const res = await app.fetch(new Request(BASE + '/api/v1/crashes', { method: 'POST', headers: { 'content-type': type }, body }));
+    expect(res.status).toBe(200);
+    const row = await env.DB.prepare('SELECT key FROM crashes WHERE id = ?').bind(await res.text()).first<{ key: string }>();
+    const stored = new Uint8Array(await (await env.CRASHES!.get(row!.key))!.arrayBuffer());
+    expect(new DataView(stored.buffer).getUint32(64, true)).toBe(1);
+    expect([...stored.slice(68, 100)].every((b) => b === 0)).toBe(true);
+    expect(new TextDecoder().decode(stored)).not.toContain('5e1286fc');
+  });
+
+  it('takes crash uploads from the apps, never from a web page', async () => {
+    const { body, type } = await crashForm({});
+    for (const headers of [{ origin: 'https://evil.example' }, { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'no-cors' }]) {
+      const res = await app.fetch(new Request(BASE + '/api/v1/crashes', { method: 'POST', headers: { 'content-type': type, ...headers }, body }));
+      expect(res.status).toBe(403);
+    }
+    const ios = await call('POST', '/api/v1/crashes/ios', { app: 'ios', version: '0.6.0', payload: {} }, { origin: 'https://evil.example' });
+    expect(ios.status).toBe(403);
   });
 
   it('refuses uploads that are not Potato Browser minidumps', async () => {

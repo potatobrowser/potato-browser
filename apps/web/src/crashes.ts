@@ -11,6 +11,49 @@ export const MAX_CRASHES_PER_DAY = 3000;
 
 const PROCESS = /^[a-z][a-z-]{0,31}$/;
 const ARCH = /^(arm64|x64)$/;
+const CRASHPAD_INFO_STREAM = 0x43500001;
+
+/**
+ * Crashpad writes a report id and its per-install client id into the minidump's own info stream
+ * (MinidumpCrashpadInfo: version, report_id, client_id, ...). Both are zeroed, and so is any copy
+ * of the client id the upload named, so reports from one install cannot be linked.
+ * Returns false for a dump whose layout does not hold together.
+ */
+export function scrubMinidump(data: Uint8Array, guid = ''): boolean {
+  if (data.byteLength < 32) return false;
+  const v = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const count = v.getUint32(8, true);
+  const dir = v.getUint32(12, true);
+  if (count > 4096 || dir + count * 12 > data.byteLength) return false;
+  for (let i = 0; i < count; i++) {
+    const at = dir + i * 12;
+    if (v.getUint32(at, true) !== CRASHPAD_INFO_STREAM) continue;
+    const size = v.getUint32(at + 4, true);
+    const rva = v.getUint32(at + 8, true);
+    if (size < 36 || rva + 36 > data.byteLength) return false;
+    data.fill(0, rva + 4, rva + 36);
+  }
+  if (/^[0-9a-fA-F-]{32,36}$/.test(guid)) {
+    for (const variant of new Set([guid, guid.toLowerCase(), guid.toUpperCase(), guid.replaceAll('-', '')])) {
+      const needle = new TextEncoder().encode(variant);
+      for (let at = indexOf(data, needle, 0); at >= 0; at = indexOf(data, needle, at + needle.length)) data.fill(0x30, at, at + needle.length);
+    }
+  }
+  return true;
+}
+
+function indexOf(hay: Uint8Array, needle: Uint8Array, from: number): number {
+  outer: for (let i = from; i <= hay.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) if (hay[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+
+/** Crashpad and the iOS app send no Origin or fetch metadata; a web page's form post always does. */
+function fromBrowser(req: Request): boolean {
+  return req.headers.has('origin') || req.headers.has('sec-fetch-site') || req.headers.has('sec-fetch-mode');
+}
 
 function body(req: Request): ReadableStream<Uint8Array> | null {
   if (!req.body) return null;
@@ -30,6 +73,8 @@ async function store(env: Env, app: 'mac' | 'ios', version: string, process: str
 
 async function admitted(req: Request, env: Env): Promise<Response | null> {
   if (!env.CRASHES) return error(503, 'crash reports are not configured');
+  // Multipart posts need no CORS preflight: without this any site could fill the daily quota.
+  if (fromBrowser(req)) return error(403, 'crash reports come from the apps only');
   if (await limited(env.CRASH_LIMIT, clientIp(req))) return error(429, 'slow down');
   const recent = await env.DB.prepare('SELECT COUNT(*) AS c FROM crashes WHERE created_at > ?1')
     .bind(Date.now() - DAY_MS)
@@ -40,8 +85,8 @@ async function admitted(req: Request, env: Env): Promise<Response | null> {
 /**
  * POST /api/v1/crashes: what Electron's crashReporter (Crashpad) uploads from the Mac app, a
  * multipart form with the minidump, gzipped. Only the dump and what is needed to read it (version,
- * process, Electron version, architecture) are kept; Crashpad's per-install `guid` and the
- * address are dropped.
+ * process, Electron version, architecture) are kept; Crashpad's per-install id (the `guid` field
+ * and its copy inside the dump) and the address are dropped.
  */
 export async function macCrash(req: Request, env: Env): Promise<Response> {
   const type = req.headers.get('content-type') ?? '';
@@ -70,6 +115,7 @@ export async function macCrash(req: Request, env: Env): Promise<Response> {
   const data = new Uint8Array(await dump.arrayBuffer());
   // Minidumps start with "MDMP".
   if (data.byteLength < 32 || data[0] !== 0x4d || data[1] !== 0x44 || data[2] !== 0x4d || data[3] !== 0x50) return error(400, 'not a minidump');
+  if (!scrubMinidump(data, field('guid'))) return error(400, 'malformed minidump');
   const electron = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(field('ver')) ? field('ver') : '';
   const arch = ARCH.test(field('arch')) ? field('arch') : '';
   const id = await store(env, 'mac', version, proc, data, { electron, arch }, 'dmp');

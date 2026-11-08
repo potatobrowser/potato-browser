@@ -36,6 +36,8 @@ final class AdblockService: ObservableObject {
     var lists: [String: Downloaded] = [:]
     var lastCheck: Double?
     var lastError: String?
+    /// UTC day of the last scheduled check, the one that counts the install as used that day.
+    var countedDay: String?
     struct Downloaded: Codable {
       var rev: String
       var fetchedAt: Double
@@ -263,13 +265,13 @@ final class AdblockService: ObservableObject {
 
   /// Once per calendar day (UTC), so the check also tells how many installs ran that day.
   var isCheckDue: Bool {
-    (wantsLists || shieldWantsUpdates()) && Self.utcDay(state.lastCheck) != Self.utcDay(Date().timeIntervalSince1970)
+    (wantsLists || shieldWantsUpdates()) && state.countedDay != Self.utcDay(Date().timeIntervalSince1970)
   }
 
   /// When the app comes to the foreground: suspended apps miss their hourly timer.
   func checkIfDue() {
     guard started, isCheckDue else { return }
-    Task { await checkForUpdates() }
+    Task { await checkForUpdates(daily: true) }
   }
 
   private var started = false
@@ -279,7 +281,7 @@ final class AdblockService: ObservableObject {
       try? await Task.sleep(nanoseconds: UInt64(ProcessInfo.processInfo.environment["POTATO_UPDATE_CHECK_DELAY_MS"].flatMap(Double.init) ?? 60_000) * 1_000_000)
       started = true
       while true {
-        if isCheckDue { await checkForUpdates() }
+        if isCheckDue { await checkForUpdates(daily: true) }
         try? await Task.sleep(nanoseconds: 3_600_000_000_000)
       }
     }
@@ -294,7 +296,8 @@ final class AdblockService: ObservableObject {
     text.count > 200 && text.count < 20_000_000 && text.contains("\n") && !text.trimmingCharacters(in: .whitespaces).hasPrefix("<")
   }
 
-  func checkForUpdates() async {
+  /// `daily`: the scheduled check, which also counts the install as used today; "Update now" is not.
+  func checkForUpdates(daily: Bool = false) async {
     guard !updating else { return }
     updating = true
     defer {
@@ -305,10 +308,12 @@ final class AdblockService: ObservableObject {
     var c = URLComponents(url: apiBase.appendingPathComponent("api/v1/filters"), resolvingAgainstBaseURL: false)!
     // The lists, the app and its version: nothing about the user.
     c.queryItems = [URLQueryItem(name: "lists", value: ids.joined(separator: ",")), URLQueryItem(name: "app", value: "ios"), URLQueryItem(name: "v", value: Bundle.main.marketingVersion)]
+    if daily { c.queryItems?.append(URLQueryItem(name: "daily", value: "1")) }
     let session = URLSession(configuration: .ephemeral)
     do {
       let (data, res) = try await session.data(from: c.url!)
       guard (res as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+      if daily { state.countedDay = Self.utcDay(Date().timeIntervalSince1970) }
       let body = (try JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
       let latest = body["lists"] as? [String: Any] ?? [:]
       if shieldWantsUpdates() { await onShieldInfo?(body["shield"] as? [String: Any]) }

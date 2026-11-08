@@ -14,22 +14,24 @@ const VERSION = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../packag
 test('Report a problem sends the page address and the choice, nothing else', async () => {
   b = await TestBrowser.launch();
   const ui = await b.uiPage();
-  await b.goto('https://www.google.com/search?q=report+me#section', ui);
+  // Runs share one test Worker: each gets its own address.
+  const q = `report+me+${Date.now()}`;
+  await b.goto(`https://www.google.com/search?q=${q}#section`, ui);
   await ui.getByTestId('shield-button').click();
   await ui.getByTestId('shield-report').click();
   await expect(ui.getByTestId('report-choices')).toContainText("Sends this page's address");
   await ui.getByTestId('report-showing').click();
   await expect(ui.getByTestId('report-sent')).toBeVisible();
   const { reports } = await apiSummary();
-  const r = reports.find((x: { url: string }) => x.url.includes('report+me'));
-  expect(r).toMatchObject({ url: 'https://www.google.com/search?q=report+me', feature: 'shield', problem: 'showing', app: 'mac', version: VERSION, status: 'new' });
+  const r = reports.find((x: { url: string }) => x.url.includes(q));
+  expect(r).toMatchObject({ url: `https://www.google.com/search?q=${q}`, feature: 'shield', problem: 'showing', app: 'mac', version: VERSION, status: 'new' });
 
   await ui.keyboard.press('Escape');
   await ui.getByTestId('adblock-button').click();
   await ui.getByTestId('adblock-report').click();
   await ui.getByTestId('report-broken').click();
   await expect(ui.getByTestId('report-sent')).toBeVisible();
-  const again = (await apiSummary()).reports.filter((x: { url: string }) => x.url.includes('report+me'));
+  const again = (await apiSummary()).reports.filter((x: { url: string }) => x.url.includes(q));
   expect(again.map((x: { feature: string; problem: string }) => `${x.feature}:${x.problem}`).sort()).toEqual(['adblock:broken', 'shield:showing']);
 });
 
@@ -78,7 +80,8 @@ test('AI Shield rules update from the site, signed, and stay after a restart', a
   try {
     b = await TestBrowser.launch({ settings: { adblock: { autoUpdate: false } }, env });
     await expect.poll(() => srv.seen.includes('/api/v1/shield/rules'), { timeout: 20_000 }).toBe(true);
-    expect(srv.seen.find((u) => u.startsWith('/api/v1/filters?'))).toBe(`/api/v1/filters?lists=&app=mac&v=${VERSION}`);
+    // The scheduled check: it says it is the day's one, so the site counts the install.
+    expect(srv.seen.find((u) => u.startsWith('/api/v1/filters?'))).toBe(`/api/v1/filters?lists=&app=mac&v=${VERSION}&daily=1`);
     await expect.poll(() => b.app.evaluate(() => (globalThis as any).__potato.ctx.shield.status().source)).toBe('update');
     const page = await b.goto('https://site.test/ai-widget.html');
     await expect.poll(() => widgetHidden(page)).toBe(true);

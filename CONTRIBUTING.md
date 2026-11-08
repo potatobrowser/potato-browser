@@ -38,7 +38,9 @@ CI runs the same on every pull request.
 - **Shield rules**: add or update a fixture under `apps/browser/test/fixtures/sites/<host>/`
   with the smallest markup that reproduces the feature, and an assertion in
   `apps/browser/test/e2e/shield.spec.ts`. An e2e test checks that every selector is valid in the
-  shipped Chromium.
+  shipped Chromium. Then run `node apps/browser/scripts/shield-rules.mjs --bump`: rules reach
+  installed browsers within a day once merged, and the version in `rules.lock.json` is how they
+  know the rules are newer.
 - **User-facing copy**: plain ASCII punctuation (no em or en dashes, no curly quotes), short
   sentences, and a light potato voice where it fits.
 - **Ad blocker**: add the page to `apps/browser/test/fixtures/sites/adblock.test/` or a new

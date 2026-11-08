@@ -9,13 +9,23 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { loadShieldRules } from '../../browser/scripts/shield-rules.mjs';
+import { loadShieldRules, STALE_MESSAGE } from '../../browser/scripts/shield-rules.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'src', 'generated', 'shield-rules.json');
 const sign = process.argv.includes('--sign');
 
 const r = await loadShieldRules(build, root);
+// The apps would refuse rules that fail their validator; never sign them.
+if (!r.valid) {
+  console.error('The AI Shield rules do not pass apps/browser/src/content/shield/validate.ts.');
+  process.exit(1);
+}
+if (r.stale) {
+  // A deploy must carry a version the apps can order; tests and wrangler dev only warn.
+  console.error(STALE_MESSAGE);
+  if (sign) process.exit(1);
+}
 const payload = JSON.stringify({ format: r.format, version: r.version, hash: r.hash, rules: r.rules });
 const rawPublic = (key) => Buffer.from(crypto.createPublicKey(key).export({ format: 'jwk' }).x, 'base64url').toString('base64');
 

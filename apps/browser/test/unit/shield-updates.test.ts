@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildStylesheet } from '../../src/content/shield/engine';
 import { RULES } from '../../src/content/shield/rules';
@@ -20,10 +22,19 @@ describe('downloaded AI Shield rules', () => {
     expect(validateRules(clone(RULES))).toEqual(clone(RULES));
   });
 
+  it('carry the version in rules.lock.json that was bumped for exactly these rules', () => {
+    const lock = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../src/content/shield/rules.lock.json'), 'utf8'));
+    const hash = crypto.createHash('sha256').update(JSON.stringify(RULES)).digest('hex');
+    // Changed rules.ts? Run: node apps/browser/scripts/shield-rules.mjs --bump
+    expect(lock.hash, 'rules.ts changed without node apps/browser/scripts/shield-rules.mjs --bump').toBe(hash);
+    expect(Number.isSafeInteger(lock.version)).toBe(true);
+  });
+
   it('refuse selectors and raw CSS that could escape their rule or load anything', () => {
     expect(isSafeSelector('[data-attnms]')).toBe(true);
     expect(isSafeSelector('a[href*="udm=50"]:not(:has(img))')).toBe(true);
-    for (const bad of ['a{} body', 'a; b', '@import x', 'a\\7d', '', 'x'.repeat(700)]) expect(isSafeSelector(bad), bad).toBe(false);
+    for (const bad of ['a{} body', 'a; b', '@import x', 'a\\7d', '', 'x'.repeat(700), '.one /*', '*/ .two']) expect(isSafeSelector(bad), bad).toBe(false);
+    expect(isSafeSelector('a[href^="https://duck.ai"]')).toBe(true);
     expect(isSafeExtraCss('body.rufus-docked-left { padding-left: 0 !important; margin-left: 0 !important; }')).toBe(true);
     for (const bad of [
       'a { background: url(https://evil.example/x) }',
@@ -31,12 +42,15 @@ describe('downloaded AI Shield rules', () => {
       'input[value^="a"] { content: "x" }',
       'a { color: red } b { color: blue }',
       '@media screen { a { color: red } }',
+      'a { color: red /* } b { */ }',
     ]) {
       expect(isSafeExtraCss(bad), bad).toBe(false);
     }
-    const sheet = buildStylesheet([{ id: 'x', name: 'X', css: ['#ok', 'a{} body { background: url(//evil) }'], extraCss: ['a { background: url(//evil) }'] }]);
+    const sheet = buildStylesheet([{ id: 'x', name: 'X', css: ['#ok', 'a{} body { background: url(//evil) }', '.one /*', '*/ .two', '#also-ok'], extraCss: ['a { background: url(//evil) }'] }]);
     expect(sheet).toContain('#ok { display: none !important; }');
+    expect(sheet).toContain('#also-ok { display: none !important; }');
     expect(sheet).not.toContain('evil');
+    expect(sheet).not.toContain('/*');
   });
 
   it('refuse malformed rules as a whole', () => {

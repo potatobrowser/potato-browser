@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { catalog, ensureLists, readLock } from './filters.mjs';
-import { loadShieldRules } from './shield-rules.mjs';
+import { loadShieldRules, STALE_MESSAGE } from './shield-rules.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const prod = process.argv.includes('--prod');
@@ -14,8 +14,12 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 
 fs.rmSync(path.join(root, 'dist'), { recursive: true, force: true });
 
-// The rules' git version and hash: a downloaded update replaces them only when newer.
+// The rules' version (rules.lock.json) and hash: a downloaded update replaces them only when newer.
 const shieldRules = await loadShieldRules(build, root);
+if (shieldRules.stale) {
+  if (prod) throw new Error(STALE_MESSAGE);
+  console.warn(STALE_MESSAGE);
+}
 
 const define = {
   'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
