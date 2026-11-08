@@ -10,6 +10,11 @@ Each `## <version>` section becomes the notes of that GitHub Release.
 - Crash reports, if you want them: switch them on in the welcome page or in Settings, Privacy, and a crash sends us a report so we can fix it. Off unless you switch it on.
 - Cookies are now encrypted with the key in your macOS Keychain, as passwords already were. You stay signed in to your sites.
 - The daily check for filter list updates now also says which version you run, so we can count how many people use Potato Browser. It still says nothing about you. potatobrowser.com/privacy lists everything the browser sends.
+- Faster start with lots of tabs: only the tab in front loads when the browser opens. The others show their title and load when you click them, back and forward history included.
+- Tabs you leave alone take a nap. After 2 hours in the background a tab gives its memory back, and a click wakes it up where you left it, scroll position and typed text included. Tabs playing sound, sharing your camera, microphone or screen, or holding unsaved changes stay awake. Change the time or turn it off in Settings, General, Put unused tabs to sleep.
+- Reopened and duplicated tabs keep their back and forward history.
+- PDFs: Save Page As saves the PDF itself, and the browser's zoom no longer shows a percentage the PDF viewer ignores. Use the viewer's own zoom buttons.
+- Quitting while a page is still loading no longer gets stuck behind an error message.
 
 ## 0.7.1
 

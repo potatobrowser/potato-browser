@@ -234,6 +234,21 @@ deploy without it. The apps accept rule updates only from the keys in `SHIELD_RU
   dump's Crashpad info stream), refuses uploads that carry browser headers (`Origin`,
   `Sec-Fetch-*`, so web pages cannot post forged dumps), and deletes it after 90 days. The iOS app
   sends MetricKit's crash and hang diagnostics the same way, without region or process id.
+- **Tabs** (`apps/browser/src/main/tab.ts`, `sleep.ts`, `sessionfile.ts`): when a session is
+  restored only each window's active tab loads; the others show their saved title and cached
+  favicon and load the first time they are opened. A background tab left alone for the "Put
+  unused tabs to sleep" time (2 hours by default) is unloaded: its page is closed and its renderer
+  goes away, and the tab keeps its back and forward history, with scroll positions and form
+  fields while the browser runs, which comes back in a new view when the tab is activated. Tabs
+  stay awake while in front, loading, playing sound or in the 5 minutes after, sharing the
+  camera, microphone or screen, asking for a permission, in fullscreen, with DevTools open,
+  linked to a popup through window.open, on sites allowed to show notifications, and when a page
+  the user interacted with has unsaved changes (its beforeunload says no; no dialog is shown).
+  session.json keeps each tab's address where older versions read it, and beside it up to 20 back
+  and 5 forward entries (address and title only); private windows never reach it.
+- **PDFs** open in Chromium's PDF viewer, which Electron 45 runs out of process without the
+  `plugins` preference. The web preload skips the viewer's documents, the browser's zoom leaves
+  PDF tabs to the viewer's own, and Save Page As downloads the file.
 - **Cookies** are encrypted with the same "Potato Browser Safe Storage" Keychain key as saved
   passwords (Electron's `enableCookieEncryption` fuse), as Chrome does. Cookies from versions
   before 0.8.0 stay readable and are encrypted when next written; going back to an older version

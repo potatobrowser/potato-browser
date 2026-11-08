@@ -493,3 +493,45 @@ An independent review of the launch work before release led to: rule versions fr
 instead of git times, Crashpad's client id zeroed inside the dump too, CSS comment tokens refused
 in rule selectors and raw CSS, crash uploads with browser headers refused, only the scheduled
 check counted, and rules validated before they are signed.
+
+## PDFs, lazy restore and tab sleeping (0.8.0)
+
+Findings (2026-11-08):
+- PDFs already worked: Electron 45 runs Chromium's out-of-process PDF viewer (an application/pdf
+  document whose child frame is the viewer extension, with the plugin frame under it) with
+  `plugins` unset, false or true alike, and pages see navigator.pdfViewerEnabled and the five
+  standard PDF plugins either way. Fixed around it: browser zoom on a PDF tab only showed a
+  percentage and saved a zoom for the site (Electron leaves the tab in manual zoom for the
+  viewer), Save Page As saved the viewer's HTML, and the web preload ran in the viewer's documents.
+- navigationHistory.getAllEntries() carries Chromium's page state; restore({ entries, index })
+  into a fresh WebContents brings back the page, the back/forward list, scroll position and form
+  fields.
+- Electron 45: a history step or reload sent while a restored entry is on its way crashes the
+  renderer (SIGSEGV); close({ waitForBeforeUnload }) hands the page a user activation first;
+  inside its own 'destroyed' event a WebContents is not destroyed yet and reading its history
+  there hangs.
+- will-quit closed the profile database while loads were still committing: the uncaught exception
+  put up Electron's modal error box and kept the app from quitting (the suite's occasional 30 s
+  quit).
+
+Decisions:
+- A tab may have no view (asleep: put to sleep, or restored and not opened yet); it keeps a parked
+  history and gets a new WebContentsView on activation. tab.wc and tab.view are nullable so the
+  compiler finds every page access. Sleeping is not closing (no recently closed entry, no crash
+  page); waking and restoring are not visits.
+- Stays awake: in front, loading, audible or audible in the last 5 minutes, camera, microphone or
+  screen asked for, permission prompt, HTML fullscreen, DevTools, autofill dropdown or a sign-in
+  waiting to be saved, a window.open link to another loaded tab, sites allowed to notify,
+  addresses that cannot load again.
+- Unsaved changes: only pages the user interacted with (userActivation.hasBeenActive, read in an
+  isolated world) are asked through close({ waitForBeforeUnload }); a refusal keeps the tab awake
+  without a dialog and is tried again a full period later. Others unload directly, as Chromium
+  would not let them ask.
+- Default 2 hours, as Edge's sleeping tabs. session.json keeps `tabs` as addresses for older
+  versions, with `history` beside it (address and title, 20 back and 5 forward, no page state).
+  Snapshots are taken when a save is written, at most twice a second.
+
+Status: done. 27 new unit tests and 12 new e2e tests. Memory with 7 fixture tabs: 8 renderers
+and 799 MB working set before, 2 and 223 MB asleep. An independent review led to: stopped
+restores releasing Back and Reload, expired sign-ins no longer keeping tabs awake, the activation
+check holding no state while it waits, and woken tabs getting a full period.
