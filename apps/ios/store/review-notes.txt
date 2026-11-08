@@ -1,0 +1,14 @@
+Potato Browser is a web browser built on WKWebView. It needs no account and has no in-app purchases.
+
+Background audio (UIBackgroundModes: audio): web pages keep playing audio and video when the app goes to the background or the screen locks, as in Safari, for example a podcast, a radio stream or a YouTube video. The app plays nothing of its own.
+
+To see the main features:
+1. Search for "how do magnets work" on google.com: the AI Overview is hidden. Tap the shield in the address bar to see what was hidden, and switch it off for the site to bring it back.
+2. Open reddit.com or m.youtube.com: posts get an AI? button for flagging AI-generated content anonymously, and a Not AI button when a post others flagged was made by a person.
+3. Open a news site such as theguardian.com: ads and trackers are blocked; the shield panel shows how many.
+
+Network: the app talks to potatobrowser.com only for anonymous flag lookups and votes, a daily filter list and rule check, reports the user sends, and crash reports when the user opts in. Details: https://potatobrowser.com/privacy
+
+UIFileSharingEnabled: downloaded files are kept in the app's Documents folder so they show in the Files app.
+
+We have requested the default browser entitlement (com.apple.developer.web-browser) separately; this build does not use it.

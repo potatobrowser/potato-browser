@@ -1,0 +1,22 @@
+Potato Browser is a browser for people who want the web without AI, and without ads. No artificial ingredients.
+
+AI SHIELD
+The AI features of major sites are hidden: Google AI Overviews and AI Mode, Gemini in Gmail, YouTube's AI buttons, Bing Copilot, DuckDuckGo Search Assist, X's Grok, Meta AI on Facebook and Instagram, LinkedIn's AI writing, Reddit Answers, Amazon Rufus and more. Rule fixes arrive the same day, signed by us. The shield button in the address bar brings them back on a single site.
+
+NO AI IN THE ENGINE
+Writing Tools, inline predictions and Genmoji are switched off in web pages, and the AI web APIs are removed from every page and frame. Settings runs a check on your device and shows the result.
+
+AD BLOCKER
+Ads, video ads, pop-ups and trackers are blocked before they load, with the EasyList, EasyPrivacy and uBlock Origin filter lists, updated daily. Cookie notices and annoyances can go too. One switch lets ads through on a site you want to support.
+
+COMMUNITY AI FLAGS
+Flag posts you think are AI-generated on Reddit, X, Instagram, Facebook, Threads, LinkedIn, YouTube, Bluesky and TikTok. Choose whether flagged posts are buried, labeled or left alone. Made by a person after all? Vote Not AI: those votes cancel AI flags one for one. Flags are anonymous: no account, and the browser checks posts with short hash prefixes that thousands of other posts share.
+
+A COMPLETE BROWSER
+Tabs and private tabs, bookmarks, history, downloads in the Files app, find on page, desktop sites, text size, reopen closed tabs, session restore, and import of bookmarks from Safari and other browsers.
+
+PRIVATE BY DESIGN
+No accounts, no ads, no tracking. What you read stays on your device. Crash reports are off unless you switch them on. Every request the app makes is listed at potatobrowser.com/privacy.
+
+OPEN SOURCE
+Potato Browser is free and open source under the MIT license, with a Mac version too: github.com/potatobrowser/potato-browser

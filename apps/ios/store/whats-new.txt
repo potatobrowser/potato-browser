@@ -1,0 +1,4 @@
+- Not AI votes: dispute a post that was flagged as AI by mistake. They cancel AI flags one for one.
+- Report a problem in the protections panel when AI or ads still show, or a page breaks.
+- AI Shield rule fixes now arrive daily, signed by us.
+- Optional crash reports, asked on the welcome page.
