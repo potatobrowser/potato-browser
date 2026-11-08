@@ -110,6 +110,20 @@ final class AppModel: ObservableObject {
     privateDataStore = WKWebsiteDataStore.nonPersistent()
   }
 
+  /// A link from another app (the URL scheme, the share extension, or a web link once the app may
+  /// be the default browser): its page opens in a normal tab, in front of everything but the
+  /// first-run setup. A blank selected tab is reused rather than left behind.
+  func open(link: URL) {
+    guard let page = AppLink.page(for: link) else { return }
+    editingAddress = false
+    if panel != .welcome { panel = nil }
+    if let tab = tabs.selected, !tab.isPrivate, tab.isBlank, !tab.isLoading {
+      tab.load(page)
+    } else {
+      tabs.newTab(url: page, isPrivate: false)
+    }
+  }
+
   func showToast(_ text: String) {
     toast = text
     Task {
