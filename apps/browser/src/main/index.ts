@@ -12,6 +12,7 @@ import { PasswordService } from './passwords/service';
 import { registerIpc } from './ipc';
 import { notifyInternalPages } from './notify';
 import { buildAppMenu, refreshMenuChecks } from './menus';
+import { applyCrashReports } from './crashes';
 import { configureUserData, isTest, paths } from './paths';
 import { PermissionManager } from './permissions';
 import { registerSchemes } from './protocol';
@@ -29,6 +30,9 @@ registerSchemes();
 // Tests must never touch the real Keychain (or wait on its permission dialog). Only with a
 // throwaway profile: the mock key would leave a real profile's passwords unreadable.
 if (isTest() && process.env.POTATO_USER_DATA) app.commandLine.appendSwitch('use-mock-keychain');
+// Settings first: crash reports, when the user opted in, must start before any other process.
+ctx.settings = new SettingsStore(paths.userData);
+applyCrashReports(ctx.settings.get().privacy.crashReports);
 
 let ready = false;
 const pendingUrls: string[] = [];
@@ -103,11 +107,11 @@ app.on('select-client-certificate', (event, _wc, url, list, callback) => {
 });
 
 app.whenReady().then(() => {
-  ctx.settings = new SettingsStore(paths.userData);
   ctx.db = new ProfileDb(path.join(paths.userData, 'Profile.sqlite'));
   ctx.downloads = new DownloadManager();
   ctx.permissions = new PermissionManager();
   ctx.shield = new ShieldService();
+  ctx.shield.init();
   ctx.adblock = new AdblockService();
   ctx.adblock.init();
   ctx.flags = new FlagsService();
@@ -121,6 +125,7 @@ app.whenReady().then(() => {
 
   ctx.settings.on('changed', (next, prev) => {
     if (next.theme !== prev.theme) nativeTheme.themeSource = next.theme;
+    if (next.privacy.crashReports !== prev.privacy.crashReports) applyCrashReports(next.privacy.crashReports);
     if (JSON.stringify(next.flags) !== JSON.stringify(prev.flags)) ctx.flags.clearCache();
     ctx.adblock.onSettingsChanged(next, prev);
     refreshMenuChecks();

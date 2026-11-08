@@ -85,17 +85,49 @@ export function isClientId(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 }
 
+/** The apps that talk to the service. */
+export const APPS = ['mac', 'ios'] as const;
+export type AppPlatform = (typeof APPS)[number];
+
+export function isAppPlatform(value: unknown): value is AppPlatform {
+  return typeof value === 'string' && (APPS as readonly string[]).includes(value);
+}
+
+/** Dotted app versions as the apps send them (0.8.0). */
+export function isAppVersion(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(value);
+}
+
 // ---- API contract ----------------------------------------------------------------------------
+
+/** A vote on a post: flagged as AI-generated, or disputed as made by a person. */
+export type VoteKind = 'ai' | 'human';
+
+export function isVoteKind(value: unknown): value is VoteKind {
+  return value === 'ai' || value === 'human';
+}
+
+/**
+ * The count a post is judged by: AI flags minus Not AI votes. A post counts as AI-generated when
+ * this reaches the user's threshold.
+ */
+export function netFlags(n: number, d: number): number {
+  return n - d;
+}
 
 export interface LookupRequest {
   prefixes: string[];
+  /** 2 asks for AI flags and Not AI votes separately; without it `n` is the net count. */
+  v?: 2;
 }
 
 export interface LookupItem {
   /** Full content hash. */
   h: string;
-  /** Number of distinct people who flagged it. */
+  /** Distinct networks that flagged it as AI (net of Not AI votes for v1 lookups). */
   n: number;
+  /** Distinct networks that voted Not AI (v2 lookups only). */
+  d?: number;
 }
 
 export interface LookupResponse {
@@ -106,12 +138,82 @@ export interface FlagRequest {
   h: string;
   platform: Platform;
   client: string;
+  /** Without it (apps before 0.8.0) the vote is an AI flag and counts come back net. */
+  vote?: VoteKind;
+  app?: AppPlatform;
 }
 
 export interface FlagResponse {
   h: string;
   n: number;
+  /** Present when the request named a vote kind. */
+  d?: number;
   flagged: boolean;
+  vote?: VoteKind | null;
+}
+
+// ---- Site reports ----------------------------------------------------------------------------
+
+export const REPORT_FEATURES = ['shield', 'adblock'] as const;
+export type ReportFeature = (typeof REPORT_FEATURES)[number];
+/** `showing`: AI (shield) or ads (ad blocker) still show. `broken`: the feature broke the page. */
+export const REPORT_PROBLEMS = ['showing', 'broken'] as const;
+export type ReportProblem = (typeof REPORT_PROBLEMS)[number];
+
+export interface SiteReport {
+  url: string;
+  feature: ReportFeature;
+  problem: ReportProblem;
+  app: AppPlatform;
+  version: string;
+}
+
+/** What a report sends as the page address: http(s) only, no fragment, at most 2048 characters. */
+export function reportUrl(raw: string): string | null {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    u.hash = '';
+    u.username = '';
+    u.password = '';
+    const s = u.toString();
+    return s.length <= 2048 ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---- AI Shield rule updates ------------------------------------------------------------------
+
+/** Bumped when downloaded rules stop being readable by older apps. */
+export const SHIELD_RULES_FORMAT = 1;
+
+/**
+ * Ed25519 keys (raw, base64) that sign downloaded AI Shield rules. The private key never reaches
+ * the Worker: rules are signed when the site is deployed, so the server alone cannot inject CSS.
+ */
+export const SHIELD_RULES_KEYS = ['Jhe5kgTZOhggkysLPjSEBKKm9sQtlxzF3jbOOo30OCo='];
+
+/** What is signed: the rules catalog of apps/browser/src/content/shield/rules.ts. */
+export interface ShieldRulesPayload {
+  format: number;
+  /** Seconds since 1970 of the commit the rules come from; newer wins. */
+  version: number;
+  /** sha256 (hex) of JSON.stringify(rules). */
+  hash: string;
+  rules: unknown[];
+}
+
+/** GET /api/v1/shield/rules. `payload` is the signed JSON text, `signature` base64. */
+export interface ShieldRulesEnvelope {
+  payload: string;
+  signature: string;
+}
+
+/** The daily check (GET /api/v1/filters): filter list revisions and the current shield rules. */
+export interface UpdateCheckResponse {
+  lists: Record<string, string | null>;
+  shield?: { version: number; hash: string };
 }
 
 export interface ReleaseInfo {

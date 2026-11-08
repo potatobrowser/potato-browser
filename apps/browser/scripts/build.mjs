@@ -6,12 +6,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { catalog, ensureLists, readLock } from './filters.mjs';
+import { loadShieldRules } from './shield-rules.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const prod = process.argv.includes('--prod');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
 fs.rmSync(path.join(root, 'dist'), { recursive: true, force: true });
+
+// The rules' git version and hash: a downloaded update replaces them only when newer.
+const shieldRules = await loadShieldRules(build, root);
 
 const define = {
   'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
@@ -20,6 +24,8 @@ const define = {
   // Squirrel.Mac only installs updates signed like the running app, so only Developer ID release
   // builds download them; others just say a new version is out.
   __AUTO_UPDATE__: JSON.stringify(process.env.POTATO_AUTO_UPDATE === '1'),
+  __SHIELD_RULES_VERSION__: JSON.stringify(shieldRules.version),
+  __SHIELD_RULES_HASH__: JSON.stringify(shieldRules.hash),
 };
 
 const common = {

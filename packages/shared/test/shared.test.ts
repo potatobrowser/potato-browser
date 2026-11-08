@@ -6,9 +6,14 @@ import {
   hashPrefix,
   isClientId,
   isFullHash,
+  isAppPlatform,
+  isAppVersion,
   isHashPrefix,
+  isVoteKind,
+  netFlags,
   parseContentKey,
   PREFIX_HEX_LENGTH,
+  reportUrl,
 } from '../src/index';
 
 describe('content keys', () => {
@@ -51,5 +56,34 @@ describe('compareVersions', () => {
     expect(compareVersions('1.0.0', '1.0.0')).toBe(0);
     expect(compareVersions('1.0', '1.0.1')).toBeLessThan(0);
     expect(compareVersions('0.10.0', '0.9.0')).toBeGreaterThan(0);
+  });
+});
+
+describe('votes, apps and reports', () => {
+  it('validates vote kinds, apps and versions', () => {
+    expect(isVoteKind('ai')).toBe(true);
+    expect(isVoteKind('human')).toBe(true);
+    expect(isVoteKind('robot')).toBe(false);
+    expect(isAppPlatform('mac')).toBe(true);
+    expect(isAppPlatform('ios')).toBe(true);
+    expect(isAppPlatform('linux')).toBe(false);
+    expect(isAppVersion('0.8.0')).toBe(true);
+    expect(isAppVersion('0.8')).toBe(false);
+    expect(isAppVersion('0.8.0; drop table')).toBe(false);
+  });
+
+  it('weighs Not AI votes against AI flags', () => {
+    expect(netFlags(5, 0)).toBe(5);
+    expect(netFlags(5, 3)).toBe(2);
+    expect(netFlags(1, 4)).toBe(-3);
+  });
+
+  it('reports web addresses without fragments or credentials', () => {
+    expect(reportUrl('https://www.google.com/search?q=potato#frag')).toBe('https://www.google.com/search?q=potato');
+    expect(reportUrl('http://user:pw@example.com/a')).toBe('http://example.com/a');
+    expect(reportUrl('potato://settings/')).toBeNull();
+    expect(reportUrl('javascript:alert(1)')).toBeNull();
+    expect(reportUrl('https://example.com/' + 'a'.repeat(3000))).toBeNull();
+    expect(reportUrl('not a url')).toBeNull();
   });
 });

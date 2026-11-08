@@ -9,6 +9,10 @@ const api = {
   suggest(text: string): Promise<SuggestResult> {
     return ipcRenderer.invoke('ui:suggest', text);
   },
+  /** Reports the active tab's page to potatobrowser.com; resolves to whether it arrived. */
+  report(feature: string, problem: string): Promise<boolean> {
+    return ipcRenderer.invoke('ui:report', feature, problem);
+  },
   onState(cb: (s: WindowState) => void): () => void {
     const l = (_e: IpcRendererEvent, s: WindowState) => cb(s);
     ipcRenderer.on('ui:state', l);

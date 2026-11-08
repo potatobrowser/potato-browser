@@ -1,4 +1,6 @@
 import type { Platform } from '@potato/shared';
+import type { ShieldRule } from '../content/shield/types';
+export type { FlagStatus } from '../content/flags/types';
 
 export type FlagMode = 'hide' | 'label' | 'ignore';
 export type Theme = 'system' | 'light' | 'dark';
@@ -29,6 +31,8 @@ export interface Settings {
     disabledSites: string[];
     /** Rule ids the user turned off globally. */
     disabledRules: string[];
+    /** Download rule fixes from potatobrowser.com once a day. */
+    autoUpdate: boolean;
   };
   flags: {
     mode: FlagMode;
@@ -40,6 +44,8 @@ export interface Settings {
   privacy: {
     globalPrivacyControl: boolean;
     blockAiChatbots: boolean;
+    /** Opt-in: send crash reports to potatobrowser.com. */
+    crashReports: boolean;
   };
   adblock: {
     enabled: boolean;
@@ -361,15 +367,18 @@ export interface PageConfig {
   isPrivate: boolean;
   /** Only under the e2e suite: open shadow roots so tests can reach injected buttons. */
   testHooks: boolean;
-  shield: { enabled: boolean; disabledRules: string[] };
+  /** `rules`: the catalog's rules for this frame's host (downloaded updates included). */
+  shield: { enabled: boolean; disabledRules: string[]; rules?: ShieldRule[] };
   adblock: { enabled: boolean };
   flags: { enabled: boolean; mode: FlagMode; threshold: number; showButtons: boolean; disabledPlatforms: Platform[] };
   passwords: { autofill: boolean; save: boolean };
 }
 
-export interface FlagStatus {
-  /** Distinct flags from everyone, including the user's own. */
-  n: number;
-  /** The user flagged it. */
-  mine: boolean;
+/** Where the AI Shield rules in use come from. */
+export interface ShieldRulesStatus {
+  source: 'app' | 'update';
+  /** Seconds since 1970 of the rules' commit. */
+  version: number;
+  rules: number;
+  lastCheck: number | null;
 }

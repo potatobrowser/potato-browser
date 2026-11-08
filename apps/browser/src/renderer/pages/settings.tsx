@@ -1,7 +1,7 @@
 import { PLATFORM_LABELS, PLATFORMS, type Platform } from '@potato/shared';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRuleSummary, StartupMode, Theme, UpdateStatus } from '../../shared/types';
+import type { AdblockStatus, AppInfo, SearchEngineId, Settings, ShieldRulesStatus, ShieldRuleSummary, StartupMode, Theme, UpdateStatus } from '../../shared/types';
 import { SEARCH_ENGINES } from '../../shared/urls';
 import { call, onInternalEvent } from '../shared/api';
 import { Card, Row, Toggle, useSettings } from '../shared/components';
@@ -88,7 +88,15 @@ function General({ s, update }: { s: Settings; update: Update }) {
 
 function ShieldSection({ s, update }: { s: Settings; update: Update }) {
   const [rules, setRules] = useState<ShieldRuleSummary[]>([]);
-  useEffect(() => void call<ShieldRuleSummary[]>('shield.rules').then(setRules), []);
+  const [status, setStatus] = useState<ShieldRulesStatus | null>(null);
+  useEffect(() => {
+    const load = () => {
+      void call<ShieldRuleSummary[]>('shield.rules').then(setRules);
+      void call<ShieldRulesStatus>('shield.status').then(setStatus);
+    };
+    load();
+    return onInternalEvent((e) => e.type === 'adblock' && load());
+  }, []);
   const disabled = new Set(s.shield.disabledRules);
   const toggleFeature = (id: string, on: boolean) => {
     const next = new Set(disabled);
@@ -104,6 +112,17 @@ function ShieldSection({ s, update }: { s: Settings; update: Update }) {
     >
       <Row title="Hide AI features on websites" testId="shield-global">
         <Toggle label="Hide AI features on websites" testId="shield-global-toggle" checked={s.shield.enabled} onChange={(v) => void update({ shield: { enabled: v } })} />
+      </Row>
+      <Row
+        title="Update the rules daily"
+        testId="shield-rules"
+        hint={
+          status
+            ? `${status.source === 'update' ? 'Rules updated' : 'Rules from this version'}, ${new Date(status.version * 1000).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}. Sites change their AI features often; fixes arrive the same day, signed by us.`
+            : null
+        }
+      >
+        <Toggle label="Update the AI Shield rules daily" testId="shield-auto-update" checked={s.shield.autoUpdate} onChange={(v) => void update({ shield: { autoUpdate: v } })} />
       </Row>
       <div className="row column">
         <div className="row-label">
@@ -394,6 +413,12 @@ function PrivacySection({ s, update }: { s: Settings; update: Update }) {
       </Row>
       <Row title="Block AI chatbot sites" hint="ChatGPT, Gemini, Claude, Copilot, Perplexity and others. You can still open them once from the block page.">
         <Toggle label="Block AI chatbot sites" testId="block-chatbots" checked={s.privacy.blockAiChatbots} onChange={(v) => void update({ privacy: { blockAiChatbots: v } })} />
+      </Row>
+      <Row
+        title="Send crash reports"
+        hint="When the browser crashes, send a report to potatobrowser.com so it gets fixed. It holds the version, what crashed and a memory snapshot that can include bits of the page you were on. Kept 90 days, never shared."
+      >
+        <Toggle label="Send crash reports" testId="crash-reports" checked={s.privacy.crashReports} onChange={(v) => void update({ privacy: { crashReports: v } })} />
       </Row>
       <div className="row column">
         <div className="row-label">

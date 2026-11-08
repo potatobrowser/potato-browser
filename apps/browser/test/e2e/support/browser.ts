@@ -140,8 +140,7 @@ export async function apiLookup(prefixes: string[]): Promise<{ h: string; n: num
 }
 
 let clientSeq = 0;
-/** Flags a content key as some other anonymous user. */
-export async function flagAsOthers(key: string, count: number): Promise<void> {
+async function voteAsOthers(key: string, count: number, vote?: 'human'): Promise<void> {
   const { hashContentKey, parseContentKey } = await import('@potato/shared');
   const h = await hashContentKey(key);
   const platform = parseContentKey(key)!.platform;
@@ -149,12 +148,30 @@ export async function flagAsOthers(key: string, count: number): Promise<void> {
     const client = (Date.now().toString(16) + (clientSeq++).toString(16).padStart(8, '0') + Math.random().toString(16).slice(2)).slice(0, 32).padEnd(32, '0');
     const res = await fetch(`${process.env.POTATO_E2E_API}/api/v1/flags`, {
       method: 'POST',
-      // Each simulated person flags from a different network (votes count once per network).
-      headers: { 'content-type': 'application/json', 'cf-connecting-ip': `10.${process.pid % 200}.${clientSeq % 250}.9` },
-      body: JSON.stringify({ h, platform, client }),
+      // Each simulated person votes from a different network (votes count once per network).
+      headers: { 'content-type': 'application/json', 'cf-connecting-ip': `10.${process.pid % 200}.${clientSeq % 250}.${vote ? 77 : 9}` },
+      body: JSON.stringify({ h, platform, client, ...(vote ? { vote } : {}) }),
     });
-    if (!res.ok) throw new Error(`seeding flag failed: ${res.status} ${await res.text()}`);
+    if (!res.ok) throw new Error(`seeding vote failed: ${res.status} ${await res.text()}`);
   }
+}
+
+/** Flags a content key as some other anonymous user (the way apps before 0.8.0 do). */
+export const flagAsOthers = (key: string, count: number) => voteAsOthers(key, count);
+/** Votes Not AI on a content key as some other anonymous user. */
+export const disputeAsOthers = (key: string, count: number) => voteAsOthers(key, count, 'human');
+
+/** AI flags and Not AI votes on a key, as the server counts them. */
+export async function voteCounts(key: string): Promise<{ n: number; d: number }> {
+  const { hashContentKey, hashPrefix } = await import('@potato/shared');
+  const h = await hashContentKey(key);
+  const res = await fetch(`${process.env.POTATO_E2E_API}/api/v1/lookup`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prefixes: [hashPrefix(h)], v: 2 }),
+  });
+  const item = ((await res.json()) as { items: { h: string; n: number; d: number }[] }).items.find((i) => i.h === h);
+  return { n: item?.n ?? 0, d: item?.d ?? 0 };
 }
 
 export async function flagCount(key: string): Promise<number> {

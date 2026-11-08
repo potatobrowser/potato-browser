@@ -1,6 +1,7 @@
 import { RULES } from './rules';
 import { ruleMatchesHost, ruleMatchesPath } from './match';
 import type { HideTarget, Matcher, PlaceholderRewrite, ShieldFeature, ShieldRule } from './types';
+import { isSafeExtraCss, isSafeSelector } from './validate';
 
 export const HIDDEN_ATTR = 'data-potato-hidden';
 const PLACEHOLDER_ATTR = 'data-potato-placeholder';
@@ -17,8 +18,9 @@ export interface ShieldHost {
   report(r: ShieldReport): void;
 }
 
-export function rulesFor(host: string, pathname = '/'): ShieldRule[] {
-  return RULES.filter((r) => ruleMatchesHost(r, host) && ruleMatchesPath(r, pathname));
+/** `catalog`: the rules in use (downloaded updates included); the app's own by default. */
+export function rulesFor(host: string, pathname = '/', catalog: ShieldRule[] = RULES): ShieldRule[] {
+  return catalog.filter((r) => ruleMatchesHost(r, host) && ruleMatchesPath(r, pathname));
 }
 
 const norm = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -97,8 +99,8 @@ function safeQueryAll(root: ParentNode, selector: string): Element[] {
 /** One stylesheet rule per selector, so one bad selector cannot disable the others. */
 export function buildStylesheet(features: ShieldFeature[]): string {
   const lines = features.flatMap((f) => [
-    ...(f.css ?? []).map((sel) => `${sel} { display: none !important; }`),
-    ...(f.extraCss ?? []),
+    ...(f.css ?? []).filter(isSafeSelector).map((sel) => `${sel} { display: none !important; }`),
+    ...(f.extraCss ?? []).filter(isSafeExtraCss),
   ]);
   lines.push(`[${HIDDEN_ATTR}] { display: none !important; }`);
   return lines.join('\n');
@@ -118,16 +120,35 @@ export class ShieldEngine {
   private lastReport = '';
   private listening = false;
 
+  private catalog: ShieldRule[] | undefined;
+
   constructor(
     private readonly host: ShieldHost,
-    hostname: string,
-    pathname: string,
+    private readonly hostname: string,
+    private readonly pathname: string,
+    catalog?: ShieldRule[],
   ) {
-    this.rules = rulesFor(hostname, pathname);
+    this.catalog = catalog;
+    this.rules = rulesFor(hostname, pathname, catalog);
   }
 
   get active(): boolean {
     return this.rules.length > 0;
+  }
+
+  /** New rules for the page (a downloaded update); applied by the next apply(). */
+  setCatalog(catalog: ShieldRule[]): void {
+    if (catalog === this.catalog || JSON.stringify(catalog) === JSON.stringify(this.catalog)) return;
+    const wasActive = this.active;
+    this.catalog = catalog;
+    this.rules = rulesFor(this.hostname, this.pathname, catalog);
+    if (wasActive && !this.active) {
+      this.removeCss();
+      this.stopObserver();
+      this.restorePlaceholders();
+      this.lastCount = 0;
+      this.send({ count: 0, features: [], delta: 0 });
+    }
   }
 
   private features(): { rule: ShieldRule; feature: ShieldFeature }[] {

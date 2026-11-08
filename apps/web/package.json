@@ -5,15 +5,18 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler d1 migrations apply noaibrowser --remote && wrangler deploy",
-    "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run"
+    "rules": "node scripts/shield-rules.mjs",
+    "dev": "node scripts/shield-rules.mjs && wrangler dev",
+    "deploy": "node scripts/shield-rules.mjs --sign && wrangler d1 migrations apply noaibrowser --remote && wrangler deploy",
+    "typecheck": "node scripts/shield-rules.mjs && tsc --noEmit -p .",
+    "test": "node scripts/shield-rules.mjs && vitest run",
+    "reports": "node scripts/admin.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.6.0",
     "@cloudflare/workers-types": "5.20261104.1",
     "@potato/shared": "workspace:*",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
     "vitest": "5.1.0",
     "wrangler": "4.158.0"

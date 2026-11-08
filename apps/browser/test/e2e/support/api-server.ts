@@ -17,6 +17,16 @@ function freePort(): Promise<number> {
   });
 }
 
+/** The test Worker's /admin password, for reading what reached it. */
+export const E2E_ADMIN_TOKEN = 'e2e-admin';
+
+/** What the test Worker has stored: installs, reports, crash reports (its /admin summary). */
+export async function apiSummary(): Promise<any> {
+  const res = await fetch(`${process.env.POTATO_E2E_API}/admin/api/summary`, { headers: { authorization: 'Basic ' + Buffer.from(`admin:${E2E_ADMIN_TOKEN}`).toString('base64') } });
+  if (!res.ok) throw new Error(`admin summary: ${res.status}`);
+  return res.json();
+}
+
 export interface ApiServer {
   url: string;
   stop(): Promise<void>;
@@ -26,6 +36,9 @@ export interface ApiServer {
 export async function startApiServer(): Promise<ApiServer> {
   const persist = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-d1-'));
   const wrangler = path.join(WEB, 'node_modules', '.bin', 'wrangler');
+  // The Worker serves the AI Shield rules signed with a throwaway key (see scripts/shield-rules.mjs).
+  const rules = spawnSync(process.execPath, [path.join(WEB, 'scripts', 'shield-rules.mjs')], { cwd: WEB, encoding: 'utf8' });
+  if (rules.status !== 0) throw new Error(`shield rules failed:\n${rules.stdout}\n${rules.stderr}`);
   const migrate = spawnSync(wrangler, ['d1', 'migrations', 'apply', 'noaibrowser', '--local', '--persist-to', persist], {
     cwd: WEB,
     env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' },
@@ -35,7 +48,7 @@ export async function startApiServer(): Promise<ApiServer> {
   const port = await freePort();
   const child: ChildProcess = spawn(
     wrangler,
-    ['dev', '--local', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', persist, '--var', 'VOTER_SALT:e2e-salt', '--show-interactive-dev-session=false'],
+    ['dev', '--local', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', persist, '--var', 'VOTER_SALT:e2e-salt', '--var', `ADMIN_TOKEN:${E2E_ADMIN_TOKEN}`, '--show-interactive-dev-session=false'],
     { cwd: WEB, env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
   let log = '';

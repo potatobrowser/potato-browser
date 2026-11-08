@@ -284,3 +284,10 @@
 .password-import a {
   color: var(--ring);
 }
+
+.crash-note {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -12,3 +12,5 @@ playwright-report/
 apps/browser/test/.tmp/
 
 .cache/
+apps/web/src/generated/
+.claude/worktrees/

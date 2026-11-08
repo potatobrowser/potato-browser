@@ -1,4 +1,4 @@
-import { contentKey } from '@potato/shared';
+import { contentKey, netFlags, type VoteKind } from '@potato/shared';
 import type { FlagMode } from '../../shared/types';
 import { BUTTON_TAG, createButton, createPlaceholder, PLACEHOLDER_TAG, type FlagButton } from './ui';
 import type { FlagAdapter, FlagsBridge, FlagStatus } from './types';
@@ -174,20 +174,29 @@ export class FlagsEngine {
     this.report();
   }
 
-  /** Combined status of all keys of an item. */
+  /** Combined status of all keys of an item: the alias with the most flags speaks for the post. */
   private statusOf(item: Item): FlagStatus | undefined {
     let s: FlagStatus | undefined;
     for (const k of item.keys) {
       const v = this.status.get(k);
       if (!v) continue;
-      s = s ? { n: Math.max(s.n, v.n), mine: s.mine || v.mine } : { ...v };
+      const d = v.d ?? 0;
+      if (!s) s = { n: v.n, d, mine: v.mine, disputed: !!v.disputed };
+      else {
+        if (netFlags(v.n, d) > netFlags(s.n, s.d)) [s.n, s.d] = [v.n, d];
+        s.mine ||= v.mine;
+        s.disputed ||= !!v.disputed;
+      }
     }
     return s;
   }
 
+  /** The user's own vote decides for them; otherwise AI flags minus Not AI votes against the threshold. */
   private flagged(s: FlagStatus | undefined): boolean {
     if (!s) return false;
-    return s.mine || (this.config.mode !== 'ignore' && s.n >= this.config.threshold);
+    if (s.mine) return true;
+    if (s.disputed) return false;
+    return this.config.mode !== 'ignore' && netFlags(s.n, s.d) >= this.config.threshold;
   }
 
   private render(el: Element, item: Item): void {
@@ -197,15 +206,16 @@ export class FlagsEngine {
     const mode = this.config.mode;
 
     if (this.config.showButtons || (flagged && mode !== 'ignore')) {
-      if (!item.button) item.button = createButton(() => void this.toggle(el, item));
+      if (!item.button) item.button = createButton(() => void this.vote(el, item, 'main'), () => void this.vote(el, item, 'human'));
       if (!item.button.host.isConnected || !el.contains(item.button.host)) {
         const mount = this.adapter.mount(el);
         if (mount) mount.parent.insertBefore(item.button.host, mount.before?.parentNode === mount.parent ? mount.before : null);
         else el.prepend(item.button.host);
       }
-      const n = s?.n ?? 0;
-      const state = item.busy ? 'busy' : item.error ? 'error' : s?.mine ? 'mine' : flagged ? 'flagged' : 'idle';
-      item.button.set(state, mode === 'ignore' && !s?.mine ? 0 : n, this.config.threshold);
+      const n = Math.max(0, netFlags(s?.n ?? 0, s?.d ?? 0));
+      const state = item.busy ? 'busy' : item.error ? 'error' : s?.mine ? 'mine' : s?.disputed ? 'disputed' : flagged ? 'flagged' : 'idle';
+      const quiet = mode === 'ignore' && !s?.mine && !s?.disputed;
+      item.button.set(state, quiet ? 0 : n, this.config.threshold, s ? { ai: s.n, human: s.d } : undefined);
     } else if (item.button) {
       item.button.host.remove();
       item.button = null;
@@ -220,11 +230,16 @@ export class FlagsEngine {
     if (hide) {
       if (!item.placeholder || item.placeholder.nextElementSibling !== target) {
         item.placeholder?.remove();
-        item.placeholder = createPlaceholder(s?.n ?? 1, !!s?.mine, () => {
-          item.revealed = true;
-          this.render(el, item);
-          this.report();
-        });
+        item.placeholder = createPlaceholder(
+          Math.max(1, netFlags(s?.n ?? 1, s?.d ?? 0)),
+          !!s?.mine,
+          () => {
+            item.revealed = true;
+            this.render(el, item);
+            this.report();
+          },
+          () => void this.vote(el, item, 'human'),
+        );
         target.parentNode?.insertBefore(item.placeholder, target);
       }
     } else if (item.placeholder) {
@@ -239,17 +254,19 @@ export class FlagsEngine {
     (this.adapter.hideTarget?.(el) ?? el).removeAttribute(FLAG_ATTR);
   }
 
-  private async toggle(el: Element, item: Item): Promise<void> {
-    const flag = !this.statusOf(item)?.mine;
+  /** `main`: the AI? button (flag, or take back the user's vote); `human`: Not AI. */
+  private async vote(el: Element, item: Item, action: 'main' | VoteKind): Promise<void> {
+    const s = this.statusOf(item);
+    const vote: VoteKind | null = action === 'main' ? (s?.mine || s?.disputed ? null : 'ai') : action;
     for (const k of item.keys) this.epoch.set(k, (this.epoch.get(k) ?? 0) + 1);
     item.busy = true;
     item.error = false;
     this.render(el, item);
     try {
-      const result = await this.bridge.set(item.keys, flag);
+      const result = await this.bridge.set(item.keys, vote);
       for (const [k, v] of Object.entries(result)) this.status.set(k, v);
       // Flagging something you're looking at should not make it vanish under your cursor.
-      if (flag) item.revealed = true;
+      if (vote === 'ai') item.revealed = true;
     } catch {
       item.error = true;
       setTimeout(() => {

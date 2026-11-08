@@ -30,16 +30,18 @@ async function latestRevision(id: string): Promise<string | null> {
   }
 }
 
-/** GET /api/v1/filters?lists=a,b,c -> { lists: { a: "<rev>" | null, ... } } */
-export async function filterRevisions(url: URL): Promise<Response> {
+/** Valid list ids from `?lists=a,b,c` (deduplicated), or null when malformed or too many. */
+export function listIds(url: URL): string[] | null {
   const ids = [...new Set((url.searchParams.get('lists') ?? '').split(',').filter(Boolean))];
-  if (!ids.length || ids.length > MAX_LISTS || !ids.every((id) => LIST_ID.test(id))) return fail(400, `lists must be 1-${MAX_LISTS} list ids`);
+  return ids.length <= MAX_LISTS && ids.every((id) => LIST_ID.test(id)) ? ids : null;
+}
+
+export const MAX_FILTER_LISTS = MAX_LISTS;
+
+/** The latest revision of each list, null for lists the CDN does not know. */
+export async function filterRevisions(ids: string[]): Promise<Record<string, string | null>> {
   const revs = await Promise.all(ids.map(latestRevision));
-  const lists = Object.fromEntries(ids.map((id, i) => [id, revs[i]]));
-  return textResponse(JSON.stringify({ lists }), 200, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'public, max-age=900',
-  });
+  return Object.fromEntries(ids.map((id, i) => [id, revs[i] ?? null]));
 }
 
 /** GET /api/v1/filters/<id>/<rev> -> the list text of that revision, cached for a year. */

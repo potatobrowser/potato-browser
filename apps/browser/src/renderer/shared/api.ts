@@ -3,6 +3,7 @@ import type { SuggestResult, WindowState } from '../../shared/types';
 export interface ChromeApi {
   send(cmd: { type: string; [k: string]: unknown }): void;
   suggest(text: string): Promise<SuggestResult>;
+  report(feature: string, problem: string): Promise<boolean>;
   onState(cb: (s: WindowState) => void): () => void;
   onEvent(cb: (e: { type: string; [k: string]: unknown }) => void): () => void;
 }

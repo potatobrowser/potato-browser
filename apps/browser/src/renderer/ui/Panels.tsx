@@ -1,7 +1,50 @@
-import { PLATFORM_LABELS } from '@potato/shared';
+import { PLATFORM_LABELS, type ReportFeature, type ReportProblem } from '@potato/shared';
+import { useState } from 'react';
 import type { DownloadItemState, TabState } from '../../shared/types';
 import { chrome, formatBytes } from '../shared/api';
 import { AdBlock, Download, File, Flag, Shield } from '../shared/icons';
+
+/** "Report a problem": sends the page address and the choice, nothing else, to potatobrowser.com. */
+function ReportProblem({ feature }: { feature: ReportFeature }) {
+  const [state, setState] = useState<'idle' | 'open' | 'sending' | 'sent' | 'failed'>('idle');
+  const send = async (problem: ReportProblem) => {
+    setState('sending');
+    const ok = await chrome()
+      .report(feature, problem)
+      .catch(() => false);
+    setState(ok ? 'sent' : 'failed');
+  };
+  if (state === 'sent') {
+    return (
+      <p className="panel-hint report-done" data-testid="report-sent">
+        Thanks! A spud will dig into it.
+      </p>
+    );
+  }
+  if (state === 'idle') {
+    return (
+      <p className="panel-hint">
+        <button className="link" data-testid={`${feature}-report`} onClick={() => setState('open')}>
+          Something wrong on this page? Report it
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="report" data-testid="report-choices">
+      <p className="panel-hint">Sends this page's address and your choice to potatobrowser.com. Nothing else.</p>
+      <div className="report-buttons">
+        <button className="btn" data-testid="report-showing" disabled={state === 'sending'} onClick={() => void send('showing')}>
+          {feature === 'shield' ? 'AI still showing' : 'Ads still showing'}
+        </button>
+        <button className="btn" data-testid="report-broken" disabled={state === 'sending'} onClick={() => void send('broken')}>
+          Page broken
+        </button>
+      </div>
+      {state === 'failed' && <p className="panel-note">Could not send it. Try again in a moment.</p>}
+    </div>
+  );
+}
 
 export function AdblockPanel({ tab, globallyEnabled }: { tab: TabState | null; globallyEnabled: boolean }) {
   const host = tab?.shield.host ?? '';
@@ -60,6 +103,7 @@ export function AdblockPanel({ tab, globallyEnabled }: { tab: TabState | null; g
               <p>Ads and trackers load normally here. Switch it back on anytime.</p>
             )}
           </div>
+          <ReportProblem feature="adblock" />
         </>
       ) : (
         <p className="panel-section">Open a website to mash its ads and trackers.</p>
@@ -130,6 +174,7 @@ export function ShieldPanel({ tab, globallyEnabled }: { tab: TabState | null; gl
               </p>
             </div>
           ) : null}
+          <ReportProblem feature="shield" />
         </>
       ) : (
         <p className="panel-section">Open a website to see what's growing on it and peel off its AI features.</p>

@@ -1,10 +1,25 @@
-import type { WebContents } from 'electron';
-import { RULES, rulesForHost, siteRulesForHost } from '../content/shield/rules';
-import { ruleMatchesPath } from '../content/shield/match';
-import type { PageConfig, ShieldRuleSummary } from '../shared/types';
+import fs from 'node:fs';
+import path from 'node:path';
+import { net, type WebContents } from 'electron';
+import type { ShieldRulesEnvelope } from '@potato/shared';
+import { RULES } from '../content/shield/rules';
+import { ruleMatchesHost, ruleMatchesPath } from '../content/shield/match';
+import type { ShieldRule } from '../content/shield/types';
+import type { PageConfig, ShieldRuleSummary, ShieldRulesStatus } from '../shared/types';
 import { hostMatches, siteKey } from '../shared/urls';
 import { ctx } from './context';
-import { isTest } from './paths';
+import { apiBase, isTest, paths } from './paths';
+import { openRules } from './shield-verify';
+
+declare const __SHIELD_RULES_VERSION__: number;
+declare const __SHIELD_RULES_HASH__: string;
+
+/** The catalog this build ships (its git version and hash come from scripts/build.mjs). */
+const BUNDLED = {
+  rules: RULES,
+  version: typeof __SHIELD_RULES_VERSION__ === 'number' ? __SHIELD_RULES_VERSION__ : 0,
+  hash: typeof __SHIELD_RULES_HASH__ === 'string' ? __SHIELD_RULES_HASH__ : '',
+};
 
 function hostOf(url: string): string {
   try {
@@ -14,10 +29,73 @@ function hostOf(url: string): string {
   }
 }
 
-/** Main-process side of the AI Shield: per-site state, page config and hidden-feature counts. */
+/** Main-process side of the AI Shield: the rules in use, per-site state, page config and counts. */
 export class ShieldService {
+  private catalog: ShieldRule[] = BUNDLED.rules;
+  private version = BUNDLED.version;
+  private hash = BUNDLED.hash;
+  private source: ShieldRulesStatus['source'] = 'app';
+  private lastCheck: number | null = null;
+  private fetching: Promise<void> | null = null;
+
+  private get file(): string {
+    return path.join(paths.userData, 'Shield', 'rules.json');
+  }
+
+  /** A rule update downloaded earlier wins over the app's rules when it is newer. */
+  init(): void {
+    try {
+      const saved = JSON.parse(fs.readFileSync(this.file, 'utf8')) as ShieldRulesEnvelope & { checkedAt?: number };
+      this.lastCheck = typeof saved.checkedAt === 'number' ? saved.checkedAt : null;
+      const opened = openRules(saved);
+      if (opened && opened.version > BUNDLED.version && opened.hash !== BUNDLED.hash) this.use(opened, 'update');
+    } catch {}
+  }
+
+  private use(r: { rules: ShieldRule[]; version: number; hash: string }, source: ShieldRulesStatus['source']): void {
+    this.catalog = r.rules;
+    this.version = r.version;
+    this.hash = r.hash;
+    this.source = source;
+  }
+
+  status(): ShieldRulesStatus {
+    return { source: this.source, version: this.version, rules: this.catalog.length, lastCheck: this.lastCheck };
+  }
+
+  /**
+   * From the daily check: downloads the rules when the site has newer ones, checks their
+   * signature (the server alone cannot change them) and swaps them in for every open page.
+   */
+  update(latest: { version?: unknown; hash?: unknown } | undefined): Promise<void> {
+    this.lastCheck = Date.now();
+    const version = latest?.version;
+    if (typeof version !== 'number' || typeof latest?.hash !== 'string' || latest.hash === this.hash || version <= this.version) return Promise.resolve();
+    this.fetching ??= this.download().finally(() => (this.fetching = null));
+    return this.fetching;
+  }
+
+  private async download(): Promise<void> {
+    const res = await net.fetch(`${apiBase()}/api/v1/shield/rules`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(30_000), credentials: 'omit' });
+    if (!res.ok) throw new Error(`the rules service answered ${res.status}`);
+    const envelope = (await res.json()) as ShieldRulesEnvelope;
+    const opened = openRules(envelope);
+    if (!opened) throw new Error('the rule update is not signed or not valid');
+    if (opened.version <= this.version) return;
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    fs.writeFileSync(`${this.file}.tmp`, JSON.stringify({ payload: envelope.payload, signature: envelope.signature, checkedAt: this.lastCheck }));
+    fs.renameSync(`${this.file}.tmp`, this.file);
+    this.use(opened, 'update');
+    this.broadcast();
+  }
+
+  /** Rules that apply to a host, excluding the catch-all widget rule. */
+  private siteRules(host: string): ShieldRule[] {
+    return this.catalog.filter((r) => !r.hosts.includes('*') && ruleMatchesHost(r, host));
+  }
+
   isSupported(url: string): boolean {
-    return siteRulesForHost(hostOf(url)).length > 0;
+    return this.siteRules(hostOf(url)).length > 0;
   }
 
   /**
@@ -46,8 +124,8 @@ export class ShieldService {
     }
     const top = new URL(topUrl);
     const target = u.hostname + u.pathname;
-    for (const rule of rulesForHost(top.hostname)) {
-      if (!ruleMatchesPath(rule, top.pathname) && rule.paths) continue;
+    for (const rule of this.catalog) {
+      if (!ruleMatchesHost(rule, top.hostname) || (rule.paths && !ruleMatchesPath(rule, top.pathname))) continue;
       for (const f of rule.features) {
         if (!f.block?.length || this.isRuleDisabled(rule.id, f.id)) continue;
         if (f.block.some((b) => target.includes(b))) return 'cancel';
@@ -87,23 +165,28 @@ export class ShieldService {
   broadcast(): void {
     for (const tab of ctx.windows.allTabs()) {
       if (tab.isDestroyed) continue;
-      const config = this.pageConfig(tab.wc, tab.url, tab.win.isPrivate);
       for (const frame of tab.wc.mainFrame.framesInSubtree) {
         try {
-          frame.send('page:config', config);
+          frame.send('page:config', this.pageConfig(tab.wc, tab.url, tab.win.isPrivate, frame.url));
         } catch {}
       }
     }
     ctx.windows.broadcast();
   }
 
-  pageConfig(_wc: WebContents | null, topUrl: string, isPrivate: boolean): PageConfig {
+  /** `frameUrl`: the frame asking, whose host picks the rules it gets. */
+  pageConfig(_wc: WebContents | null, topUrl: string, isPrivate: boolean, frameUrl = topUrl): PageConfig {
     const s = ctx.settings.get();
     const web = /^https?:/.test(topUrl);
+    const frameHost = hostOf(frameUrl);
     return {
       isPrivate,
       testHooks: isTest(),
-      shield: { enabled: web && this.isEnabledFor(topUrl), disabledRules: s.shield.disabledRules },
+      shield: {
+        enabled: web && this.isEnabledFor(topUrl),
+        disabledRules: s.shield.disabledRules,
+        rules: frameHost ? this.catalog.filter((r) => ruleMatchesHost(r, frameHost)) : [],
+      },
       adblock: { enabled: web && ctx.adblock.isEnabledFor(topUrl) },
       flags: {
         enabled: web && (s.flags.mode !== 'ignore' || s.flags.showButtons),
@@ -117,7 +200,7 @@ export class ShieldService {
   }
 
   summaries(): ShieldRuleSummary[] {
-    return RULES.map((r) => ({ id: r.id, site: r.site, hosts: r.hosts, features: r.features.map((f) => ({ id: f.id, name: f.name })) }));
+    return this.catalog.map((r) => ({ id: r.id, site: r.site, hosts: r.hosts, features: r.features.map((f) => ({ id: f.id, name: f.name })) }));
   }
 
   recordHidden(delta: number, isPrivate: boolean): void {

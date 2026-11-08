@@ -859,6 +859,22 @@ input[role='switch']:focus-visible {
   gap: 6px;
   color: var(--muted);
 }
+.report-buttons {
+  display: flex;
+  gap: 8px;
+  margin: 8px 16px 0;
+}
+.report-buttons .btn {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+}
+.report-buttons .btn:disabled {
+  opacity: 0.6;
+}
+.panel-hint.report-done {
+  color: var(--text);
+}
 .panel-foot {
   display: flex;
   justify-content: space-between;

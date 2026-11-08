@@ -18,9 +18,9 @@ export function defaultSettings(): Settings {
     theme: 'system',
     downloadsDir: path.join(os.homedir(), 'Downloads'),
     askWhereToSave: false,
-    shield: { enabled: true, disabledSites: [], disabledRules: [] },
+    shield: { enabled: true, disabledSites: [], disabledRules: [], autoUpdate: true },
     flags: { mode: 'label', threshold: 3, showButtons: true, disabledPlatforms: [] },
-    privacy: { globalPrivacyControl: true, blockAiChatbots: false },
+    privacy: { globalPrivacyControl: true, blockAiChatbots: false, crashReports: false },
     adblock: { enabled: true, disabledSites: [], trackers: true, cookieNotices: false, annoyances: false, customFilters: '', autoUpdate: true },
     passwords: { offerToSave: true, autofill: true, neverSave: [] },
     installId: crypto.randomBytes(16).toString('hex'),
@@ -54,6 +54,7 @@ export function sanitizeSettings(raw: unknown): Settings {
       enabled: bool(r.shield?.enabled, true),
       disabledSites: [...new Set(strList(r.shield?.disabledSites).map((s) => s.toLowerCase()))],
       disabledRules: [...new Set(strList(r.shield?.disabledRules))],
+      autoUpdate: bool(r.shield?.autoUpdate, d.shield.autoUpdate),
     },
     flags: {
       mode: oneOf<FlagMode>(r.flags?.mode, ['hide', 'label', 'ignore'], d.flags.mode),
@@ -64,6 +65,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     privacy: {
       globalPrivacyControl: bool(r.privacy?.globalPrivacyControl, d.privacy.globalPrivacyControl),
       blockAiChatbots: bool(r.privacy?.blockAiChatbots, d.privacy.blockAiChatbots),
+      crashReports: bool(r.privacy?.crashReports, d.privacy.crashReports),
     },
     adblock: {
       enabled: bool(r.adblock?.enabled, d.adblock.enabled),

@@ -1,4 +1,4 @@
-import type { Platform } from '@potato/shared';
+import type { Platform, VoteKind } from '@potato/shared';
 
 export interface MountPoint {
   parent: Element;
@@ -26,14 +26,20 @@ export interface FlagAdapter {
 }
 
 export interface FlagStatus {
+  /** Distinct AI flags from everyone, including the user's own. */
   n: number;
+  /** Distinct Not AI votes. */
+  d: number;
+  /** The user flagged it as AI. */
   mine: boolean;
+  /** The user voted Not AI. */
+  disputed: boolean;
 }
 
 export interface FlagsBridge {
   lookup(keys: string[], localOnly: boolean): Promise<Record<string, FlagStatus>>;
-  /** Flags (or un-flags) every key of one post. */
-  set(keys: string[], flag: boolean): Promise<Record<string, FlagStatus>>;
+  /** Sets the user's vote on every key of one post; null takes it back. */
+  set(keys: string[], vote: VoteKind | null): Promise<Record<string, FlagStatus>>;
   report(r: { platform: Platform; hidden: number; labeled: number }): void;
   insertCSS(css: string): string;
   removeCSS(key: string): void;

@@ -104,10 +104,15 @@ describe('site settings, flags and stats', () => {
   });
 
   it('remembers the user flags and counts hidden AI features', () => {
-    db.setMyFlag('reddit:t3_a', 'h', 'reddit', true);
-    expect(db.myFlags(['reddit:t3_a', 'reddit:t3_b'])).toEqual(new Set(['reddit:t3_a']));
-    db.setMyFlag('reddit:t3_a', 'h', 'reddit', false);
-    expect(db.myFlagCount()).toBe(0);
+    db.setMyFlag('reddit:t3_a', 'h', 'reddit', 'ai');
+    db.setMyFlag('reddit:t3_c', 'h2', 'reddit', 'human');
+    expect(db.myFlags(['reddit:t3_a', 'reddit:t3_b', 'reddit:t3_c'])).toEqual(new Map([['reddit:t3_a', 'ai'], ['reddit:t3_c', 'human']]));
+    expect(db.myFlagCount()).toEqual({ ai: 1, human: 1 });
+    db.setMyFlag('reddit:t3_c', 'h2', 'reddit', 'ai');
+    expect(db.myFlags(['reddit:t3_c']).get('reddit:t3_c')).toBe('ai');
+    db.setMyFlag('reddit:t3_a', 'h', 'reddit', null);
+    db.setMyFlag('reddit:t3_c', 'h2', 'reddit', null);
+    expect(db.myFlagCount()).toEqual({ ai: 0, human: 0 });
     db.addShieldHidden(3);
     db.addShieldHidden(2);
     db.addAdsBlocked(40);

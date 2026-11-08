@@ -13,6 +13,7 @@ export function configureUserData(): void {
   if (dir) app.setPath('userData', path.resolve(dir));
   else app.setPath('userData', profileDir(app.getPath('appData')));
   app.setPath('sessionData', path.join(app.getPath('userData'), 'Session'));
+  app.setPath('crashDumps', path.join(app.getPath('userData'), 'Crashpad'));
 }
 
 /** Moves a profile from before the rename (No-AI Browser) to the new folder, once. */

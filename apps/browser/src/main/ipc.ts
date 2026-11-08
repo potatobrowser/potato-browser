@@ -1,5 +1,5 @@
 import { app, dialog, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron';
-import { isPlatform } from '@potato/shared';
+import { isPlatform, isVoteKind } from '@potato/shared';
 import type { ClearDataOptions, SettingsPatch } from '../shared/types';
 import { SITE_URL, SOURCE_URL } from '../shared/constants';
 import { NEW_TAB_URL, resolveInput, SEARCH_ENGINES } from '../shared/urls';
@@ -10,6 +10,7 @@ import { detectSources, runImport } from './importers';
 import { showBookmarkFolderMenu, showBookmarkItemMenu, showOverflowMenu, showTabContextMenu } from './menus';
 import { bookmarksChanged } from './notify';
 import { apiBase, APP_VERSION } from './paths';
+import { sendReport } from './reports';
 import { allowChatbotOnce } from './sessions';
 import { suggest } from './suggest';
 import type { BrowserWindowController } from './window';
@@ -244,6 +245,7 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
   topSites: () => ctx.db.topSites(8),
   'shield.stats': () => ctx.db.shieldStats(),
   'shield.rules': () => ctx.shield.summaries(),
+  'shield.status': () => ctx.shield.status(),
   'shield.setSite': (host: unknown, enabled: unknown) => {
     const h = str(host, 300).replace(/^https?:\/\//, '').split('/')[0];
     if (h) ctx.shield.setSiteEnabled(`https://${h}/`, !!enabled);
@@ -253,7 +255,10 @@ const internalApi: Record<string, (...args: any[]) => unknown> = {
     await ctx.adblock.checkForUpdates().catch(() => {});
     return ctx.adblock.status();
   },
-  'flags.stats': () => ({ mine: ctx.db.myFlagCount() }),
+  'flags.stats': () => {
+    const c = ctx.db.myFlagCount();
+    return { mine: c.ai, disputed: c.human };
+  },
   'permissions.list': () => ctx.permissions.list(),
   'permissions.reset': (origin: unknown, kind: unknown) => ctx.permissions.reset(str(origin), str(kind)),
   'import.detect': () => detectSources(),
@@ -348,6 +353,10 @@ export function registerIpc(): void {
     if (popupWin && cmd.type.startsWith('autofill.')) ctx.passwords.popupCommand(popupWin, cmd);
   });
   ctx.passwords.registerIpc();
+  ipcMain.handle('ui:report', (e, feature: unknown, problem: unknown) => {
+    const tab = windowForUi(e.sender)?.activeTab;
+    return tab && !tab.isDestroyed ? sendReport(tab.url, feature, problem) : false;
+  });
   ipcMain.handle('ui:suggest', (e, text: unknown) => {
     if (!windowForUi(e.sender)) return { input: '', suggestions: [], inline: null };
     return suggest(str(text, 2000));
@@ -366,7 +375,7 @@ export function registerIpc(): void {
     // Never trust a URL the page reports about itself; ask the browser which document this is.
     const frame = e.senderFrame;
     const topUrl = frame && frame.parent === null ? frame.url : e.sender.getURL();
-    e.returnValue = ctx.shield.pageConfig(e.sender, topUrl, tab?.win.isPrivate ?? false);
+    e.returnValue = ctx.shield.pageConfig(e.sender, topUrl, tab?.win.isPrivate ?? false, frame?.url ?? topUrl);
   });
   ipcMain.on('page:shield-report', (e, r: { count?: unknown; features?: unknown; delta?: unknown }) => {
     const tab = ctx.windows.tabFor(e.sender);
@@ -399,10 +408,10 @@ export function registerIpc(): void {
     if (!tab) return {};
     return ctx.flags.lookup(keyList(keys), tab.win.isPrivate, localOnly === true);
   });
-  ipcMain.handle('page:flags-set', (e, keys: unknown, flag: unknown) => {
+  ipcMain.handle('page:flags-set', (e, keys: unknown, vote: unknown) => {
     const tab = ctx.windows.tabFor(e.sender);
     if (!tab) throw new Error('Not allowed');
-    return ctx.flags.set(keyList(keys), flag === true, tab.win.isPrivate);
+    return ctx.flags.set(keyList(keys), isVoteKind(vote) ? vote : null, tab.win.isPrivate);
   });
   ipcMain.on('page:flags-report', (e, r: { platform?: unknown; hidden?: unknown; labeled?: unknown }) => {
     const tab = ctx.windows.tabFor(e.sender);

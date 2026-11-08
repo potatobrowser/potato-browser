@@ -25,12 +25,19 @@
       "migrations_dir": "./migrations"
     }
   ],
+  // Opt-in crash reports; objects expire after 90 days (lifecycle rule) and the daily cron
+  // deletes them with their index rows too.
+  "r2_buckets": [{ "binding": "CRASHES", "bucket_name": "potatobrowser-crashes" }],
+  // Daily cleanup of reports and crash reports (src/index.ts, scheduled).
+  "triggers": { "crons": ["17 3 * * *"] },
   // Builds come from the GitHub Releases of this public repository (latest.json + DMGs).
   "vars": { "SOURCE_REPO": "potatobrowser/potato-browser" },
   // Per-IP limits; they back up the per-voter daily caps enforced in D1.
   "ratelimits": [
     { "name": "LOOKUP_LIMIT", "namespace_id": "4101", "simple": { "limit": 240, "period": 60 } },
-    { "name": "FLAG_LIMIT", "namespace_id": "4102", "simple": { "limit": 40, "period": 60 } }
+    { "name": "FLAG_LIMIT", "namespace_id": "4102", "simple": { "limit": 40, "period": 60 } },
+    { "name": "REPORT_LIMIT", "namespace_id": "4103", "simple": { "limit": 10, "period": 60 } },
+    { "name": "CRASH_LIMIT", "namespace_id": "4104", "simple": { "limit": 10, "period": 60 } }
   ],
   // Error logs only: no invocation logs, so no request metadata (like IPs) is retained.
   "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false }, "traces": { "enabled": false } }

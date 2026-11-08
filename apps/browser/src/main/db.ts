@@ -1,4 +1,5 @@
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
+import type { VoteKind } from '@potato/shared';
 import type { BookmarkNode, DownloadItemState, HistoryEntry, TopSite } from '../shared/types';
 
 export const BOOKMARKS_BAR_ID = 1;
@@ -59,7 +60,8 @@ CREATE TABLE IF NOT EXISTS my_flags (
   key TEXT PRIMARY KEY,
   hash TEXT NOT NULL,
   platform TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  vote TEXT NOT NULL DEFAULT 'ai'
 );
 CREATE TABLE IF NOT EXISTS stats (
   day TEXT PRIMARY KEY,
@@ -93,6 +95,9 @@ export class ProfileDb {
     // Profiles from before the ad blocker (0.5.0) lack the column.
     const cols = this.db.prepare('PRAGMA table_info(stats)').all() as Row[];
     if (!cols.some((c) => c.name === 'ads_blocked')) this.db.exec('ALTER TABLE stats ADD COLUMN ads_blocked INTEGER NOT NULL DEFAULT 0');
+    // Not AI votes (0.8.0): before them every row was an AI flag.
+    const flagCols = this.db.prepare('PRAGMA table_info(my_flags)').all() as Row[];
+    if (!flagCols.some((c) => c.name === 'vote')) this.db.exec("ALTER TABLE my_flags ADD COLUMN vote TEXT NOT NULL DEFAULT 'ai'");
     const now = Date.now();
     this.db
       .prepare(
@@ -458,19 +463,24 @@ export class ProfileDb {
     this.stmt('INSERT OR REPLACE INTO favicons (host, data, updated_at) VALUES (?, ?, ?)').run(host, data, Date.now());
   }
 
-  myFlags(keys: string[]): Set<string> {
-    const out = new Set<string>();
-    for (const k of keys) if (this.stmt('SELECT 1 FROM my_flags WHERE key = ?').get(k)) out.add(k);
+  /** The user's votes on these keys: an AI flag or Not AI. */
+  myFlags(keys: string[]): Map<string, VoteKind> {
+    const out = new Map<string, VoteKind>();
+    for (const k of keys) {
+      const r = this.stmt('SELECT vote FROM my_flags WHERE key = ?').get(k) as Row | undefined;
+      if (r) out.set(k, r.vote === 'human' ? 'human' : 'ai');
+    }
     return out;
   }
 
-  setMyFlag(key: string, hash: string, platform: string, on: boolean): void {
-    if (on) this.stmt('INSERT OR REPLACE INTO my_flags (key, hash, platform, created_at) VALUES (?, ?, ?, ?)').run(key, hash, platform, Date.now());
+  setMyFlag(key: string, hash: string, platform: string, vote: VoteKind | null): void {
+    if (vote) this.stmt('INSERT OR REPLACE INTO my_flags (key, hash, platform, created_at, vote) VALUES (?, ?, ?, ?, ?)').run(key, hash, platform, Date.now(), vote);
     else this.stmt('DELETE FROM my_flags WHERE key = ?').run(key);
   }
 
-  myFlagCount(): number {
-    return (this.stmt('SELECT COUNT(*) AS c FROM my_flags').get() as Row).c;
+  myFlagCount(): { ai: number; human: number } {
+    const r = this.stmt("SELECT COALESCE(SUM(vote = 'ai'), 0) AS ai, COALESCE(SUM(vote = 'human'), 0) AS human FROM my_flags").get() as Row;
+    return { ai: Number(r.ai), human: Number(r.human) };
   }
 
   addShieldHidden(n: number): void {

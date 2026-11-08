@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ImportSource, SearchEngineId } from '../../shared/types';
 import { call, onInternalEvent } from '../shared/api';
-import { useSettings } from '../shared/components';
+import { Toggle, useSettings } from '../shared/components';
 import { FlagModePicker } from '../shared/flagmodes';
 import { AdBlock, ArrowRight, BrandMark, Check, Flag, Globe, NoAi, Shield } from '../shared/icons';
 import { AccessSteps, useImporter } from '../shared/importer';
@@ -217,6 +217,25 @@ function Welcome() {
         </Step>
 
         <Step n={4} title="Default browser" hint="Send links from Mail, Slack and other apps straight to the potato." aside={<DefaultBrowserButton />} />
+
+        <Step
+          n={5}
+          title="Crash reports"
+          hint="If the browser crashes, it can send a report so we can fix it. Off unless you switch it on."
+          aside={
+            <Toggle
+              label="Send crash reports"
+              testId="welcome-crash-reports"
+              checked={!!settings?.privacy.crashReports}
+              onChange={(v) => void update({ privacy: { crashReports: v } })}
+            />
+          }
+        >
+          <p className="crash-note">
+            A report holds the version, what crashed and a snapshot of memory at that moment, which can include bits of the page you were on. It is kept 90
+            days and never shared. <a href="https://potatobrowser.com/privacy" target="_blank" rel="noreferrer">What is sent where</a>
+          </p>
+        </Step>
       </main>
 
       <footer className="finish">

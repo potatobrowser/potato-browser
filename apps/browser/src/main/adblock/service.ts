@@ -8,7 +8,7 @@ import type { AdblockStatus, AdblockTabState, Settings } from '../../shared/type
 import { hostMatches, siteKey } from '../../shared/urls';
 import { ctx } from '../context';
 import { notifyInternalPages } from '../notify';
-import { apiBase, isTest, paths } from '../paths';
+import { apiBase, APP_VERSION, isTest, paths } from '../paths';
 import { CATALOG, customFilterErrors, DEFAULT_GROUPS, groupsFor, isPlausibleList, listsForGroups, loadEngine, specKey, type CompileJob, type EngineSpec } from './compile';
 
 interface BundledManifest {
@@ -39,7 +39,7 @@ const REV = /^[0-9a-f]{64}$/;
 // Stand-ins are served only under this per-launch path, so pages cannot probe for the browser.
 const RESOURCE_TOKEN = crypto.randomBytes(12).toString('hex');
 const RESOURCE_BASE = `potato-res://r/${RESOURCE_TOKEN}/`;
-const DAY_MS = 86_400_000;
+const utcDay = (t: number | null) => (t ? new Date(t).toISOString().slice(0, 10) : '');
 const isWeb = (url: string) => url.startsWith('https:') || url.startsWith('http:');
 
 function domainOf(url: string): string {
@@ -110,11 +110,22 @@ export class AdblockService {
     app.whenReady().then(() => this.rebuild());
   }
 
+  /** The daily check asks for list updates while these are on, and for AI Shield rules. */
+  private wantsLists(): boolean {
+    return this.settings.enabled && this.settings.autoUpdate;
+  }
+
+  private wantsCheck(): boolean {
+    return this.wantsLists() || ctx.settings.get().shield.autoUpdate;
+  }
+
   start(): void {
     this.timers.push(setInterval(() => this.flushStats(), 15_000));
     if (isTest() && process.env.POTATO_ADBLOCK_UPDATES !== '1') return;
-    const due = () => this.settings.enabled && this.settings.autoUpdate && Date.now() - (this.state.lastCheck ?? 0) > DAY_MS;
-    setTimeout(() => due() && void this.checkForUpdates().catch(() => {}), 90_000);
+    // Once per calendar day (UTC), so the check also tells how many installs ran that day.
+    const due = () => this.wantsCheck() && utcDay(this.state.lastCheck) !== utcDay(Date.now());
+    const first = (isTest() && Number(process.env.POTATO_UPDATE_CHECK_DELAY_MS)) || 90_000;
+    setTimeout(() => due() && void this.checkForUpdates().catch(() => {}), first);
     this.timers.push(setInterval(() => due() && void this.checkForUpdates().catch(() => {}), 3_600_000));
   }
 
@@ -425,7 +436,11 @@ export class AdblockService {
 
   // ---- updates -------------------------------------------------------------------------------
 
-  /** Downloads lists whose revision changed (through potatobrowser.com) and recompiles. */
+  /**
+   * The daily check: downloads lists whose revision changed (through potatobrowser.com) and
+   * recompiles, and hands the AI Shield its rule version. It names the lists, the app and its
+   * version, nothing about the user.
+   */
   checkForUpdates(): Promise<void> {
     this.updating ??= this.update().finally(() => {
       this.updating = null;
@@ -439,14 +454,19 @@ export class AdblockService {
     // Lists only: scriptlet code (uBlock's resources) changes with signed app releases, never
     // through a download. Trusted scriptlets, whose arguments can carry code, only run from
     // uBlock's own lists (see dropTrustedScriptlets), as in uBlock Origin.
-    const ids = this.spec().lists.map(([id]) => id);
+    const ids = this.wantsLists() ? this.spec().lists.map(([id]) => id) : [];
     try {
-      const res = await net.fetch(`${apiBase()}/api/v1/filters?lists=${ids.join(',')}`, {
+      const res = await net.fetch(`${apiBase()}/api/v1/filters?lists=${ids.join(',')}&app=mac&v=${APP_VERSION}`, {
         headers: { accept: 'application/json' },
         signal: AbortSignal.timeout(30_000),
+        credentials: 'omit',
       });
       if (!res.ok) throw new Error(`the filter service answered ${res.status}`);
-      const latest = ((await res.json()) as { lists?: Record<string, unknown> }).lists ?? {};
+      const body = (await res.json()) as { lists?: Record<string, unknown>; shield?: { version?: unknown; hash?: unknown } };
+      const latest = body.lists ?? {};
+      if (ctx.settings.get().shield.autoUpdate) {
+        await ctx.shield.update(body.shield).catch((err) => console.warn('shield rules update failed:', err instanceof Error ? err.message : err));
+      }
       let changed = 0;
       const failed: string[] = [];
       // One list failing must not hold back the others.

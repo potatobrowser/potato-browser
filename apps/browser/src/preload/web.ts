@@ -60,6 +60,7 @@ function startWebPage(): void {
     },
     location.hostname,
     location.pathname,
+    current.shield.rules,
   );
   // A failure here must not stop the config listener below from being registered.
   try {
@@ -70,7 +71,7 @@ function startWebPage(): void {
   const adapter = isTop ? adapterFor(location.hostname) : null;
   const bridge: FlagsBridge = {
     lookup: (keys, localOnly) => ipcRenderer.invoke('page:flags-lookup', keys, localOnly),
-    set: (keys, flag) => ipcRenderer.invoke('page:flags-set', keys, flag),
+    set: (keys, vote) => ipcRenderer.invoke('page:flags-set', keys, vote),
     report: (r) => ipcRenderer.send('page:flags-report', r),
     insertCSS: (css) => webFrame.insertCSS(css, { cssOrigin: 'user' }),
     removeCSS: (key) => webFrame.removeInsertedCSS(key),
@@ -123,7 +124,10 @@ function startWebPage(): void {
         startAdblock(true);
       } catch {}
     }
-    if (shield.active) shield.apply(next.shield);
+    try {
+      if (next.shield.rules) shield.setCatalog(next.shield.rules);
+      if (shield.active) shield.apply(next.shield);
+    } catch {}
     passwords.update(next.passwords);
     if (flags && !flagsAllowed()) {
       flags.stop();

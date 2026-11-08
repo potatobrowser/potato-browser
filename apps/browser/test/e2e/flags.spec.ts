@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { flagAsOthers, flagCount, TestBrowser } from './support/browser';
+import { disputeAsOthers, flagAsOthers, flagCount, TestBrowser, voteCounts } from './support/browser';
 
 let b: TestBrowser;
 test.afterEach(async () => b?.close());
@@ -68,6 +68,47 @@ test('hide mode collapses flagged posts behind a notice that can be opened', asy
   await notice.getByRole('button', { name: 'Show' }).click();
   await expect(post).toBeVisible();
   await expect(post).toHaveAttribute('data-potato-flag', 'label');
+});
+
+test('Not AI votes cancel AI flags: a buried post comes back and the vote reaches the server', async () => {
+  const key = 'reddit:t3_1xhuman3';
+  await flagAsOthers(key, 3);
+  b = await TestBrowser.launch({ settings: flagMode('hide', 3) });
+  const page = await b.goto('https://www.reddit.com/r/test/');
+  const post = page.locator('#a3 shreddit-post');
+  await expect(post).toBeHidden();
+  const before = await voteCounts(key);
+  await page.locator('#a3 potato-flag-hidden').getByRole('button', { name: 'Not AI' }).click();
+  await expect(post).toBeVisible();
+  const btn = button(page, '#a3');
+  await expect(btn).toHaveText('You said Not AI');
+  await expect(btn).toHaveAttribute('aria-pressed', 'true');
+  expect(await voteCounts(key)).toEqual({ n: before.n, d: before.d + 1 });
+  // Others disputing it too: one more Not AI from another network keeps it below the threshold
+  // for everyone, also for apps that only know AI flags (they get the net count).
+  await disputeAsOthers(key, 1);
+  expect((await voteCounts(key)).d).toBe(before.d + 2);
+  expect(await flagCount(key)).toBe(before.n - before.d - 2);
+  // Taking the vote back leaves the other Not AI vote.
+  await btn.click();
+  await expect(btn).not.toHaveText('You said Not AI');
+  expect((await voteCounts(key)).d).toBe(before.d + 1);
+});
+
+test('the Not AI button shows only on posts that count as AI-generated', async () => {
+  await flagAsOthers('reddit:t3_1xabc22', 3);
+  b = await TestBrowser.launch({ settings: flagMode('label', 3) });
+  const page = await b.goto('https://www.reddit.com/r/test/');
+  await expect(page.locator('#a2 shreddit-post')).toHaveAttribute('data-potato-flag', 'label');
+  await expect(page.locator('#a2 potato-flag button.dispute')).toBeVisible();
+  await expect(page.locator('#a1 potato-flag button.dispute')).toBeHidden();
+  const forged = await page.evaluate(() => {
+    (document.querySelector('#a2 potato-flag')!.shadowRoot!.querySelector('button.dispute') as HTMLButtonElement).click();
+    return true;
+  });
+  expect(forged).toBe(true);
+  await page.waitForTimeout(800);
+  await expect(button(page, '#a2')).not.toHaveText('You said Not AI');
 });
 
 test('ignore mode changes nothing, threshold changes apply live', async () => {
@@ -173,7 +214,7 @@ test('flags made in a private window are not remembered on disk', async () => {
   await button(page, '#c1').click();
   await expect(button(page, '#c1')).toHaveText(/Flagged as AI/);
   const stored = await b.app.evaluate(() => (globalThis as any).__potato.ctx.db.myFlagCount());
-  expect(stored).toBe(0);
+  expect(stored).toEqual({ ai: 0, human: 0 });
   await button(page, '#c1').click();
   await expect(button(page, '#c1')).not.toHaveText(/Flagged as AI/);
 });

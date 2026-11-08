@@ -7,6 +7,7 @@ import {
   parseContentKey,
   type FlagResponse,
   type LookupResponse,
+  type VoteKind,
 } from '@potato/shared';
 import type { FlagStatus } from '../shared/types';
 import { ctx } from './context';
@@ -15,9 +16,14 @@ import { apiBase } from './paths';
 const CACHE_TTL_MS = 2 * 60_000;
 const REQUEST_TIMEOUT_MS = 6_000;
 
+interface Counts {
+  n: number;
+  d: number;
+}
+
 interface PrefixEntry {
   at: number;
-  counts: Map<string, number>;
+  counts: Map<string, Counts>;
 }
 
 async function postJson<T>(path: string, body: unknown, method = 'POST'): Promise<T> {
@@ -47,8 +53,8 @@ export class FlagsService {
   private prefixCache = new Map<string, PrefixEntry>();
   private hashCache = new Map<string, string>();
   private inflight = new Map<string, Promise<void>>();
-  /** Flags made in private windows are remembered only until the private session ends. */
-  private privateMine = new Set<string>();
+  /** Votes cast in private windows are remembered only until the private session ends. */
+  private privateMine = new Map<string, VoteKind>();
   /** Private windows flag under a throwaway id, so the server cannot link them to this install. */
   private privateClient: string | null = null;
 
@@ -72,11 +78,11 @@ export class FlagsService {
     const waits = prefixes.map((p) => this.inflight.get(p)).filter(Boolean) as Promise<void>[];
     for (let i = 0; i < todo.length; i += MAX_LOOKUP_PREFIXES) {
       const batch = todo.slice(i, i + MAX_LOOKUP_PREFIXES);
-      const p = postJson<LookupResponse>('/api/v1/lookup', { prefixes: batch })
+      const p = postJson<LookupResponse>('/api/v1/lookup', { prefixes: batch, v: 2 })
         .then((res) => {
           const now = Date.now();
-          const grouped = new Map<string, Map<string, number>>(batch.map((b) => [b, new Map()]));
-          for (const item of res.items ?? []) grouped.get(hashPrefix(item.h))?.set(item.h, item.n);
+          const grouped = new Map<string, Map<string, Counts>>(batch.map((b) => [b, new Map()]));
+          for (const item of res.items ?? []) grouped.get(hashPrefix(item.h))?.set(item.h, { n: item.n, d: item.d ?? 0 });
           for (const [prefix, counts] of grouped) this.prefixCache.set(prefix, { at: now, counts });
         })
         .catch((err) => {
@@ -89,28 +95,36 @@ export class FlagsService {
     await Promise.all(waits);
   }
 
+  private votesOf(keys: string[], isPrivate: boolean): Map<string, VoteKind> {
+    if (!isPrivate) return ctx.db.myFlags(keys);
+    return new Map(keys.flatMap((k) => (this.privateMine.has(k) ? [[k, this.privateMine.get(k)!] as const] : [])));
+  }
+
+  private status(c: Counts, vote: VoteKind | undefined): FlagStatus {
+    return { n: c.n, d: c.d, mine: vote === 'ai', disputed: vote === 'human' };
+  }
+
   async lookup(keys: string[], isPrivate: boolean, localOnly = false): Promise<Record<string, FlagStatus>> {
     const valid = [...new Set(keys)].filter((k) => parseContentKey(k)).slice(0, 500);
     const out: Record<string, FlagStatus> = {};
     if (localOnly) {
-      const mine = ctx.db.myFlags(valid);
-      for (const k of valid) out[k] = { n: 0, mine: isPrivate ? this.privateMine.has(k) : mine.has(k) };
+      const mine = this.votesOf(valid, isPrivate);
+      for (const k of valid) out[k] = this.status({ n: 0, d: 0 }, mine.get(k));
       return out;
     }
     const hashes = await Promise.all(valid.map((k) => this.hash(k)));
     await this.fetchPrefixes([...new Set(hashes.map(hashPrefix))]);
-    // Read the user's own flags only now: one may have been set while the lookup was in flight.
-    const mine = ctx.db.myFlags(valid);
+    // Read the user's own votes only now: one may have been cast while the lookup was in flight.
+    const mine = this.votesOf(valid, isPrivate);
     valid.forEach((k, i) => {
       const h = hashes[i]!;
-      const n = this.prefixCache.get(hashPrefix(h))?.counts.get(h) ?? 0;
-      out[k] = { n, mine: isPrivate ? this.privateMine.has(k) : mine.has(k) };
+      out[k] = this.status(this.prefixCache.get(hashPrefix(h))?.counts.get(h) ?? { n: 0, d: 0 }, mine.get(k));
     });
     return out;
   }
 
-  /** Flags (or un-flags) all keys of one post for the user and returns their new status. */
-  async set(keys: string[], flag: boolean, isPrivate: boolean): Promise<Record<string, FlagStatus>> {
+  /** Sets (or takes back, with null) the user's vote on all keys of one post; returns their new status. */
+  async set(keys: string[], vote: VoteKind | null, isPrivate: boolean): Promise<Record<string, FlagStatus>> {
     const valid = [...new Set(keys)].filter((k) => parseContentKey(k)).slice(0, 10);
     if (!valid.length) throw new Error('invalid content key');
     const client = isPrivate ? (this.privateClient ??= crypto.randomBytes(16).toString('hex')) : ctx.settings.get().installId;
@@ -118,18 +132,19 @@ export class FlagsService {
     for (const key of valid) {
       const { platform } = parseContentKey(key)!;
       const h = await this.hash(key);
-      const res = await postJson<FlagResponse>('/api/v1/flags', { h, platform, client }, flag ? 'POST' : 'DELETE');
+      const res = await postJson<FlagResponse>('/api/v1/flags', { h, platform, client, vote: vote ?? 'ai', app: 'mac' }, vote ? 'POST' : 'DELETE');
       if (isPrivate) {
-        if (flag) this.privateMine.add(key);
+        if (vote) this.privateMine.set(key, vote);
         else this.privateMine.delete(key);
       } else {
-        ctx.db.setMyFlag(key, h, platform, flag);
+        ctx.db.setMyFlag(key, h, platform, vote);
       }
+      const counts = { n: res.n, d: res.d ?? 0 };
       const prefix = hashPrefix(h);
-      const entry = this.prefixCache.get(prefix) ?? { at: Date.now(), counts: new Map<string, number>() };
-      entry.counts.set(h, res.n);
+      const entry = this.prefixCache.get(prefix) ?? { at: Date.now(), counts: new Map<string, Counts>() };
+      entry.counts.set(h, counts);
       this.prefixCache.set(prefix, entry);
-      out[key] = { n: res.n, mine: flag };
+      out[key] = this.status(counts, vote ?? undefined);
     }
     return out;
   }

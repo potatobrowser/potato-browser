@@ -97,9 +97,9 @@ describe('flags API', () => {
     expect(rows.results[0]!.voter).not.toContain(client(77));
     expect(rows.results[0]!.voter).toBe(await voterId('test-salt-for-voter-ids', client(77)));
     const item = await env.DB.prepare('SELECT * FROM items WHERE h = ?').bind(h).first<Record<string, unknown>>();
-    expect(Object.keys(item!).sort()).toEqual(['created_at', 'h', 'n', 'platform', 'prefix', 'updated_at']);
+    expect(Object.keys(item!).sort()).toEqual(['created_at', 'd', 'h', 'n', 'platform', 'prefix', 'updated_at']);
     const vote = await env.DB.prepare('SELECT * FROM votes WHERE h = ?').bind(h).first<Record<string, unknown>>();
-    expect(Object.keys(vote!).sort()).toEqual(['created_at', 'h', 'src', 'voter']);
+    expect(Object.keys(vote!).sort()).toEqual(['created_at', 'h', 'kind', 'src', 'voter']);
   });
 
   it('rejects malformed input', async () => {
@@ -371,7 +371,7 @@ describe('ad blocker filter lists', () => {
     const r = await call('GET', '/api/v1/filters?lists=easylist,easyprivacy,missing-list');
     expect(r.status).toBe(200);
     expect(r.json.lists).toEqual({ easylist: rev('2'), easyprivacy: rev('3'), 'missing-list': null });
-    expect(r.headers.get('cache-control')).toContain('public');
+    expect(r.headers.get('cache-control')).toContain('max-age');
     expect(requested.every((u) => u.startsWith(CDN + '/'))).toBe(true);
   });
 
