@@ -100,6 +100,9 @@ export class Tab {
   refusedSleepAt = 0;
   /** Asked to unload, waiting for the page's beforeunload. */
   sleepPending = false;
+  /** A sleep attempt asking the page whether the user touched it; the answer may never come. */
+  private sleepCheck = 0;
+  private static checks = 0;
   /** Last committed URL, still available after the WebContents is destroyed. */
   lastUrl = '';
   flags: FlagTabState = { platform: null, hidden: 0, labeled: 0 };
@@ -188,6 +191,9 @@ export class Tab {
     if (live) return live;
     const parked = this.parked;
     this.parked = null;
+    // Woken by a click or a reload: it gets a full period before it may sleep again.
+    this.lastActive = Date.now();
+    this.afterRestore = null;
     const wc = this.attach({});
     if (parked) {
       wc.setAudioMuted(parked.muted);
@@ -203,24 +209,26 @@ export class Tab {
   /** Unloads the page to free its memory and keeps its history. A page with unsaved changes says no. */
   sleep(): void {
     const wc = this.wc;
-    if (!wc || this.sleepPending) return;
-    this.sleepPending = true;
+    if (!wc || this.sleepPending || this.sleepCheck || !this.history()) return;
+    const check = (this.sleepCheck = ++Tab.checks);
     // Electron hands a page a user activation before its beforeunload runs, so only pages the user
     // touched (the only ones Chromium lets ask) are asked; others just unload. Read where the page cannot lie.
-    void wc
+    const touched = wc
       .executeJavaScriptInIsolatedWorld(SLEEP_WORLD, [{ code: 'navigator.userActivation.hasBeenActive' }])
-      .then((touched) => touched !== false, () => true)
-      .then((ask) => {
-        const history = this.history();
-        // Closed, brought to the front or navigating meanwhile: it stays.
-        if (!this.sleepPending || this.wc !== wc || this.win.activeTab === this || wc.isLoading() || !history) {
-          this.sleepPending = false;
-          return;
-        }
-        this.parked = { history, muted: wc.isAudioMuted() };
-        this.lastUrl = history.entries[history.index]!.url;
-        wc.close(ask ? { waitForBeforeUnload: true } : undefined);
-      });
+      .then((t) => t !== false, () => true);
+    // A busy or hung renderer may never answer: then the tab stays awake this time.
+    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+    void Promise.race([touched, late]).then((ask) => {
+      if (this.sleepCheck !== check) return;
+      this.sleepCheck = 0;
+      const history = this.history();
+      // Closed, brought to the front or navigating meanwhile: it stays.
+      if (ask === null || this.wc !== wc || this.win.activeTab === this || wc.isLoading() || !history) return;
+      this.parked = { history, muted: wc.isAudioMuted() };
+      this.lastUrl = history.entries[history.index]!.url;
+      this.sleepPending = true;
+      wc.close(ask ? { waitForBeforeUnload: true } : undefined);
+    });
   }
 
   /** Back and forward entries with their page state, from the page or, while asleep, the parked copy. */
@@ -229,7 +237,7 @@ export class Tab {
     if (!wc) return this.parked?.history ?? null;
     const entries = wc.navigationHistory.getAllEntries();
     const index = wc.navigationHistory.getActiveIndex();
-    return entries[index] ? { entries, index } : null;
+    return entries[index]?.url ? { entries, index } : null;
   }
 
   reload(hard = false): void {
@@ -277,6 +285,7 @@ export class Tab {
   close(force = false): void {
     // Closing wins over a sleep that waits for beforeunload.
     this.sleepPending = false;
+    this.sleepCheck = 0;
     if (!force) this.closingHistory = this.history();
     const wc = this.wc;
     if (!wc) {
@@ -420,6 +429,8 @@ export class Tab {
   private finishSleep(view: WebContentsView): void {
     this.view_ = null;
     this.sleepPending = false;
+    this.restoring = false;
+    this.afterRestore = null;
     this.resetPageState();
     ctx.adblock.resetPage(this.wcId);
     this.win.manager.forgetWebContents(this.wcId);
@@ -468,6 +479,8 @@ export class Tab {
       const current = wc.getTitle();
       if (!this.title && current && current !== wc.getURL()) this.title = current;
       update();
+      // A restore stopped before it committed (Stop, a 204, a download) ends here, without did-navigate.
+      if (this.restoring) this.restored(wc);
     });
     wc.on('did-start-navigation', (details) => {
       // potato://action/ links are cancelled in will-navigate and must not clear the error page.

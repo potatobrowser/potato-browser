@@ -504,7 +504,7 @@ export class PasswordService {
   /** The dropdown is up in the tab, or a sign-in there waits to be saved: it must not be put to sleep. */
   busyWith(tab: Tab): boolean {
     const s = this.fields.get(tab.win);
-    return (s?.tab === tab && s.open) || !!this.pending.get(tab.id)?.size;
+    return (s?.tab === tab && s.open) || [...(this.pending.get(tab.id)?.values() ?? [])].some((p) => this.livePending(tab, p.origin) === p);
   }
 
   tabClosed(tab: Tab): void {

@@ -70,7 +70,7 @@ export function sleepInfo(tab: Tab): SleepInfo {
     loaded: !!wc && !tab.sleepPending,
     active: win.activeTab === tab,
     lastActive: tab.lastActive,
-    reloadable: /^(https?|file|potato):/i.test(tab.url),
+    reloadable: /^(https?|file|potato):/i.test(wc?.getURL() ?? ''),
     loading: !!wc?.isLoading(),
     audible: !!wc?.isCurrentlyAudible(),
     lastAudible: tab.lastAudible,

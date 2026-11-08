@@ -252,7 +252,7 @@ export class WindowManager {
           let active = 0;
           for (const t of w.tabs) {
             const fallback = persistable(t.lastUrl) ? { entries: [{ url: t.lastUrl, title: t.title }], index: 0 } : null;
-            const h = trimHistory(t.history()) ?? fallback;
+            const h = trimHistory(t.history() ?? t.closingHistory) ?? fallback;
             if (!h) continue;
             if (t === w.activeTab) active = tabs.length;
             tabs.push(h);

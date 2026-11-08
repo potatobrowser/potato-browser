@@ -73,6 +73,27 @@ test('restored tabs show their saved title and load when first opened, with thei
   expect(await visits(t('Two'))).toBe(0);
 });
 
+test('a restored tab stopped before its page arrives still goes back and reloads', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-e2e-'));
+  writeSession(dir, {
+    windows: [
+      {
+        tabs: ['https://site.test/slow'],
+        active: 0,
+        history: [{ index: 1, entries: [{ url: 'https://site.test/title?t=Before', title: 'Before' }, { url: 'https://site.test/slow', title: 'Slow' }] }],
+      },
+    ],
+  });
+  b = await TestBrowser.launch({ userData: dir, settings: { startup: 'restore' } });
+  const ui = await b.uiPage();
+  await b.cmd('stop');
+  await b.cmd('back');
+  await expect.poll(() => b.activeTabUrl()).toBe('https://site.test/title?t=Before');
+  await expect(ui.getByTestId('tab-title')).toHaveText('Before');
+  await b.cmd('reload');
+  await expect(ui.getByTestId('tab-title')).toHaveText('Before');
+});
+
 test('a session saved by 0.7, with addresses only, still comes back', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'potato-e2e-'));
   writeSession(dir, { windows: [{ bounds: { x: 40, y: 40, width: 1100, height: 760 }, tabs: ['https://site.test/page2', 'https://other.test/'], active: 1 }] });
