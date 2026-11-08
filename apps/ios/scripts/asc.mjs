@@ -117,22 +117,26 @@ async function betaInfo() {
     marketingUrl: SITE,
     privacyPolicyUrl: `${SITE}/privacy`,
   }), { app: { data: { type: 'apps', id: a.id } } });
-  await api('PATCH', `/v1/betaAppReviewDetails/${a.id}`, {
-    data: {
-      type: 'betaAppReviewDetails',
-      id: a.id,
-      attributes: defined({
-        contactFirstName: env.ASC_CONTACT_FIRST,
-        contactLastName: env.ASC_CONTACT_LAST,
-        contactEmail: env.ASC_CONTACT_EMAIL,
-        contactPhone: env.ASC_CONTACT_PHONE,
-        demoAccountRequired: false,
-        notes: text('review-notes.txt'),
-      }),
-    },
-  });
-  const missing = ['ASC_CONTACT_FIRST', 'ASC_CONTACT_LAST', 'ASC_CONTACT_EMAIL', 'ASC_CONTACT_PHONE', 'ASC_FEEDBACK_EMAIL'].filter((k) => !env[k]);
-  console.log(`TestFlight test information set${missing.length ? `; still missing for Beta App Review: ${missing.join(', ')}` : ''}`);
+  // Apple takes the review notes only together with a complete contact.
+  const contact = ['ASC_CONTACT_FIRST', 'ASC_CONTACT_LAST', 'ASC_CONTACT_EMAIL', 'ASC_CONTACT_PHONE'];
+  if (contact.every((k) => env[k])) {
+    await api('PATCH', `/v1/betaAppReviewDetails/${a.id}`, {
+      data: {
+        type: 'betaAppReviewDetails',
+        id: a.id,
+        attributes: {
+          contactFirstName: env.ASC_CONTACT_FIRST,
+          contactLastName: env.ASC_CONTACT_LAST,
+          contactEmail: env.ASC_CONTACT_EMAIL,
+          contactPhone: env.ASC_CONTACT_PHONE,
+          demoAccountRequired: false,
+          notes: text('review-notes.txt'),
+        },
+      },
+    });
+  }
+  const missing = [...contact, 'ASC_FEEDBACK_EMAIL'].filter((k) => !env[k]);
+  console.log(`TestFlight test information set${missing.length ? `; for Beta App Review, add to .env: ${missing.join(', ')}` : ', review contact and notes too'}`);
 }
 
 async function publicBeta(buildNumber) {
