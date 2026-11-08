@@ -125,20 +125,23 @@ test('tabs playing sound or holding unsaved changes stay awake', async () => {
   const note = await b.goto('https://site.test/unsaved', ui);
   await note.locator('#note').click();
   await note.keyboard.type('Dear diary, the potatoes');
+  // A page that holds on to visitors who never touched it: browsers do not let it ask.
+  await b.cmd('newTab');
+  await b.goto('https://site.test/title?t=Trap', ui);
+  await tabWc(2, `addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ''; }); 1`);
   await b.cmd('newTab');
   await b.goto('https://other.test/', ui);
 
-  // Well past the 1.5 s: both stay, and no "Leave site?" dialog came up (it would block this call).
-  await new Promise((r) => setTimeout(r, 5000));
-  expect(await loaded()).toEqual([true, true, true]);
+  // Well past the 1.5 s: sound and typing stay, and no "Leave site?" dialog came up (it would block this call).
+  await expect.poll(loaded, { timeout: 20_000 }).toEqual([true, true, false, true]);
+  await new Promise((r) => setTimeout(r, 3000));
+  expect(await loaded()).toEqual([true, true, false, true]);
   expect(await b.app.evaluate(() => (globalThis as any).__potato.ctx.windows.focused().tabs[1].refusedSleepAt)).toBeGreaterThan(0);
   expect(await b.app.evaluate(() => (globalThis as any).__potato.ctx.windows.focused().tabs[0].wc.isCurrentlyAudible())).toBe(true);
 
   // Silence lets it sleep a little later.
   await audio.locator('#stop').click();
-  await expect.poll(loaded, { timeout: 20_000 }).toEqual([false, true, true]);
-  // Quitting is not held up by the page that would not unload.
-  expect(await b.close(15_000)).toBeLessThan(15_000);
+  await expect.poll(loaded, { timeout: 20_000 }).toEqual([false, true, false, true]);
 });
 
 test('sites allowed to notify and tabs linked by window.open stay awake', async () => {

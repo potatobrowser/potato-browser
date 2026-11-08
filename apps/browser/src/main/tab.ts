@@ -26,6 +26,8 @@ export interface TabInit {
 
 /** Chromium's PDF viewer, which shows PDFs in a frame of this extension. */
 const PDF_VIEWER_ORIGIN = 'chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai';
+/** An isolated world of our own (0 is the page's, 999 the preload's). */
+const SLEEP_WORLD = 2601;
 
 export function webPreferencesFor(session: Session): WebPreferences {
   return {
@@ -151,7 +153,8 @@ export class Tab {
   /** The page; null while the tab is asleep or once it is closed. */
   get wc(): WebContents | null {
     const v = this.view_;
-    return v && !v.webContents.isDestroyed() ? v.webContents : null;
+    // `closed` first: inside its own 'destroyed' event a WebContents is not destroyed yet, and touching it hangs.
+    return v && !this.closed && !v.webContents.isDestroyed() ? v.webContents : null;
   }
 
   get url(): string {
@@ -200,12 +203,24 @@ export class Tab {
   /** Unloads the page to free its memory and keeps its history. A page with unsaved changes says no. */
   sleep(): void {
     const wc = this.wc;
-    const history = this.history();
-    if (!wc || !history || this.sleepPending) return;
-    this.parked = { history, muted: wc.isAudioMuted() };
-    this.lastUrl = history.entries[history.index]!.url;
+    if (!wc || this.sleepPending) return;
     this.sleepPending = true;
-    wc.close({ waitForBeforeUnload: true });
+    // Electron hands a page a user activation before its beforeunload runs, so only pages the user
+    // touched (the only ones Chromium lets ask) are asked; others just unload. Read where the page cannot lie.
+    void wc
+      .executeJavaScriptInIsolatedWorld(SLEEP_WORLD, [{ code: 'navigator.userActivation.hasBeenActive' }])
+      .then((touched) => touched !== false, () => true)
+      .then((ask) => {
+        const history = this.history();
+        // Closed, brought to the front or navigating meanwhile: it stays.
+        if (!this.sleepPending || this.wc !== wc || this.win.activeTab === this || wc.isLoading() || !history) {
+          this.sleepPending = false;
+          return;
+        }
+        this.parked = { history, muted: wc.isAudioMuted() };
+        this.lastUrl = history.entries[history.index]!.url;
+        wc.close(ask ? { waitForBeforeUnload: true } : undefined);
+      });
   }
 
   /** Back and forward entries with their page state, from the page or, while asleep, the parked copy. */
@@ -268,6 +283,7 @@ export class Tab {
       this.handleDestroyed();
       return;
     }
+    this.parked = null;
     if (force || this.crashed) wc.close();
     else wc.close({ waitForBeforeUnload: true });
   }

@@ -265,6 +265,8 @@ export class BrowserWindowController {
       if (this.closedTabs.length > 25) this.closedTabs.shift();
       this.manager.noteClosedTab(this, closed);
     }
+    // The window closes with its last tab and is then left out of saves: write a waiting one first.
+    if (this.tabs.length === 1 && !this.closing) this.manager.flushPendingSession();
     this.tabs.splice(i, 1);
     if (!this.base.isDestroyed() && tab.view) this.base.contentView.removeChildView(tab.view);
     if (this.closing) {
