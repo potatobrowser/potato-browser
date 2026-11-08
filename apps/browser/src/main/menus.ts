@@ -168,6 +168,7 @@ export function showPageContextMenu(manager: WindowManager, tab: Tab, p: Context
   const win = tab.win;
   const wc = tab.wc;
   if (!wc) return;
+  const pdf = tab.isPdf();
   const engine = getSearchEngine(ctx.settings.get().searchEngine);
 
   if (p.isEditable && p.misspelledWord) {
@@ -225,8 +226,7 @@ export function showPageContextMenu(manager: WindowManager, tab: Tab, p: Context
       sep,
       { label: 'Save As...', click: () => void commands.savePage() },
       { label: 'Print...', click: () => wc.print({}, () => {}) },
-      sep,
-      { label: 'View Page Source', click: commands.viewSource },
+      ...(pdf ? [] : [sep, { label: 'View Page Source', click: commands.viewSource }]),
     );
   }
   items.push({ label: 'Inspect', click: () => {

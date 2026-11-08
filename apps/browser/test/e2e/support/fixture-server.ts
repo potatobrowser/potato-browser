@@ -13,6 +13,7 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8',
+  '.pdf': 'application/pdf',
 };
 
 function resolveFile(host: string, pathname: string): string | null {
@@ -40,6 +41,16 @@ function dynamic(host: string, url: URL, res: http.ServerResponse): boolean {
     res.writeHead(200, {
       'content-type': 'application/octet-stream',
       'content-disposition': 'attachment; filename="report.bin"',
+      'content-length': String(body.length),
+    });
+    res.end(body);
+    return true;
+  }
+  if (p === '/attachment.pdf') {
+    const body = fs.readFileSync(path.join(SITES, 'site.test/files/spud-report.pdf'));
+    res.writeHead(200, {
+      'content-type': 'application/pdf',
+      'content-disposition': 'attachment; filename="spud-report.pdf"',
       'content-length': String(body.length),
     });
     res.end(body);

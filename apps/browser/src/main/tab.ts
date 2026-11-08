@@ -24,6 +24,9 @@ export interface TabInit {
   asleep?: boolean;
 }
 
+/** Chromium's PDF viewer, which shows PDFs in a frame of this extension. */
+const PDF_VIEWER_ORIGIN = 'chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai';
+
 export function webPreferencesFor(session: Session): WebPreferences {
   return {
     session,
@@ -38,6 +41,7 @@ export function webPreferencesFor(session: Session): WebPreferences {
     safeDialogs: true,
     autoplayPolicy: 'document-user-activation-required',
     scrollBounce: true,
+    // No `plugins` needed for PDFs: Electron 45 runs Chromium's PDF viewer out of process either way.
   };
 }
 
@@ -268,9 +272,15 @@ export class Tab {
     else wc.close({ waitForBeforeUnload: true });
   }
 
+  /** Shows Chromium's PDF viewer, which has its own zoom, save and print. */
+  isPdf(): boolean {
+    return !!this.wc?.mainFrame.frames.some((f) => f.origin === PDF_VIEWER_ORIGIN);
+  }
+
   zoomStep(dir: 1 | -1 | 0): void {
     const wc = this.wc;
-    if (!wc) return;
+    // The PDF viewer ignores page zoom: it would only show a number and change the site's zoom.
+    if (!wc || this.isPdf()) return;
     const current = wc.getZoomFactor();
     const next = dir === 0 ? 1 : nextZoom(current, dir);
     wc.setZoomFactor(next);
@@ -323,6 +333,7 @@ export class Tab {
     const wc = this.wc;
     const parked = this.parked?.history;
     const internalNtp = isNewTabUrl(url);
+    const zoom = wc?.getZoomFactor() ?? 1;
     return {
       id: this.id,
       title: this.title || (internalNtp ? 'New Tab' : url || 'New Tab'),
@@ -335,7 +346,7 @@ export class Tab {
       muted: this.muted,
       crashed: this.crashed,
       security: this.security(),
-      zoom: wc?.getZoomFactor() ?? 1,
+      zoom: zoom !== 1 && this.isPdf() ? 1 : zoom,
       bookmarked: !!url && !internalNtp && ctx.db.isBookmarked(url),
       shield: this.shieldState(),
       adblock: wc ? ctx.adblock.tabState(wc.id, url) : { enabled: ctx.adblock.isEnabledFor(url), blocked: 0, hosts: [] },

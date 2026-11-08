@@ -136,8 +136,16 @@ function startWebPage(): void {
   });
 }
 
+/**
+ * Chromium's PDF viewer: the document a PDF opens in and the plugin frame inside the viewer
+ * extension. They hold no web content, and scriptlets or cosmetic filters there could break the viewer.
+ */
+function isPdfViewer(): boolean {
+  return document.contentType === 'application/pdf' || Array.from(location.ancestorOrigins).includes('chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai');
+}
+
 if (location.protocol === 'potato:') {
   if (window === window.top) exposeInternalApi();
-} else if (location.protocol === 'http:' || location.protocol === 'https:') {
+} else if ((location.protocol === 'http:' || location.protocol === 'https:') && !isPdfViewer()) {
   startWebPage();
 }

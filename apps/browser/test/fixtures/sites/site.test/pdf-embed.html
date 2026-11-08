@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Embedded PDF</title></head>
+<body>
+<h1>Embedded PDF</h1>
+<iframe id="frame" src="/files/spud-report.pdf" width="400" height="300"></iframe>
+<embed id="embed" src="/files/spud-report.pdf" type="application/pdf" width="400" height="300">
+<p id="viewer"></p>
+<script>
+  document.getElementById('viewer').textContent = `pdfViewerEnabled=${navigator.pdfViewerEnabled} plugins=${navigator.plugins.length} mimeTypes=${navigator.mimeTypes.length}`;
+</script>
+</body>
+</html>

@@ -104,13 +104,15 @@ export const commands = {
   },
   viewSource: () => {
     const t = tab();
-    if (t?.url && /^https?:/.test(t.url)) t.win.newTab(`view-source:${t.url}`, { index: t.win.tabs.indexOf(t) + 1 });
+    if (t?.url && /^https?:/.test(t.url) && !t.isPdf()) t.win.newTab(`view-source:${t.url}`, { index: t.win.tabs.indexOf(t) + 1 });
   },
   print: () => tab()?.wc?.print({}, () => {}),
   savePage: async () => {
     const t = tab();
     const wc = t?.wc;
     if (!t || !wc || !/^https?:/.test(t.url)) return;
+    // A PDF is saved as the file itself, through downloads like the viewer's own button.
+    if (t.isPdf()) return wc.downloadURL(t.url);
     const res = await dialog.showSaveDialog(t.win.base, {
       defaultPath: `${(t.title || 'page').replace(/[/\\:]/g, '_')}.html`,
     });
