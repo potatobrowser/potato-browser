@@ -246,7 +246,8 @@ describe('crash reports', () => {
 
   it('takes crash uploads from the apps, never from a web page', async () => {
     const { body, type } = await crashForm({});
-    for (const headers of [{ origin: 'https://evil.example' }, { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'no-cors' }]) {
+    const browserHeaders: Record<string, string>[] = [{ origin: 'https://evil.example' }, { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'no-cors' }];
+    for (const headers of browserHeaders) {
       const res = await app.fetch(new Request(BASE + '/api/v1/crashes', { method: 'POST', headers: { 'content-type': type, ...headers }, body }));
       expect(res.status).toBe(403);
     }
