@@ -248,8 +248,13 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
 
 - No extension support.
 - The password manager has no password generator, no passkeys, no sync and no fill for HTTP
-  authentication dialogs. Passwords come over from
-  other browsers as CSV exports, not directly from their profiles.
+  authentication dialogs. Passwords come over from other browsers as CSV exports, not directly
+  from their profiles.
+- Passkeys and WebAuthn: Electron has no macOS platform authenticator, so Touch ID and iCloud
+  Keychain passkeys are not offered (`isUserVerifyingPlatformAuthenticatorAvailable()` is false),
+  and it has no WebAuthn window, so a passkey or phone (hybrid) sign-in request waits until it
+  times out. Hardware security keys are untested. `node test/live/webauthn-check.mjs` shows what
+  the current build offers. On iOS, WKWebView gets passkeys only with Apple's browser entitlement.
 - The ad blocker filters subresources and page elements; it does not block whole pages (uBlock's
   "strict blocking" of known bad sites) and ignores `$removeparam` filters.
 - Google's sign-in pages (accounts.google.com, accounts.youtube.com) see the browser's own

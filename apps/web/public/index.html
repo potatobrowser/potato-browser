@@ -329,6 +329,10 @@ pnpm --filter @potato/browser dist --arch host</code></pre>
         <p>Yes. It offers to keep a password when you sign in and fills it when you pick it from its own list. Passwords are encrypted with a key in your macOS Keychain and never leave your Mac. Bring yours over from Chrome, Safari, Firefox or 1Password with a CSV export.</p>
       </details>
       <details>
+        <summary>Do passkeys work?</summary>
+        <p>Not yet. Electron, which the Mac app is built on, cannot use Touch ID or iCloud Keychain passkeys and has no window for signing in with your phone, so a passkey request goes nowhere. Sign in with your password instead: the built-in password manager fills it. On iPhone and iPad, passkeys in third-party browsers need a permission from Apple, which we have asked for.</p>
+      </details>
+      <details>
         <summary>Extensions?</summary>
         <p>Not yet, they're still sprouting. The ad blocker and the password manager are built in.</p>
       </details>
