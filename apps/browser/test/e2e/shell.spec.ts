@@ -117,6 +117,25 @@ test('omnibox suggests history and completes hosts inline', async () => {
   await expect.poll(() => b.activeTabUrl()).toBe('https://site.test/');
 });
 
+test('keystrokes rendered before an inline completion commits are not swallowed', async () => {
+  b = await TestBrowser.launch();
+  const ui = await b.uiPage();
+  await b.goto('https://site.test/page2', ui);
+  await b.cmd('newTab');
+  // React schedules non-urgent renders with MessagePort.postMessage; delaying them opens the
+  // window a slow CI runner hits, where the next keystroke renders before the completion.
+  await ui.evaluate(() => {
+    const post = MessagePort.prototype.postMessage;
+    MessagePort.prototype.postMessage = function (this: MessagePort, ...args: [any, any?]) {
+      setTimeout(() => post.apply(this, args), 250);
+    };
+  });
+  const input = ui.getByTestId('omnibox-input');
+  await input.pressSequentially('site', { delay: 40 });
+  await expect(ui.getByTestId('suggestions')).toContainText('Page Two');
+  await expect(input).toHaveValue('site.test');
+});
+
 test('target=_blank links and window.open open new tabs with an opener', async () => {
   b = await TestBrowser.launch();
   const ui = await b.uiPage();

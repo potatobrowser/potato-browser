@@ -30,9 +30,9 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
   const [selected, setSelected] = useState(-1);
   const typed = useRef('');
   const inlineActive = useRef(false);
-  // Selection to apply right after React commits a new value. A layout effect runs before the
-  // next input event, so a fast keystroke can never land between the value and its selection.
-  const pendingSelection = useRef<[number, number] | null>(null);
+  // Selection for an inline completion, applied when React commits it. That commit is not
+  // urgent, so a keystroke can be rendered first; the selection then must not touch that value.
+  const pendingSelection = useRef<{ value: string; start: number; end: number } | null>(null);
   const url = tab?.url ?? '';
 
   useImperativeHandle(ref, () => ({
@@ -48,7 +48,7 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
     const sel = pendingSelection.current;
     if (!sel || !input.current) return;
     pendingSelection.current = null;
-    input.current.setSelectionRange(sel[0], sel[1]);
+    if (sel.value === value) input.current.setSelectionRange(sel.start, sel.end);
   }, [value]);
 
   // Show the page URL whenever the user is not editing.
@@ -79,7 +79,7 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
         if (!deleting && res.inline && res.inline.startsWith(lower) && res.inline.length > text.length && !/\s/.test(text)) {
           const completed = text + res.inline.slice(text.length);
           inlineActive.current = true;
-          pendingSelection.current = [text.length, completed.length];
+          pendingSelection.current = { value: completed, start: text.length, end: completed.length };
           setValue(completed);
         } else {
           inlineActive.current = false;
@@ -135,6 +135,9 @@ export function Omnibox({ tab, isPrivate, onDropdown, ref }: Props) {
     const v = e.target.value;
     const inputType = (e.nativeEvent as InputEvent).inputType ?? '';
     const deleting = inputType.startsWith('delete') || v.length < typed.current.length;
+    // Typing supersedes a completion that has not been committed yet.
+    pendingSelection.current = null;
+    inlineActive.current = false;
     typed.current = v;
     setValue(v);
     setEditing(true);
