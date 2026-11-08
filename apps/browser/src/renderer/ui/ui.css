@@ -190,6 +190,9 @@ button {
   height: 16px;
   object-fit: contain;
 }
+.tab.asleep .tab-icon {
+  opacity: 0.5;
+}
 .tab-title {
   flex: 1;
   min-width: 0;

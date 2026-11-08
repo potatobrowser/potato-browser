@@ -171,6 +171,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   if (!ready) return;
   ctx.updates.stop();
+  ctx.windows.sleeper.stop();
   try {
     ctx.db.close();
   } catch {}

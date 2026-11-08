@@ -5,6 +5,7 @@ import { isInternalUrl, isNewTabUrl, migrateLegacyUrl, nextZoom, siteKey } from 
 import { ctx } from './context';
 import { errorPageHtml } from './errorpage';
 import { paths } from './paths';
+import { persistable, type TabHistory } from './sessionfile';
 import { allowChatbotOnce } from './sessions';
 import type { BrowserWindowController } from './window';
 
@@ -17,7 +18,16 @@ export interface TabInit {
   index?: number;
   openerTabId?: number | null;
   typed?: boolean;
+  /** Back and forward entries to bring back instead of loading `url` (restored, reopened or duplicated tabs). */
+  history?: TabHistory;
+  /** Starts without a page, showing the history's title, and loads it when first activated. */
+  asleep?: boolean;
 }
+
+/** Chromium's PDF viewer, which shows PDFs in a frame of this extension. */
+const PDF_VIEWER_ORIGIN = 'chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai';
+/** An isolated world of our own (0 is the page's, 999 the preload's). */
+const SLEEP_WORLD = 2601;
 
 export function webPreferencesFor(session: Session): WebPreferences {
   return {
@@ -33,6 +43,7 @@ export function webPreferencesFor(session: Session): WebPreferences {
     safeDialogs: true,
     autoplayPolicy: 'document-user-activation-required',
     scrollBounce: true,
+    // No `plugins` needed for PDFs: Electron 45 runs Chromium's PDF viewer out of process either way.
   };
 }
 
@@ -67,26 +78,50 @@ async function fetchFavicon(session: Session, url: string): Promise<string | nul
   }
 }
 
+/**
+ * A tab. Its page lives in a WebContentsView, which a tab may also be without: put to sleep to
+ * free memory, or restored at launch and not opened yet. Such a tab keeps its back/forward history
+ * (with scroll positions and form fields while the browser runs) and gets a new view when woken.
+ */
 export class Tab {
   private static seq = 1;
   readonly id = Tab.seq++;
-  readonly view: WebContentsView;
   win: BrowserWindowController;
   title = '';
   favicon: string | null = null;
   crashed = false;
   openerTabId: number | null;
+  /** Last time the tab was in front (or opened); background tabs sleep after a while. */
   lastActive = Date.now();
+  lastAudible = 0;
+  /** The page asked for the camera, microphone or screen; it stays awake until it navigates away. */
+  capturing = false;
+  /** When the page last refused to unload for sleep (unsaved changes); it stays awake a while longer. */
+  refusedSleepAt = 0;
+  /** Asked to unload, waiting for the page's beforeunload. */
+  sleepPending = false;
+  /** A sleep attempt asking the page whether the user touched it; the answer may never come. */
+  private sleepCheck = 0;
+  private static checks = 0;
   /** Last committed URL, still available after the WebContents is destroyed. */
   lastUrl = '';
   flags: FlagTabState = { platform: null, hidden: 0, labeled: 0 };
+  /** History at the last close attempt, for "Reopen Closed Tab". */
+  closingHistory: TabHistory | null = null;
+  private view_: WebContentsView | null = null;
+  /** The history to restore while the tab has no page. */
+  private parked: { history: TabHistory; muted: boolean } | null = null;
+  /** The next commit brings back a restored history entry: not a new visit. */
+  private restoring = false;
+  /** A history step or reload asked for while a restored entry is on its way, sent once it commits. */
+  private afterRestore: ((wc: WebContents) => void) | null = null;
   private faviconUrl = '';
   /** `token` is a secret only this error page's own links carry, so other pages cannot act for it. */
   private errorPage: { url: string; code: number; desc: string; token: string } | null = null;
   private frameShield = new Map<string, { count: number; features: string[] }>();
   private lastCommitted = '';
   private typedPending = false;
-  private destroyedHandled = false;
+  private closed = false;
 
   /** Kept for cleanup after the WebContents is gone. */
   private wcId = -1;
@@ -94,56 +129,193 @@ export class Tab {
   constructor(win: BrowserWindowController, init: TabInit) {
     this.win = win;
     this.openerTabId = init.openerTabId ?? null;
-    this.view = new WebContentsView({
-      webPreferences: init.webPreferences ?? webPreferencesFor(win.session),
-      ...(init.webContents ? { webContents: init.webContents } : {}),
-    });
-    this.view.setBackgroundColor(win.isPrivate ? '#1b1b1f' : '#ffffff');
-    this.wcId = this.view.webContents.id;
-    this.wire();
-    if (init.url) this.navigate(init.url, { typed: init.typed });
+    const current = init.history?.entries[init.history.index];
+    if (init.history && current) {
+      this.lastUrl = current.url;
+      this.title = current.title || (persistable(current.url) && !win.isPrivate ? ctx.db.titleFor(current.url) : '');
+    }
+    if (init.asleep && init.history && current) {
+      this.parked = { history: init.history, muted: false };
+      this.favicon = isInternalUrl(current.url) ? null : ctx.db.favicon(hostOf(current.url));
+      return;
+    }
+    const wc = this.attach(init);
+    if (init.history && current) {
+      this.restoring = true;
+      wc.navigationHistory.restore(init.history).catch(() => {});
+    } else if (init.url) {
+      this.navigate(init.url, { typed: init.typed });
+    }
   }
 
-  get wc(): WebContents {
-    return this.view.webContents;
+  /** The page's view; null while the tab is asleep. */
+  get view(): WebContentsView | null {
+    return this.view_;
+  }
+
+  /** The page; null while the tab is asleep or once it is closed. */
+  get wc(): WebContents | null {
+    const v = this.view_;
+    // `closed` first: inside its own 'destroyed' event a WebContents is not destroyed yet, and touching it hangs.
+    return v && !this.closed && !v.webContents.isDestroyed() ? v.webContents : null;
   }
 
   get url(): string {
-    if (this.wc.isDestroyed()) return '';
-    return this.wc.getURL();
+    const wc = this.wc;
+    const parked = this.parked?.history;
+    // Before its first commit a page reports no URL: the one it is loading counts.
+    if (wc) return wc.getURL() || this.lastUrl;
+    return parked?.entries[parked.index]?.url ?? this.lastUrl;
   }
 
+  /** The tab was closed. */
   get isDestroyed(): boolean {
-    return this.wc.isDestroyed();
+    return this.closed;
+  }
+
+  get muted(): boolean {
+    const wc = this.wc;
+    return wc ? wc.isAudioMuted() : !!this.parked?.muted;
+  }
+
+  setMuted(muted: boolean): void {
+    const wc = this.wc;
+    if (wc) wc.setAudioMuted(muted);
+    else if (this.parked) this.parked.muted = muted;
+    this.win.update();
+  }
+
+  /** The page, loading it first if the tab is asleep. */
+  wake(): WebContents {
+    const live = this.wc;
+    if (live) return live;
+    const parked = this.parked;
+    this.parked = null;
+    // Woken by a click or a reload: it gets a full period before it may sleep again.
+    this.lastActive = Date.now();
+    this.afterRestore = null;
+    const wc = this.attach({});
+    if (parked) {
+      wc.setAudioMuted(parked.muted);
+      this.restoring = true;
+      wc.navigationHistory.restore(parked.history).catch(() => {});
+    } else if (this.lastUrl) {
+      this.navigate(this.lastUrl);
+    }
+    this.win.update();
+    return wc;
+  }
+
+  /** Unloads the page to free its memory and keeps its history. A page with unsaved changes says no. */
+  sleep(): void {
+    const wc = this.wc;
+    if (!wc || this.sleepPending || this.sleepCheck || !this.history()) return;
+    const check = (this.sleepCheck = ++Tab.checks);
+    // Electron hands a page a user activation before its beforeunload runs, so only pages the user
+    // touched (the only ones Chromium lets ask) are asked; others just unload. Read where the page cannot lie.
+    const touched = wc
+      .executeJavaScriptInIsolatedWorld(SLEEP_WORLD, [{ code: 'navigator.userActivation.hasBeenActive' }])
+      .then((t) => t !== false, () => true);
+    // A busy or hung renderer may never answer: then the tab stays awake this time.
+    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+    void Promise.race([touched, late]).then((ask) => {
+      if (this.sleepCheck !== check) return;
+      this.sleepCheck = 0;
+      const history = this.history();
+      // Closed, brought to the front or navigating meanwhile: it stays.
+      if (ask === null || this.wc !== wc || this.win.activeTab === this || wc.isLoading() || !history) return;
+      this.parked = { history, muted: wc.isAudioMuted() };
+      this.lastUrl = history.entries[history.index]!.url;
+      this.sleepPending = true;
+      wc.close(ask ? { waitForBeforeUnload: true } : undefined);
+    });
+  }
+
+  /** Back and forward entries with their page state, from the page or, while asleep, the parked copy. */
+  history(): TabHistory | null {
+    const wc = this.wc;
+    if (!wc) return this.parked?.history ?? null;
+    const entries = wc.navigationHistory.getAllEntries();
+    const index = wc.navigationHistory.getActiveIndex();
+    return entries[index]?.url ? { entries, index } : null;
+  }
+
+  reload(hard = false): void {
+    if (!this.wc) this.wake();
+    else this.whenRestored((wc) => (hard ? wc.reloadIgnoringCache() : wc.reload()));
+  }
+
+  goBack(): void {
+    this.whenRestored((wc) => wc.navigationHistory.canGoBack() && wc.navigationHistory.goBack());
+  }
+
+  goForward(): void {
+    this.whenRestored((wc) => wc.navigationHistory.canGoForward() && wc.navigationHistory.goForward());
+  }
+
+  /** Back, forward or reload sent while a restored entry is on its way crashes the renderer (Electron 45). */
+  private whenRestored(fn: (wc: WebContents) => void): void {
+    const wc = this.wc;
+    if (!wc) return;
+    if (this.restoring) this.afterRestore = fn;
+    else fn(wc);
+  }
+
+  private restored(wc: WebContents): void {
+    this.restoring = false;
+    const next = this.afterRestore;
+    this.afterRestore = null;
+    next?.(wc);
   }
 
   navigate(url: string, opts: { typed?: boolean } = {}): void {
     url = migrateLegacyUrl(url);
+    const wc = this.wc ?? this.wake();
+    this.restoring = false;
+    this.afterRestore = null;
     this.typedPending = !!opts.typed;
     this.crashed = false;
     if (!this.lastUrl) this.lastUrl = url;
-    this.wc.loadURL(url).catch(() => {
+    wc.loadURL(url).catch(() => {
       // Failures are surfaced through did-fail-load (error page); aborted loads need nothing.
     });
   }
 
   /** Closes the tab, giving the page a chance to run beforeunload. */
   close(force = false): void {
-    if (this.wc.isDestroyed()) {
+    // Closing wins over a sleep that waits for beforeunload.
+    this.sleepPending = false;
+    this.sleepCheck = 0;
+    if (!force) this.closingHistory = this.history();
+    const wc = this.wc;
+    if (!wc) {
       this.handleDestroyed();
       return;
     }
-    if (force || this.crashed) this.wc.close();
-    else this.wc.close({ waitForBeforeUnload: true });
+    this.parked = null;
+    if (force || this.crashed) wc.close();
+    else wc.close({ waitForBeforeUnload: true });
+  }
+
+  /** Shows Chromium's PDF viewer, which has its own zoom, save and print. */
+  isPdf(): boolean {
+    return !!this.wc?.mainFrame.frames.some((f) => f.origin === PDF_VIEWER_ORIGIN);
   }
 
   zoomStep(dir: 1 | -1 | 0): void {
-    const current = this.wc.getZoomFactor();
+    const wc = this.wc;
+    // The PDF viewer ignores page zoom: it would only show a number and change the site's zoom.
+    if (!wc || this.isPdf()) return;
+    const current = wc.getZoomFactor();
     const next = dir === 0 ? 1 : nextZoom(current, dir);
-    this.wc.setZoomFactor(next);
+    wc.setZoomFactor(next);
     const host = hostOf(this.url);
     if (host && !this.win.isPrivate) ctx.db.setSiteSetting(host, 'zoom', next === 1 ? null : String(next));
     this.win.update();
+  }
+
+  noteCapture(): void {
+    this.capturing = true;
   }
 
   setShieldReport(frameKey: string, count: number, features: string[]): void {
@@ -183,25 +355,45 @@ export class Tab {
 
   state(): TabState {
     const url = this.url;
+    const wc = this.wc;
+    const parked = this.parked?.history;
     const internalNtp = isNewTabUrl(url);
+    const zoom = wc?.getZoomFactor() ?? 1;
     return {
       id: this.id,
       title: this.title || (internalNtp ? 'New Tab' : url || 'New Tab'),
       url: internalNtp ? '' : url,
       favicon: this.favicon,
-      loading: !this.wc.isDestroyed() && this.wc.isLoading(),
-      canGoBack: !this.wc.isDestroyed() && this.wc.navigationHistory.canGoBack(),
-      canGoForward: !this.wc.isDestroyed() && this.wc.navigationHistory.canGoForward(),
-      audible: !this.wc.isDestroyed() && this.wc.isCurrentlyAudible(),
-      muted: !this.wc.isDestroyed() && this.wc.isAudioMuted(),
+      loading: !!wc?.isLoading(),
+      canGoBack: wc ? wc.navigationHistory.canGoBack() : !!parked && parked.index > 0,
+      canGoForward: wc ? wc.navigationHistory.canGoForward() : !!parked && parked.index < parked.entries.length - 1,
+      audible: !!wc?.isCurrentlyAudible(),
+      muted: this.muted,
       crashed: this.crashed,
       security: this.security(),
-      zoom: this.wc.isDestroyed() ? 1 : this.wc.getZoomFactor(),
+      zoom: zoom !== 1 && this.isPdf() ? 1 : zoom,
       bookmarked: !!url && !internalNtp && ctx.db.isBookmarked(url),
       shield: this.shieldState(),
-      adblock: this.wc.isDestroyed() ? { enabled: false, blocked: 0, hosts: [] } : ctx.adblock.tabState(this.wc.id, url),
+      adblock: wc ? ctx.adblock.tabState(wc.id, url) : { enabled: ctx.adblock.isEnabledFor(url), blocked: 0, hosts: [] },
       flags: this.flags,
+      asleep: !wc,
     };
+  }
+
+  /** Creates the view for a new page (or adopts a popup's) and wires it to the tab. */
+  private attach(init: { webContents?: WebContents; webPreferences?: WebPreferences }): WebContents {
+    const view = new WebContentsView({
+      webPreferences: init.webPreferences ?? webPreferencesFor(this.win.session),
+      ...(init.webContents ? { webContents: init.webContents } : {}),
+    });
+    view.setBackgroundColor(this.win.isPrivate ? '#1b1b1f' : '#ffffff');
+    view.setBounds(this.win.contentBounds());
+    this.view_ = view;
+    const wc = view.webContents;
+    this.wcId = wc.id;
+    this.wire(wc);
+    this.win.manager.registerTab(this);
+    return wc;
   }
 
   private recordVisit(url: string): void {
@@ -213,18 +405,19 @@ export class Tab {
     }
     if (url === this.lastCommitted && !typed) return; // reloads are not new visits
     this.lastCommitted = url;
+    const title = this.wc?.getTitle() ?? '';
     try {
-      ctx.db.addVisit(url, this.wc.getTitle() === url ? '' : this.wc.getTitle(), { typed });
+      ctx.db.addVisit(url, title === url ? '' : title, { typed });
     } catch (err) {
       console.error('history', err);
     }
   }
 
-  private applySiteZoom(url: string): void {
+  private applySiteZoom(wc: WebContents, url: string): void {
     const host = hostOf(url);
     if (!host || this.win.isPrivate) return;
     const saved = Number(ctx.db.getSiteSetting(host, 'zoom') || '1');
-    if (Number.isFinite(saved) && Math.abs(this.wc.getZoomFactor() - saved) > 0.001) this.wc.setZoomFactor(saved);
+    if (Number.isFinite(saved) && Math.abs(wc.getZoomFactor() - saved) > 0.001) wc.setZoomFactor(saved);
   }
 
   private resetPageState(): void {
@@ -232,32 +425,50 @@ export class Tab {
     this.flags = { platform: null, hidden: 0, labeled: 0 };
   }
 
+  /** The page unloaded for sleep: the tab stays, without a view, until it is activated again. */
+  private finishSleep(view: WebContentsView): void {
+    this.view_ = null;
+    this.sleepPending = false;
+    this.restoring = false;
+    this.afterRestore = null;
+    this.resetPageState();
+    ctx.adblock.resetPage(this.wcId);
+    this.win.manager.forgetWebContents(this.wcId);
+    this.win.onTabSlept(this, view);
+  }
+
   private handleDestroyed(): void {
-    if (this.destroyedHandled) return;
-    this.destroyedHandled = true;
+    if (this.closed) return;
+    this.closed = true;
+    this.parked = null;
     ctx.adblock.resetPage(this.wcId);
     ctx.permissions.dropTab(this.id);
     ctx.passwords.tabClosed(this);
     this.win.onTabDestroyed(this);
   }
 
-  private wire(): void {
-    const wc = this.wc;
+  private wire(wc: WebContents): void {
     const update = () => this.win.update();
+    const view = this.view_!;
 
-    wc.on('destroyed', () => this.handleDestroyed());
+    wc.on('destroyed', () => {
+      if (this.view_ !== view) return;
+      if (this.sleepPending) this.finishSleep(view);
+      else this.handleDestroyed();
+    });
     wc.on('page-title-updated', (_e, title) => {
       this.title = title;
-      if (!this.win.isPrivate && /^https?:/.test(this.url)) ctx.db.updateTitle(this.url, title);
+      const url = wc.getURL();
+      if (!this.win.isPrivate && /^https?:/.test(url)) ctx.db.updateTitle(url, title);
       update();
     });
     wc.on('page-favicon-updated', (_e, favicons) => {
       const url = favicons[0];
       if (!url || url === this.faviconUrl) return;
       this.faviconUrl = url;
-      const pageHost = hostOf(this.url);
+      const pageHost = hostOf(wc.getURL());
       void fetchFavicon(this.win.session, url).then((data) => {
-        if (!data || this.faviconUrl !== url || this.wc.isDestroyed()) return;
+        if (!data || this.faviconUrl !== url || wc.isDestroyed()) return;
         this.favicon = data;
         if (!this.win.isPrivate && pageHost) ctx.db.setFavicon(pageHost, data);
         update();
@@ -266,8 +477,10 @@ export class Tab {
     wc.on('did-start-loading', update);
     wc.on('did-stop-loading', () => {
       const current = wc.getTitle();
-      if (!this.title && current && current !== this.url) this.title = current;
+      if (!this.title && current && current !== wc.getURL()) this.title = current;
       update();
+      // A restore stopped before it committed (Stop, a 204, a download) ends here, without did-navigate.
+      if (this.restoring) this.restored(wc);
     });
     wc.on('did-start-navigation', (details) => {
       // potato://action/ links are cancelled in will-navigate and must not clear the error page.
@@ -281,7 +494,10 @@ export class Tab {
     wc.on('did-frame-navigate', (_e, url, _code, _status, isMainFrame) => ctx.passwords.frameNavigated(this, url, isMainFrame));
     wc.on('did-navigate', (_e, url) => {
       ctx.adblock.pageCommitted(wc.id, url);
+      const restored = this.restoring;
       this.crashed = false;
+      this.capturing = false;
+      this.refusedSleepAt = 0;
       this.lastUrl = url;
       const host = hostOf(url);
       if (host !== hostOf(this.lastCommitted) || !host) {
@@ -291,11 +507,20 @@ export class Tab {
       if (isInternalUrl(url)) this.favicon = null;
       // Reloads keep their title and Chromium does not announce it again, so read it back.
       const current = wc.getTitle();
-      this.title = current && current !== url ? current : '';
-      this.recordVisit(url);
-      this.applySiteZoom(url);
+      const title = current && current !== url ? current : '';
+      // A restored page keeps the title it was saved with until it announces its own.
+      if (title || !restored) this.title = title;
+      // Waking up or restoring a tab brings a page back; it is not a new visit.
+      if (restored) {
+        this.lastCommitted = url;
+        this.typedPending = false;
+      } else {
+        this.recordVisit(url);
+      }
+      this.applySiteZoom(wc, url);
       this.win.onTabNavigated(this);
       update();
+      if (restored) this.restored(wc);
     });
     wc.on('did-navigate-in-page', (_e, url, isMainFrame) => {
       if (!isMainFrame) return;
@@ -307,9 +532,11 @@ export class Tab {
     });
     wc.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
       if (!isMainFrame || code === -3) return; // -3: aborted (replaced navigation, download)
+      this.lastUrl = url;
       this.errorPage = { url, code, desc, token: crypto.randomBytes(16).toString('hex') };
       this.typedPending = false;
       update();
+      if (this.restoring) this.restored(wc);
     });
     wc.on('did-finish-load', () => {
       const err = this.errorPage;
@@ -320,24 +547,35 @@ export class Tab {
       ).catch(() => {});
     });
     wc.on('render-process-gone', (_e, details) => {
-      if (details.reason === 'clean-exit' || this.wc.isDestroyed()) return;
+      // An unload for sleep is not a crash.
+      if (details.reason === 'clean-exit' || wc.isDestroyed() || this.sleepPending) return;
       this.crashed = true;
       this.resetPageState();
-      ctx.adblock.resetPage(this.wcId);
+      ctx.adblock.resetPage(wc.id);
       update();
       // A new renderer shows the crash page; its button reloads the original URL.
       const failed = this.lastUrl;
       setTimeout(() => {
-        if (!this.wc.isDestroyed()) this.navigate(`potato://error/?reason=crashed&url=${encodeURIComponent(failed)}`);
+        if (!wc.isDestroyed()) this.navigate(`potato://error/?reason=crashed&url=${encodeURIComponent(failed)}`);
       }, 50);
     });
-    wc.on('audio-state-changed', update);
+    wc.on('audio-state-changed', () => {
+      this.lastAudible = Date.now();
+      update();
+    });
     wc.on('found-in-page', (_e, result) => this.win.onFindResult(this, result));
     wc.on('enter-html-full-screen', () => this.win.setHtmlFullscreen(this, true));
     wc.on('leave-html-full-screen', () => this.win.setHtmlFullscreen(this, false));
     wc.on('zoom-changed', (_e, dir) => this.zoomStep(dir === 'in' ? 1 : -1));
     wc.on('context-menu', (_e, params) => this.win.manager.showPageContextMenu(this, params));
     wc.on('will-prevent-unload', (event) => {
+      if (this.sleepPending) {
+        // Unsaved changes: the tab stays awake, and nobody is asked to leave a page they are not looking at.
+        this.sleepPending = false;
+        this.parked = null;
+        this.refusedSleepAt = Date.now();
+        return;
+      }
       const choice = dialog.showMessageBoxSync(this.win.base, {
         type: 'question',
         buttons: ['Leave', 'Stay'],
@@ -348,7 +586,7 @@ export class Tab {
       });
       if (choice === 0) event.preventDefault();
     });
-    wc.on('will-navigate', (event) => this.guardNavigation(event, event.url, event.initiator));
+    wc.on('will-navigate', (event) => this.guardNavigation(wc, event, event.url, event.initiator));
     // No device chooser yet, and Electron would otherwise connect the first nearby device.
     wc.on('select-bluetooth-device', (event, _devices, callback) => {
       event.preventDefault();
@@ -363,7 +601,7 @@ export class Tab {
     });
     wc.setWindowOpenHandler((details) => {
       const { url, disposition } = details;
-      const opener = this.url;
+      const opener = wc.getURL();
       if (url.startsWith('potato://') && !isInternalUrl(opener)) return { action: 'deny' };
       if (/^(javascript|file|chrome|devtools|view-source):/i.test(url)) return { action: 'deny' };
       return {
@@ -380,23 +618,23 @@ export class Tab {
             index: this.win.tabs.indexOf(this) + 1,
             openerTabId: this.id,
           });
-          return tab.wc;
+          return tab.wc!;
         },
       };
     });
   }
 
-  private guardNavigation(event: Electron.Event, url: string, initiator?: Electron.WebFrameMain | null): void {
+  private guardNavigation(wc: WebContents, event: Electron.Event, url: string, initiator?: Electron.WebFrameMain | null): void {
     if (url.startsWith('potato://action/')) {
       event.preventDefault();
       // Any page, or a popup holding this tab as its opener, can navigate here: only this tab's
       // own main frame counts, and handleAction checks the error page's token.
-      const main = this.wc.mainFrame;
+      const main = wc.mainFrame;
       if (initiator && initiator.frameToken === main.frameToken && initiator.processId === main.processId) void this.handleAction(url);
       return;
     }
     // Web pages may not navigate into privileged internal pages (except the new tab page).
-    if (url.startsWith('potato://') && !isInternalUrl(this.url) && !isNewTabUrl(url)) {
+    if (url.startsWith('potato://') && !isInternalUrl(wc.getURL()) && !isNewTabUrl(url)) {
       event.preventDefault();
     }
   }
@@ -410,8 +648,9 @@ export class Tab {
       this.navigate(target);
     } else if (action === 'proceed') {
       const target = u.searchParams.get('url');
-      if (!target || !this.actionAllowed(u, target) || !this.errorPage!.desc.startsWith('ERR_CERT_')) return;
-      this.win.manager.allowCertificateFor(this.wc, hostOf(target));
+      const wc = this.wc;
+      if (!wc || !target || !this.actionAllowed(u, target) || !this.errorPage!.desc.startsWith('ERR_CERT_')) return;
+      this.win.manager.allowCertificateFor(wc, hostOf(target));
       this.errorPage = null;
       this.navigate(target);
     } else if (action === 'allow-chatbot') {

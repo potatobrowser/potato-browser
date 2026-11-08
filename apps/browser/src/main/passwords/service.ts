@@ -168,9 +168,10 @@ export class PasswordService {
 
   private render(win: BrowserWindowController): void {
     const s = this.fields.get(win);
-    if (!s || !s.items.length || !s.rect || s.tab !== win.activeTab || s.tab.isDestroyed) return this.hidePopup(win);
-    const vb = s.tab.view.getBounds();
-    const zoom = s.tab.wc.getZoomFactor();
+    const wc = s?.tab.wc;
+    if (!s || !wc || !s.items.length || !s.rect || s.tab !== win.activeTab) return this.hidePopup(win);
+    const vb = s.tab.view!.getBounds();
+    const zoom = wc.getZoomFactor();
     const anchor = { x: vb.x + s.rect.x * zoom, y: vb.y + s.rect.y * zoom, width: s.rect.width * zoom, height: s.rect.height * zoom };
     // Only fields inside the page's own area: a frame cannot place the dropdown over the toolbar.
     if (anchor.y + anchor.height < vb.y || anchor.y > vb.y + vb.height || anchor.x > vb.x + vb.width || anchor.x + anchor.width < vb.x) return this.hidePopup(win);
@@ -302,7 +303,7 @@ export class PasswordService {
     const item = s?.items[index];
     if (!s || !item) return;
     this.hidePopup(win);
-    s.tab.wc.focus();
+    s.tab.wc?.focus();
     const { frame, origin } = s;
     if (frame.isDestroyed() || frame.detached || frame.origin !== origin) return;
     const login = this.store.get(item.id);
@@ -390,7 +391,7 @@ export class PasswordService {
       p.navigated = true;
       const started = Date.now();
       const check = () => {
-        if (this.livePending(tab, p.origin) !== p || tab.isDestroyed) return;
+        if (this.livePending(tab, p.origin) !== p || !tab.wc) return;
         if (tab.wc.isLoading() && Date.now() - started < 8000) return void setTimeout(check, 250);
         // The new page reports a password field shortly after it loads.
         setTimeout(() => {
@@ -498,6 +499,12 @@ export class PasswordService {
       this.prompts.delete(tab.id);
       tab.win.update();
     }
+  }
+
+  /** The dropdown is up in the tab, or a sign-in there waits to be saved: it must not be put to sleep. */
+  busyWith(tab: Tab): boolean {
+    const s = this.fields.get(tab.win);
+    return (s?.tab === tab && s.open) || [...(this.pending.get(tab.id)?.values() ?? [])].some((p) => this.livePending(tab, p.origin) === p);
   }
 
   tabClosed(tab: Tab): void {

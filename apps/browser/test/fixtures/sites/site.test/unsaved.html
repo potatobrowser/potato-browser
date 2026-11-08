@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Half-written Note</title></head>
+<body>
+<h1>Half-written Note</h1>
+<textarea id="note" rows="4" cols="40"></textarea>
+<script>
+  let dirty = false;
+  document.getElementById('note').addEventListener('input', () => (dirty = true));
+  addEventListener('beforeunload', (e) => {
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+</script>
+</body>
+</html>

@@ -84,9 +84,17 @@ function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
 }
 
+/**
+ * Stands in for every statement once the database is closed: a page that finishes loading while the
+ * browser quits still records its title or zoom, and an exception there would put up Electron's
+ * error dialog and keep the app from quitting.
+ */
+const CLOSED = { get: () => undefined, all: () => [], run: () => ({ changes: 0, lastInsertRowid: 0 }) } as unknown as StatementSync;
+
 export class ProfileDb {
   readonly db: DatabaseSync;
   private cache = new Map<string, StatementSync>();
+  private closed = false;
 
   constructor(file: string) {
     this.db = new DatabaseSync(file);
@@ -108,6 +116,7 @@ export class ProfileDb {
   }
 
   stmt(sql: string): StatementSync {
+    if (this.closed) return CLOSED;
     let s = this.cache.get(sql);
     if (!s) {
       s = this.db.prepare(sql);
@@ -117,6 +126,7 @@ export class ProfileDb {
   }
 
   tx<T>(fn: () => T): T {
+    if (this.closed) return fn();
     this.db.exec('BEGIN');
     try {
       const r = fn();
@@ -129,6 +139,8 @@ export class ProfileDb {
   }
 
   close(): void {
+    if (this.closed) return;
+    this.closed = true;
     this.db.close();
   }
 
@@ -145,10 +157,12 @@ export class ProfileDb {
          typed_count = urls.typed_count + excluded.typed_count,
          last_visit = MAX(urls.last_visit, excluded.last_visit)`,
     ).run(url, title, count, opts.typed ? 1 : 0, time);
-    if (count) {
-      const row = this.stmt('SELECT id FROM urls WHERE url = ?').get(url) as Row;
-      this.stmt('INSERT INTO visits (url_id, visit_time) VALUES (?, ?)').run(row.id, time);
-    }
+    const row = count ? (this.stmt('SELECT id FROM urls WHERE url = ?').get(url) as Row | undefined) : undefined;
+    if (row) this.stmt('INSERT INTO visits (url_id, visit_time) VALUES (?, ?)').run(row.id, time);
+  }
+
+  titleFor(url: string): string {
+    return ((this.stmt('SELECT title FROM urls WHERE url = ?').get(url) as Row | undefined)?.title as string) ?? '';
   }
 
   updateTitle(url: string, title: string): void {

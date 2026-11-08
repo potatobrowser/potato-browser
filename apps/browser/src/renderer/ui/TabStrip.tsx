@@ -80,7 +80,8 @@ export function TabStrip({ tabs, activeId, isPrivate, fullscreen }: Props) {
               aria-selected={tab.id === activeId}
               data-testid="tab"
               data-tab-id={tab.id}
-              className={`tab${tab.id === activeId ? ' active' : ''}${drag?.id === tab.id ? ' dragging' : ''}${drag ? ' anim' : ''}`}
+              data-asleep={tab.asleep || undefined}
+              className={`tab${tab.id === activeId ? ' active' : ''}${tab.asleep ? ' asleep' : ''}${drag?.id === tab.id ? ' dragging' : ''}${drag ? ' anim' : ''}`}
               style={style}
               title={tab.title}
               onPointerDown={(e) => onPointerDown(e, tab, i)}

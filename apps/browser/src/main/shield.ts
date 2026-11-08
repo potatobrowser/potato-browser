@@ -164,10 +164,12 @@ export class ShieldService {
   /** Pushes the current state to every frame of every tab (after any settings change). */
   broadcast(): void {
     for (const tab of ctx.windows.allTabs()) {
-      if (tab.isDestroyed) continue;
-      for (const frame of tab.wc.mainFrame.framesInSubtree) {
+      // Asleep tabs read the settings when they wake.
+      const wc = tab.wc;
+      if (!wc) continue;
+      for (const frame of wc.mainFrame.framesInSubtree) {
         try {
-          frame.send('page:config', this.pageConfig(tab.wc, tab.url, tab.win.isPrivate, frame.url));
+          frame.send('page:config', this.pageConfig(wc, tab.url, tab.win.isPrivate, frame.url));
         } catch {}
       }
     }

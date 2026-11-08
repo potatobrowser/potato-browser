@@ -16,6 +16,18 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+describe('closing', () => {
+  it('answers with nothing once closed, so pages loading during quit cannot throw', () => {
+    db.addVisit('https://a.test/', 'Alpha');
+    db.close();
+    expect(db.getSiteSetting('a.test', 'zoom')).toBeNull();
+    expect(db.favicon('a.test')).toBeNull();
+    expect(db.queryHistory('')).toEqual([]);
+    expect(() => db.addVisit('https://b.test/', 'Bravo')).not.toThrow();
+    expect(() => db.setFavicon('b.test', 'data:image/png;base64,AA==')).not.toThrow();
+  });
+});
+
 describe('history', () => {
   it('records visits and titles and supports search and deletion', () => {
     db.addVisit('https://a.test/', 'Alpha', { time: 1000 });

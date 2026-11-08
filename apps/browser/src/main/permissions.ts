@@ -73,6 +73,8 @@ export class PermissionManager {
 
   install(ses: Session, isPrivate: boolean): void {
     ses.setPermissionRequestHandler((wc, permission, callback, details) => {
+      // A tab sharing the screen, camera or microphone must never be put to sleep.
+      if (permission === 'display-capture') ctx.windows.tabFor(wc)?.noteCapture();
       if (ALWAYS_ALLOW.has(permission)) return callback(true);
       if (!PROMPTABLE.has(permission)) return callback(false);
       const origin = originOf((details as any).requestingUrl ?? wc?.getURL());
@@ -81,8 +83,10 @@ export class PermissionManager {
       const key = `perm:${kind}`;
       const stored = this.decision(origin, key, isPrivate);
       const finish = (allow: boolean) => {
-        if (allow && permission === 'media') void this.ensureSystemMediaAccess((details as any).mediaTypes ?? []).then(callback);
-        else callback(allow);
+        if (allow && permission === 'media') {
+          ctx.windows.tabFor(wc)?.noteCapture();
+          void this.ensureSystemMediaAccess((details as any).mediaTypes ?? []).then(callback);
+        } else callback(allow);
       };
       if (stored) return finish(stored === 'allow');
       const tab = ctx.windows.tabFor(wc);
@@ -155,6 +159,16 @@ export class PermissionManager {
       if (!(await systemPreferences.askForMediaAccess(media))) return false;
     }
     return true;
+  }
+
+  /** The site was allowed this permission (and is not blocked in this window). */
+  isAllowed(url: string, permission: string, isPrivate: boolean): boolean {
+    const origin = originOf(url);
+    return !!origin && this.decision(origin, `perm:${permission}`, isPrivate) === 'allow';
+  }
+
+  hasPrompt(tabId: number): boolean {
+    return this.pending.some((p) => p.prompt.tabId === tabId);
   }
 
   promptsFor(win: BrowserWindowController): PermissionPrompt[] {
