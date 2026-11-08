@@ -2,6 +2,15 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.8.0
+
+- Not AI votes: when a post made by a person gets flagged as AI, press Not AI. Not AI votes cancel AI flags one for one, so a buried post comes back for everyone once enough people disagree.
+- Report a problem: the AI Shield and ad blocker panels have a button for when AI or ads still show, or a page breaks. It sends the page address and your choice, nothing else.
+- AI Shield fixes arrive the same day: the rules now update daily from potatobrowser.com, signed by us, so a change on Google or YouTube no longer waits for a new version.
+- Crash reports, if you want them: switch them on in the welcome page or in Settings, Privacy, and a crash sends us a report so we can fix it. Off unless you switch it on.
+- Cookies are now encrypted with the key in your macOS Keychain, as passwords already were. You stay signed in to your sites.
+- The daily check for filter list updates now also says which version you run, so we can count how many people use Potato Browser. It still says nothing about you. potatobrowser.com/privacy lists everything the browser sends.
+
 ## 0.7.1
 
 - Google sign-in works again. Google turned it down with "This browser or app may not be secure" because, on its sign-in pages, the browser claimed to be Firefox. It now tells Google what it really is, and every other site still sees a plain Chrome browser.

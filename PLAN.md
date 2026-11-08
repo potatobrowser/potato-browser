@@ -190,8 +190,8 @@ All nine milestones are done and committed.
   merged into the site's; stand-ins served only under a per-launch `potato-res://` path; one
   failing list download no longer holds back the others; per-tab counts start at commit.
 
-Open items: Google sign-in check with a real account, extensions, cookie encryption (possible
-now that releases are Developer ID signed).
+Open items: Google sign-in check with a real account, extensions. (Cookie encryption: done in
+0.8.0.)
 
 ## Passwords (0.6.0)
 
@@ -412,6 +412,75 @@ Findings of the WebKit spike (iOS 27 simulator):
   (UIKit gesture handling), so tab web views are made when first shown; typed URLs with escapes
   were escaped twice.
 
-Open items (iOS): the CGNAT question for votes from phones (one network bucket per carrier
-range), the default browser entitlement (requested from Apple), mobile layouts of the
-logged-in social sites, iPad multiwindow.
+Open items (iOS): the default browser entitlement (requested from Apple), mobile layouts of the
+logged-in social sites, iPad multiwindow. (Vote buckets for phones: decided in 0.8.0, see
+Launch work.)
+
+## Launch work (0.8.0 for Mac, 0.6.0 for iOS, 2026-11-08)
+
+From the launch list: ways to hear from users (site reports, crash reports, install counts),
+rule fixes without a release, disputes for wrongly flagged posts, and hardening.
+
+Decisions:
+
+- **Not AI votes.** A vote is `ai` or `human`, one per install and post (changing your mind keeps
+  the network the vote was first cast from), counted per network bucket like flags. A post
+  counts as AI-generated when AI flags minus Not AI votes reach the threshold; your own vote
+  always decides for you. One for one is easy to explain and makes brigading a human post as AI
+  cost as much as defending it. Apps before 0.8.0 only know flags: lookups without `v: 2` get
+  the net count, so disputes work for them from the day the Worker ships.
+- **Vote buckets on phones: no special rule.** A vote still counts once per IPv4 /24 or IPv6 /48,
+  on phones as on Macs. iPhones on the big carriers reach potatobrowser.com over IPv6 (Cloudflare
+  answers AAAA, iOS prefers it, carriers such as T-Mobile US are IPv6-only with 464XLAT), where
+  each phone has its own /64 and carriers spread them over many /48s; the IPv4 carrier NAT
+  collapse applies only on IPv4-only carriers, and phones browse mostly on Wi-Fi anyway. Any finer
+  bucket for carrier networks (an IPv6 /64, an IPv4 address) is re-rolled by toggling airplane
+  mode, which would let one person reach the default threshold of 3 within a minute; telling
+  carriers apart by ASN needs a list to maintain and leaves the same hole. Collapsing errs towards
+  fewer flags, so a post stays visible rather than buried by one person. Instead the Worker
+  measures it: `vote_stats` counts per day, app and IP family the votes that added a network to a
+  post and the ones whose network already counted ("collapsed"), shown on `/admin`. If phones
+  show a high collapsed share once the iOS app is public, the next step is App Attest for iOS
+  votes: one vote per genuine device, no accounts, and no IP rule for attested votes.
+- **Install counts from the daily check.** The filter list check runs once per calendar day (UTC)
+  instead of every 24 hours and adds `app` and `v`; the Worker increments `installs(day, app,
+  version)`. No id, so a day's count is the installs that ran that day with updates on. Checks
+  from older apps count as `legacy`, their app told apart by the HTTP client (CFNetwork or a Mac
+  Chrome user agent).
+- **AI Shield rules from the site, signed.** The rules are data, but they inject CSS into every
+  page, so a server that could change them could hide anything or, with raw CSS, read form
+  values through `url()`. The payload is signed with Ed25519 at deploy time by a key that lives
+  only on the deploying machine (`~/.config/potatobrowser/shield-rules-ed25519.pem` on devserver;
+  back it up), and the apps also validate every field. Versions are the git time of the last
+  change to `rules.ts`, so the app's own rules and the site's compare without a counter to bump;
+  the hash decides whether anything changed. The Mac main process sends each frame its host's
+  rules in the page config; iOS adds the catalog as a content world script for the pages.
+- **Site reports** carry the page address without the fragment, the choice, the app and version
+  (the version tells whether a report predates a fix). Triage happens on `/admin` (Basic auth,
+  `ADMIN_TOKEN`), which can also mark every report of a host done. A daily cron deletes triaged
+  reports after 30 days and all after 90.
+- **Crash reports, opt-in.** Off by default; until switched on Crashpad never starts, so nothing
+  is written even locally. Minidumps can contain page content, which is why it is opt-in and the
+  welcome page says so. R2 keeps them 90 days (lifecycle rule plus the cron); the Worker drops
+  Crashpad's per-install `guid`. On iOS, MetricKit delivers crash and hang diagnostics on the next
+  launch; the app strips region and pid before sending.
+- **Cookie encryption.** The `enableCookieEncryption` fuse is on: cookies use the same Keychain
+  key as saved passwords. Checked with two packaged builds on one profile, with the mock and the
+  real login Keychain: plain cookies from 0.7 stay readable, new ones are written as `v10`
+  ciphertext and read back after a relaunch, and a password saved by 0.7 still decrypts. A
+  downgrade to 0.7 drops the encrypted cookies (sites sign you out); Squirrel never downgrades.
+- **iOS hiding rules outrank site CSS.** Adopted sheets are author CSS, so a site's own
+  `!important` with a more specific selector won (DuckDuckGo's mobile Duck.ai button). The
+  shield's rules get three never-matching id tests, which only raises their specificity.
+- **Passkeys stay out of reach on the Mac.** Electron 45 reports no user-verifying platform
+  authenticator, and a passkey request waits with no UI until it times out (checked against
+  webauthn.io and a plain page). The FAQ and README say so; hardware keys are untested.
+- **Widevine waits for castlabs.** castlabs' Electron for Content Security has 45.2.1 at most,
+  while 45.2.2 and 45.2.3 carry Chromium security backports and the fix for removing user
+  stylesheets that the AI Shield relies on. Switching now would roll those back.
+
+Also: the iOS app no longer declares `NSAllowsLocalNetworking` (the e2e run talks to 127.0.0.1,
+which ATS allows anyway), its privacy manifest lists what reaches the service, the App Store and
+TestFlight texts live in `apps/ios/store` with `asc.mjs` commands to upload them, CI runs the
+XCTest units on GitHub's `xcode-27` image, and srv-deploy uploads a TestFlight build when the
+iOS app or what it bundles changes on main.

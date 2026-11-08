@@ -15,8 +15,8 @@ not generated.
   keep video ads off YouTube). The ad blocker button in the toolbar lets ads through on one site.
   Cookie notices and annoyances can be hidden too.
 - **Community AI flags**: anonymous "AI?" flags on Reddit, X, Instagram, Facebook, Threads,
-  LinkedIn, YouTube, Bluesky and TikTok posts. Flagged posts are hidden, labelled or left alone,
-  as the user chooses.
+  LinkedIn, YouTube, Bluesky and TikTok posts, and "Not AI" votes that cancel them when a person
+  made the post after all. Flagged posts are hidden, labelled or left alone, as the user chooses.
 
 It is also a complete browser, with a built-in password manager: it offers to save passwords when
 you sign in, fills them from its own dropdown, keeps them encrypted with a key in the macOS
@@ -134,7 +134,8 @@ POTATO_E2E_EXECUTABLE="$PWD/release/test/mac-arm64/Potato Browser.app/Contents/M
 `node test/live/live-check.mjs <screenshot-dir> <url...>` opens real sites in the real browser and
 prints what the shield hid and how many flag buttons were placed.
 `node test/live/adblock-check.mjs <screenshot-dir> --compare <url...>` does the same for the ad
-blocker, with it on and off.
+blocker, with it on and off. `node test/live/webauthn-check.mjs` shows which WebAuthn
+authenticators the build offers.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how changes and releases land.
 
@@ -168,13 +169,22 @@ build from source, are ad-hoc signed.
 `apps/web` is one Cloudflare Worker: the landing page (static assets), the flags API on D1, the
 ad blocker's filter list updates (proxied from Ghostery's CDN and cached at the edge), and release
 info read from this repository's GitHub Releases (`SOURCE_REPO` in `wrangler.jsonc`).
-To run your own, create a D1 database, put its id in `wrangler.jsonc`, then:
+It also takes site reports and opt-in crash reports (R2), counts the daily checks, serves the
+signed AI Shield rules, and has an `/admin` page for triaging reports and reading the counters.
+To run your own, create a D1 database and an R2 bucket, put their names in `wrangler.jsonc`, then:
 
 ```sh
 cd apps/web
 npx wrangler secret put VOTER_SALT       # any long random string, kept forever
-pnpm run deploy                          # applies D1 migrations, then wrangler deploy
+npx wrangler secret put ADMIN_TOKEN      # password of /admin (any user name); no secret, no page
+pnpm run deploy                          # signs the shield rules, applies D1 migrations, deploys
 ```
+
+`pnpm run deploy` signs `apps/browser/src/content/shield/rules.ts` with the Ed25519 key in
+`POTATO_SHIELD_KEY` (default `~/.config/potatobrowser/shield-rules-ed25519.pem`) and refuses to
+deploy without it. The apps accept rule updates only from the keys in `SHIELD_RULES_KEYS`
+(`packages/shared`), so a service of your own needs your key there and in your builds.
+`node apps/web/scripts/shield-rules.mjs` signs with a throwaway key for tests and `wrangler dev`.
 
 ## How it works
 
@@ -197,6 +207,32 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
   optionally with text or aria-label heuristics, placeholder rewrites, and blocked request
   paths. A unit test checks the catalog, and an e2e test checks every selector is valid in the
   shipped Chromium.
+- **AI Shield rule updates**: sites change their markup more often than we release, so the
+  daily check also names the version of the rules on potatobrowser.com. When it is newer than
+  the app's own (both carry the git time of the last change to `rules.ts`), the browser
+  downloads them, checks their Ed25519 signature against `SHIELD_RULES_KEYS`, validates every
+  field (`src/content/shield/validate.ts`: selectors cannot end their rule, raw CSS cannot load
+  anything, regexes stay small) and swaps them in for every open page. The key that signs them
+  never reaches the Worker: rules are signed when the site is deployed, which srv-deploy does
+  whenever `rules.ts` changes on main, so a fix reaches every install within a day. Settings,
+  AI Shield, turns updates off.
+- **The daily check** (`GET /api/v1/filters?lists=...&app=mac&v=0.8.0`) runs once per calendar
+  day while filter list or rule updates are on. It names the lists, the app and its version; the
+  Worker adds one to a counter for that day, app and version, and keeps nothing else. That
+  counter is how many installs are in use.
+- **Report a problem** in the shield and ad blocker panels sends the page address (without the
+  fragment), the choice (AI still showing, ads still showing, page broken), the app and its
+  version. Reports wait at `/admin` for triage and are deleted 30 days after triage, 90 days at
+  the latest.
+- **Crash reports** are opt-in (welcome page, Settings, Privacy). Only then does Electron's
+  crashReporter (Crashpad) start; it uploads minidumps to `/api/v1/crashes`, at most one an hour.
+  The Worker keeps the dump in R2 with the version, process type, Electron version and
+  architecture, drops Crashpad's per-install `guid`, and deletes it after 90 days. The iOS app
+  sends MetricKit's crash and hang diagnostics the same way, without region or process id.
+- **Cookies** are encrypted with the same "Potato Browser Safe Storage" Keychain key as saved
+  passwords (Electron's `enableCookieEncryption` fuse), as Chrome does. Cookies from versions
+  before 0.8.0 stay readable and are encrypted when next written; going back to an older version
+  signs you out of sites.
 - **Ad blocker** (`apps/browser/src/main/adblock`) runs
   [@ghostery/adblocker](https://github.com/ghostery/adblocker) on EasyList, EasyPrivacy and uBlock
   Origin's lists from Ghostery's CDN. `filters/lock.json` pins each list's revision and SHA-256; the
@@ -213,6 +249,10 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
   downloaded: it changes only with a release. As in uBlock Origin, only uBlock's own lists and
   the user's filters may call "trusted" scriptlets (the ones whose arguments can carry code);
   `$csp` filters add a separate policy and never loosen the site's own.
+- **Not AI votes** dispute a post someone flagged by mistake. A vote is an AI flag or a Not AI
+  vote, one per install and post, counted per network like flags; a post counts as AI-generated
+  when its AI flags minus its Not AI votes reach your threshold, and your own vote always decides
+  for you. Apps before 0.8.0 know only flags, so lookups without `v: 2` get the net count.
 - **Flags** keep what you read on your Mac. Lookups send only 5-character prefixes of
   `sha256("noai-flag:v1:<platform>:<id>")`, each shared by many posts; the browser matches full
   hashes locally. A flag sends the full hash and a random install id (a throwaway one in private
