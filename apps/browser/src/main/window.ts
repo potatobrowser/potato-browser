@@ -3,7 +3,7 @@ import type { FindState, WindowState } from '../shared/types';
 import { isNewTabUrl, NEW_TAB_URL } from '../shared/urls';
 import { ctx } from './context';
 import { BOOKMARKS_BAR_ID } from './db';
-import { paths } from './paths';
+import { isTest, paths } from './paths';
 import { Tab, type TabInit } from './tab';
 import type { WindowManager } from './windows';
 
@@ -55,6 +55,8 @@ export class BrowserWindowController {
       minWidth: 500,
       minHeight: 320,
       show: false,
+      // e2e runs several apps at once: a window that can take focus blurs the others, closing their autofill dropdowns.
+      focusable: !isTest(),
       title: 'Potato Browser',
       titleBarStyle: 'hiddenInset',
       trafficLightPosition: { x: 14, y: 13 },
