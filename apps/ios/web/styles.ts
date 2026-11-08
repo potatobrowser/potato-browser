@@ -4,18 +4,36 @@
  * apply to them and page scripts cannot remove them with DOM calls. A `<style>` element is the
  * fallback where adoption fails (XML documents).
  */
+/**
+ * Adopted sheets are author CSS, unlike the Mac app's user stylesheets: a site's own
+ * `display: ... !important` with a more specific selector would beat a hiding rule. Three
+ * id tests that never match lift every hiding rule above any realistic site selector.
+ */
+const LIFT = ':not(#potato-x1):not(#potato-x2):not(#potato-x3)';
+
+function lift(sheet: CSSStyleSheet): void {
+  for (const rule of Array.from(sheet.cssRules)) {
+    if (!(rule instanceof CSSStyleRule) || rule.style.getPropertyValue('display') !== 'none' || rule.style.getPropertyPriority('display') !== 'important') continue;
+    try {
+      rule.selectorText = `:is(${rule.selectorText})${LIFT}`;
+    } catch {}
+  }
+}
+
 export class Styles {
   private sheets = new Map<string, CSSStyleSheet | HTMLStyleElement>();
   private n = 0;
   private readonly adopt =
     typeof CSSStyleSheet === 'function' && 'replaceSync' in CSSStyleSheet.prototype && 'adoptedStyleSheets' in Document.prototype;
 
-  insert(css: string): string {
+  /** `strong`: hiding rules that must win against the site's own `!important` (the AI Shield). */
+  insert(css: string, strong = false): string {
     const key = `s${++this.n}`;
     if (this.adopt) {
       try {
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(css);
+        if (strong) lift(sheet);
         document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
         this.sheets.set(key, sheet);
         return key;

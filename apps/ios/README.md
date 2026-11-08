@@ -38,7 +38,11 @@ user script before the page loads. Each tab has its own `WKUserContentController
 - Global Privacy Control is sent as `navigator.globalPrivacyControl` only: WebKit gives apps no
   way to add a request header.
 - On iPhone, sites send their mobile layouts. Checked on them so far: the shield on Google search,
-  flags on YouTube (m.youtube.com) and Reddit. Other sites' mobile markup may need new rules.
+  Bing (Copilot answers, buttons and tabs) and DuckDuckGo (Search Assist, Duck.ai), flags on
+  YouTube (m.youtube.com) and Reddit. Other sites' mobile markup may need new rules.
+- Hiding rules are author CSS on iOS (no user stylesheets), so a site's own `!important` could
+  outrank them; the shield's rules get three never-matching id tests (`web/styles.ts`) to stay on
+  top. DuckDuckGo's mobile Duck.ai button was the first rule this caught.
 - Import reads bookmark HTML files and Safari's export (Settings > Apps > Safari > Export); other
   browsers' profiles are out of an app's reach.
 - Default browser needs Apple's browser entitlement, which is requested from Apple separately.

@@ -157,7 +157,7 @@ function start(config: IosPageConfig): void {
 
   const shield = new ShieldEngine(
     {
-      insertCSS: (css) => styles.insert(css),
+      insertCSS: (css) => styles.insert(css, true),
       removeCSS: (key) => styles.remove(key),
       report: (r) => send('shield', { count: r.count, features: r.features, delta: r.delta }),
     },
