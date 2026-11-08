@@ -23,6 +23,7 @@ struct PotatoApp: App {
         .environmentObject(app.downloads)
         .onOpenURL { app.open(link: $0) }
     }
+    .commands { BrowserCommands(app: app, tabs: app.tabs) }
     .onChange(of: phase) { _, p in
       if p == .background {
         app.tabs.save()
