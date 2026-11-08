@@ -6,7 +6,7 @@ import { commands, openInternal } from './commands';
 import { ctx } from './context';
 import { ProfileDb } from './db';
 import { DownloadManager } from './downloads';
-import { applyEngineSwitches, chromeUserAgent } from './engine';
+import { applyEngineSwitches, applyUserAgent } from './engine';
 import { FlagsService } from './flags';
 import { PasswordService } from './passwords/service';
 import { registerIpc } from './ipc';
@@ -24,7 +24,7 @@ import { WindowManager } from './windows';
 app.setName('Potato Browser');
 configureUserData();
 applyEngineSwitches();
-app.userAgentFallback = chromeUserAgent();
+applyUserAgent();
 registerSchemes();
 // Tests must never touch the real Keychain (or wait on its permission dialog). Only with a
 // throwaway profile: the mock key would leave a real profile's passwords unreadable.

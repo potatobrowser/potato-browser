@@ -1,7 +1,6 @@
 import type { Session } from 'electron';
-import { GOOGLE_SIGNIN_HOSTS, GOOGLE_SIGNIN_UA } from '../shared/constants';
 import { ctx } from './context';
-import { chromeUserAgent } from './engine';
+import { chromeUserAgent, googleSignInUserAgent } from './engine';
 import { isTest } from './paths';
 import { installFixtureProxy, installInternalProtocol } from './protocol';
 
@@ -88,13 +87,8 @@ export function configureSession(ses: Session, opts: { isPrivate: boolean; ui?: 
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     const headers = details.requestHeaders;
     if (ctx.settings.get().privacy.globalPrivacyControl) headers['Sec-GPC'] = '1';
-    try {
-      const host = new URL(details.url).hostname;
-      if (GOOGLE_SIGNIN_HOSTS.includes(host)) {
-        headers['User-Agent'] = GOOGLE_SIGNIN_UA;
-        for (const k of Object.keys(headers)) if (k.toLowerCase().startsWith('sec-ch-ua')) delete headers[k];
-      }
-    } catch {}
+    const signInUA = googleSignInUserAgent(details.url);
+    if (signInUA) headers['User-Agent'] = signInUA;
     callback({ requestHeaders: headers });
   });
 }

@@ -40,6 +40,20 @@ test('identifies as a plain Chromium browser', async () => {
   expect(brands).not.toMatch(/Electron/);
 });
 
+// The sign-in request header is set in webRequest, which the fixture proxy bypasses; the unit test covers it.
+test('Google sign-in pages are not patched to pose as another browser', async () => {
+  b = await TestBrowser.launch();
+  const signIn = await b.goto('https://accounts.google.com/');
+  const nav = await signIn.evaluate(() => ({
+    ua: navigator.userAgent,
+    native: Object.getOwnPropertyDescriptor(Navigator.prototype, 'userAgent')!.get!.toString().includes('[native code]'),
+    brands: (navigator as any).userAgentData?.brands.map((x: any) => x.brand).join(','),
+  }));
+  expect(nav.ua).not.toMatch(/Firefox/);
+  expect(nav.native).toBe(true);
+  expect(nav.brands).toMatch(/Chromium/);
+});
+
 test('the About page reports the engine and what is switched off', async () => {
   b = await TestBrowser.launch();
   await b.cmd('showAbout');

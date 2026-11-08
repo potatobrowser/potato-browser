@@ -1,7 +1,7 @@
 {
   "name": "@potato/browser",
   "productName": "Potato Browser",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A Chromium-based browser for the human web. AI features hidden, ads and trackers blocked, no AI in the engine.",
   "author": "Potato Browser",
   "private": true,

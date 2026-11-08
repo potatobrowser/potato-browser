@@ -80,3 +80,24 @@ export function chromeUserAgent(): string {
   const major = process.versions.chrome.split('.')[0];
   return `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
+
+const GOOGLE_SIGNIN_HOSTS = ['accounts.google.com', 'accounts.youtube.com'];
+let electronUA = '';
+
+/** Swaps the app-wide UA for chromeUserAgent(), keeping Electron's own for Google sign-in. */
+export function applyUserAgent(): void {
+  electronUA = app.userAgentFallback;
+  app.userAgentFallback = chromeUserAgent();
+}
+
+/**
+ * Google rejects sign-in ("This browser or app may not be secure") from any identity that does
+ * not match the engine, Chrome-shaped or Firefox, but accepts Electron's unmodified one.
+ */
+export function googleSignInUserAgent(url: string): string | null {
+  try {
+    return electronUA && GOOGLE_SIGNIN_HOSTS.includes(new URL(url).hostname) ? electronUA : null;
+  } catch {
+    return null;
+  }
+}

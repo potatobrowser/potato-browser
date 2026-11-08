@@ -252,8 +252,9 @@ pnpm run deploy                          # applies D1 migrations, then wrangler 
   other browsers as CSV exports, not directly from their profiles.
 - The ad blocker filters subresources and page elements; it does not block whole pages (uBlock's
   "strict blocking" of known bad sites) and ignores `$removeparam` filters.
-- Google account sign-in uses a Firefox user agent on Google's account pages (Google blocks
-  sign-in from browsers it can't identify). This has not been verified with a real account.
+- Google's sign-in pages (accounts.google.com, accounts.youtube.com) see the browser's own
+  Electron user agent, every other site a plain Chrome one: Google rejects sign-in from a browser
+  that claims to be a different one. Not yet verified with a real account.
 - Logged-in layouts of X, Facebook, Instagram, LinkedIn and TikTok are covered by fixtures built
   from their current DOM, not by live tests (those pages require an account). Site markup
   changes, so rules and adapters need occasional updates through new releases.

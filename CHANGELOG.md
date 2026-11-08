@@ -2,6 +2,10 @@
 
 Each `## <version>` section becomes the notes of that GitHub Release.
 
+## 0.7.1
+
+- Google sign-in works again. Google turned it down with "This browser or app may not be secure" because, on its sign-in pages, the browser claimed to be Firefox. It now tells Google what it really is, and every other site still sees a plain Chrome browser.
+
 ## 0.7.0
 
 - Updates install themselves. Every few hours the browser asks potatobrowser.com for a new version, downloads it in the background, and a Restart to update button appears in the toolbar. One click and you are on the new version, with your windows and tabs back. Quitting installs it too.

@@ -7,7 +7,6 @@ import { setOpenShadowRoots } from '../content/flags/ui';
 import type { FlagsBridge } from '../content/flags/types';
 import { PasswordForms, type PasswordsBridge } from '../content/passwords/forms';
 import { ShieldEngine } from '../content/shield/engine';
-import { GOOGLE_SIGNIN_HOSTS, GOOGLE_SIGNIN_UA } from '../shared/constants';
 import type { PageConfig } from '../shared/types';
 
 /** Internal potato:// pages get a small promise-based API; everything is validated in main. */
@@ -19,25 +18,6 @@ function exposeInternalApi(): void {
       ipcRenderer.on('potato:event', l);
       return () => ipcRenderer.off('potato:event', l);
     },
-  });
-}
-
-/** Google blocks sign-in from browsers it can't identify; on its account pages we look like Firefox. */
-function spoofFirefoxNavigator(): void {
-  contextBridge.executeInMainWorld({
-    func: (ua: string) => {
-      const define = (prop: string, value: unknown) => {
-        try {
-          Object.defineProperty(Navigator.prototype, prop, { get: () => value, configurable: true });
-        } catch {}
-      };
-      define('userAgent', ua);
-      define('appVersion', '5.0 (Macintosh)');
-      define('vendor', '');
-      define('userAgentData', undefined);
-      define('platform', 'MacIntel');
-    },
-    args: [GOOGLE_SIGNIN_UA],
   });
 }
 
@@ -71,8 +51,6 @@ function startWebPage(): void {
   try {
     startAdblock(false);
   } catch {}
-
-  if (GOOGLE_SIGNIN_HOSTS.includes(location.hostname)) spoofFirefoxNavigator();
 
   const shield = new ShieldEngine(
     {
