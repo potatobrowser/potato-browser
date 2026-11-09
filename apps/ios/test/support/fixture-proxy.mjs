@@ -43,7 +43,7 @@ export function ensureCerts(dir) {
       f('ext.cnf'),
       `basicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=${hosts.map((h) => `DNS:${h}`).join(',')}\n`,
     );
-    run('x509', '-req', '-in', f('server.csr'), '-CA', f('ca.crt'), '-CAkey', f('ca.key'), '-CAcreateserial', '-out', f('server.crt'), '-days', '365', '-sha256', '-extfile', f('ext.cnf'));
+    run('x509', '-req', '-in', f('server.csr'), '-CA', f('ca.crt'), '-CAkey', f('ca.key'), '-CAcreateserial', '-CAserial', f('ca.srl'), '-out', f('server.crt'), '-days', '365', '-sha256', '-extfile', f('ext.cnf'));
     fs.writeFileSync(marker, hosts.join('\n'));
   }
   return { ca: f('ca.crt'), key: f('server.key'), cert: f('server.crt') };

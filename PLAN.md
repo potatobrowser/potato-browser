@@ -398,23 +398,37 @@ Findings of the WebKit spike (iOS 27 simulator):
 - The Ghostery engine in JavaScriptCore without JIT (as on a device) loads ads and trackers in
   0.3 s and 0.2 s and answers a page's cosmetics in 1 to 12 ms.
 
-## iOS status (2026-11-07)
+## iOS status (2026-11-09)
 
-- `apps/ios`: SwiftUI app, 0.5.0, on TestFlight (internal group "Team").
-- Tests: 30 vitest (converter, parity with the Mac app), 20 XCTest units, 4 UI tests and 136
-  end-to-end checks on the simulator against the Mac app's fixture sites and the real Worker,
-  all passing.
+- `apps/ios`: SwiftUI app, 0.6.0, on TestFlight (internal group "Team"). srv-deploy uploads a
+  build when the app or what it bundles changes on main.
+- 0.6.0 brings the launch work (Not AI votes, Report a problem, signed AI Shield rule updates,
+  opt-in crash reports through MetricKit, see Launch work) and: links from other apps
+  (`potatobrowser://open?url=`, `potato-https://` and `potato-http://`, and an Open in Potato
+  share extension), pull to refresh, swiping the address bar for the next or previous tab, and
+  keyboard shortcuts as main menu commands, so they also show in the iPad menu bar.
+- Tests: 30 vitest (converter, parity with the Mac app), 33 XCTest units, 16 UI tests (the
+  shortcuts on an iPad simulator too) and 145 end-to-end checks on the simulator against the Mac
+  app's fixture sites and the real Worker, all passing.
 - Live checks on the simulator: adblock-tester.com 100/100; Google search on the mobile layout
-  with 4 AI features hidden and AI Mode sent back to results; m.youtube.com with uBlock's
-  scriptlets stripping the ad data from the player response and flag buttons on every video;
-  Reddit with flag buttons on every post; consent walls gone with cookie notices on.
+  with 4 AI features hidden and AI Mode sent back to results; Bing and DuckDuckGo mobile with
+  their AI answers and buttons hidden; m.youtube.com with uBlock's scriptlets stripping the ad
+  data from the player response and flag buttons on every video; Reddit with flag buttons on
+  every post; consent walls gone with cookie notices on.
 - Found on the way: a WKWebView made before the app has a window crashes on its first tap
   (UIKit gesture handling), so tab web views are made when first shown; typed URLs with escapes
-  were escaped twice.
+  were escaped twice. A focused SwiftUI TextField keeps Esc to itself, so the address field is a
+  UITextField with its own Esc key command. Keys a focused page leaves alone reach the keyboard's
+  text commands before the app's, and Cmd+W and Cmd+F end there, so the tab's web view claims
+  those two. A share extension cannot use UIApplication.shared and the openURL: selector stopped
+  working in iOS 18; it walks the responder chain to the extension's UIApplication, as Firefox
+  and DuckDuckGo do. Without a Mac keyboard attached, the simulator's on-screen keyboard keeps
+  Esc and Cmd+W (Cmd+F too on iPhone) while a page or text field has focus, as Safari does there,
+  so the UI tests press those with nothing focused.
 
 Open items (iOS): the default browser entitlement (requested from Apple), mobile layouts of the
-logged-in social sites, iPad multiwindow. (Vote buckets for phones: decided in 0.8.0, see
-Launch work.)
+logged-in social sites, iPad multiwindow, and Esc, Cmd+W and Cmd+F checked with a real keyboard
+on a device.
 
 ## Launch work (0.8.0 for Mac, 0.6.0 for iOS, 2026-11-08)
 

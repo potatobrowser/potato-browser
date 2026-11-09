@@ -2,3 +2,8 @@
 - Report a problem in the protections panel when AI or ads still show, or a page breaks.
 - AI Shield rule fixes now arrive daily, signed by us.
 - Optional crash reports, asked on the welcome page.
+- Open in Potato: share a link or a page from another app to open it here.
+- Pull down on a page to reload it.
+- Swipe the address bar left or right to switch tabs. Past the last tab comes a new one.
+- Keyboard shortcuts with a hardware keyboard: Cmd+T, Cmd+W, Cmd+L, Cmd+F, Cmd+R, Cmd+D, Shift+Cmd+T, Ctrl+Tab, Cmd+1 to Cmd+9 and more. Esc leaves the address field.
+- Tapping the address bar selects the address, so typing replaces it.

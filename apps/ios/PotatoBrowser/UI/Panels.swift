@@ -188,14 +188,8 @@ struct MenuView: View {
               Button("Add Bookmark", systemImage: "bookmark") { app.panel = .addBookmark }
                 .accessibilityIdentifier("menu-add-bookmark")
             }
-            Button("Find on Page", systemImage: "doc.text.magnifyingglass") {
-              dismiss()
-              Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 450_000_000)
-                tab.webView.findInteraction?.presentFindNavigator(showingReplace: false)
-              }
-            }
-            .accessibilityIdentifier("menu-find")
+            Button("Find on Page", systemImage: "doc.text.magnifyingglass") { app.findShortcut() }
+              .accessibilityIdentifier("menu-find")
             Button(tab.isDesktopSite ? "Request Mobile Site" : "Request Desktop Site", systemImage: tab.isDesktopSite ? "iphone" : "desktopcomputer") {
               tab.toggleDesktopSite()
               dismiss()

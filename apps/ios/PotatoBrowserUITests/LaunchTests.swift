@@ -137,4 +137,19 @@ final class BrowserUITests: XCTestCase {
     XCTAssertTrue(waitForAddress(app, containing: "iana.org"), "the link opens")
     XCTAssertEqual(app.state, .runningForeground)
   }
+
+  /// The find bar opens from the menu, on a page that was never tapped.
+  func testMenuFindOnPage() {
+    let app = launchApp()
+    let field = app.textFields["address-field"]
+    if !field.waitForExistence(timeout: 5) { app.buttons["address-bar"].tap() }
+    XCTAssertTrue(field.waitForExistence(timeout: 5))
+    field.typeText(LocalServer.shared.url("/m1").absoluteString + "\n")
+    XCTAssertTrue(app.webViews.staticTexts["Load 1"].waitForExistence(timeout: 20))
+    app.buttons["menu"].firstMatch.tap()
+    let item = app.buttons["menu-find"]
+    XCTAssertTrue(item.waitForExistence(timeout: 5))
+    item.tap()
+    XCTAssertTrue(app.searchFields["find.searchField"].waitForExistence(timeout: 5), "the find bar shows")
+  }
 }
