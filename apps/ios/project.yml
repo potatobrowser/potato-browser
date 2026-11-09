@@ -22,9 +22,13 @@ targets:
     sources:
       - path: PotatoBrowser
         type: syncedFolder
+      - path: Shared
+        type: syncedFolder
       - path: WebResources
         type: folder
         buildPhase: resources
+    dependencies:
+      - target: PotatoShare
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.potatobrowser.app
@@ -48,6 +52,13 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: LaunchBackground
+        CFBundleURLTypes:
+          - CFBundleURLName: com.potatobrowser.app
+            CFBundleTypeRole: Viewer
+            CFBundleURLSchemes:
+              - potatobrowser
+              - potato-http
+              - potato-https
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
@@ -69,6 +80,36 @@ targets:
         NSMicrophoneUsageDescription: Websites you allow can use the microphone, for example for a video call.
         NSLocationWhenInUseUsageDescription: Websites you allow can see your location, for example a map.
         NSPhotoLibraryAddUsageDescription: Lets you save images from websites to your photos.
+  PotatoShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PotatoShare
+        type: syncedFolder
+      - path: Shared
+        type: syncedFolder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.potatobrowser.app.share
+        PRODUCT_NAME: PotatoShare
+        INFOPLIST_FILE: PotatoShare/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+    info:
+      path: PotatoShare/Info.plist
+      properties:
+        CFBundleDisplayName: Open in Potato
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
   PotatoBrowserTests:
     type: bundle.unit-test
     platform: iOS

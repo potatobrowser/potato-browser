@@ -115,6 +115,20 @@ final class TabManager: ObservableObject {
     }
   }
 
+  /// The tab `offset` places from the selected one among the shown (normal or private) tabs.
+  func neighbour(_ offset: Int) -> Tab? {
+    let list = current
+    guard let i = list.firstIndex(where: { $0.id == selectedID }), list.indices.contains(i + offset) else { return nil }
+    return list[i + offset]
+  }
+
+  /// The next or previous tab, wrapping around at the ends.
+  func selectAdjacent(_ offset: Int) {
+    let list = current
+    guard list.count > 1, let i = list.firstIndex(where: { $0.id == selectedID }) else { return }
+    select(list[((i + offset) % list.count + list.count) % list.count])
+  }
+
   func move(from: IndexSet, to: Int) {
     if privateMode { privateTabs.move(fromOffsets: from, toOffset: to) } else { tabs.move(fromOffsets: from, toOffset: to) }
     save()

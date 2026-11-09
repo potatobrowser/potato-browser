@@ -73,9 +73,17 @@ node scripts/e2e.mjs --build             # end to end, see below
 
 - Unit tests (XCTest): the address bar's URL or search decision (the Mac app's cases), settings,
   the profile database, flag hashes against `@potato/shared`, import, the shield's matching and AI
-  Mode redirect, every shipped rule list compiling in WebKit, and the engine in JavaScriptCore.
+  Mode redirect, every shipped rule list compiling in WebKit, the engine in JavaScriptCore, and
+  links from other apps (the URL scheme, and what the share extension reads from a share).
 - UI tests (XCUITest): first run, browsing, tabs and private tabs, popups, `target=_blank`,
-  JavaScript dialogs, bookmarks, and a tap on a page right after launch.
+  JavaScript dialogs, bookmarks, a tap on a page right after launch, links from other apps (the
+  URL scheme, and Open in Potato from Safari's share sheet), pull to refresh, swiping the address
+  bar between tabs, and the keyboard shortcuts. The newer tests load their pages from a small
+  server on 127.0.0.1 inside the test runner, so they need no internet. Run the shortcut tests on
+  an iPad simulator as well (`-only-testing:PotatoBrowserUITests/KeyboardTests`). Unless a Mac
+  keyboard is attached, the simulator runs its on-screen keyboard for a focused page or text field,
+  and it keeps Esc and Cmd+W (on iPhone Cmd+F too) for itself, as it does in Safari. The tests press
+  those with nothing focused, and tap Cancel where Esc would not arrive.
 - End to end (`scripts/e2e.mjs`): the app on the simulator against the Mac app's fixture sites,
   served under their real hostnames through a local proxy with a test CA the simulator trusts,
   and the real flags Worker under `wrangler dev`. It checks the shield on every fixture site, the
@@ -102,5 +110,6 @@ ASC_KEY_ID=...        # key at ~/.appstoreconnect/private_keys/AuthKey_<id>.p8, 
 ASC_ISSUER_ID=...
 ```
 
-The key needs the Admin role: xcodebuild then creates the distribution certificate and profile
-in the cloud. The app's bundle id is `com.potatobrowser.app`, as on the Mac.
+The key needs the Admin role: xcodebuild then creates the distribution certificate and profiles
+in the cloud. The app's bundle id is `com.potatobrowser.app`, as on the Mac; its share extension
+(Open in Potato) is `com.potatobrowser.app.share`, signed the same way.

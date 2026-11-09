@@ -21,10 +21,9 @@ struct PotatoApp: App {
         .environmentObject(app.store)
         .environmentObject(app.adblock)
         .environmentObject(app.downloads)
-        .onOpenURL { url in
-          if URLInput.isWeb(url) { app.tabs.newTab(url: url, isPrivate: false) }
-        }
+        .onOpenURL { app.open(link: $0) }
     }
+    .commands { BrowserCommands(app: app, tabs: app.tabs) }
     .onChange(of: phase) { _, p in
       if p == .background {
         app.tabs.save()

@@ -33,6 +33,24 @@ struct FlagsPageState: Equatable {
   var labeled = 0
 }
 
+/// A tab's web view. Keys a focused page leaves alone go to the keyboard's text commands before
+/// the app's commands, and Cmd+W and Cmd+F end there, so it claims those two first.
+final class BrowserWebView: WKWebView {
+  weak var app: AppModel?
+
+  override var keyCommands: [UIKeyCommand]? {
+    let commands = [
+      UIKeyCommand(input: "w", modifierFlags: .command, action: #selector(closeTab)),
+      UIKeyCommand(input: "f", modifierFlags: .command, action: #selector(findOnPage)),
+    ]
+    for c in commands { c.wantsPriorityOverSystemBehavior = true }
+    return (super.keyCommands ?? []) + commands
+  }
+
+  @objc private func closeTab() { app?.closeTabShortcut() }
+  @objc private func findOnPage() { app?.findShortcut() }
+}
+
 @MainActor
 final class Tab: NSObject, ObservableObject, Identifiable {
   let id = UUID()
@@ -89,13 +107,14 @@ final class Tab: NSObject, ObservableObject, Identifiable {
     config.websiteDataStore = isPrivate ? app.privateDataStore : .default()
     config.userContentController = controller
     Self.configure(config, test: app.isTest)
-    let w = WKWebView(frame: .zero, configuration: config)
+    let w = BrowserWebView(frame: .zero, configuration: config)
     setUp(w)
     return w
   }
 
-  private func setUp(_ w: WKWebView) {
+  private func setUp(_ w: BrowserWebView) {
     web = w
+    w.app = app
     w.navigationDelegate = self
     w.uiDelegate = self
     w.allowsBackForwardNavigationGestures = true
@@ -106,6 +125,10 @@ final class Tab: NSObject, ObservableObject, Identifiable {
     #endif
     if app.isTest { w.isInspectable = true }
     if isPrivate { w.backgroundColor = .systemBackground }
+    let refresh = UIRefreshControl()
+    refresh.tintColor = UIColor(named: "AccentColor")
+    refresh.addTarget(self, action: #selector(pulledToRefresh), for: .valueChanged)
+    w.scrollView.refreshControl = refresh
     observe(w)
     installBaseScripts(for: nil)
     if let state = pendingState {
@@ -147,7 +170,12 @@ final class Tab: NSObject, ObservableObject, Identifiable {
         }
       },
       w.observe(\.url, options: [.new]) { [weak self] w, _ in Task { @MainActor in self?.url = w.url ?? self?.url } },
-      w.observe(\.isLoading, options: [.new]) { [weak self] w, _ in Task { @MainActor in self?.isLoading = w.isLoading } },
+      w.observe(\.isLoading, options: [.new]) { [weak self] w, _ in
+        Task { @MainActor in
+          self?.isLoading = w.isLoading
+          if !w.isLoading { w.scrollView.refreshControl?.endRefreshing() }
+        }
+      },
       w.observe(\.estimatedProgress, options: [.new]) { [weak self] w, _ in Task { @MainActor in self?.progress = w.estimatedProgress } },
       w.observe(\.canGoBack, options: [.new]) { [weak self] w, _ in Task { @MainActor in self?.canGoBack = w.canGoBack } },
       w.observe(\.canGoForward, options: [.new]) { [weak self] w, _ in Task { @MainActor in self?.canGoForward = w.canGoForward } },
@@ -157,6 +185,8 @@ final class Tab: NSObject, ObservableObject, Identifiable {
   }
 
   var isBlank: Bool { url == nil && interstitial == nil && pendingState == nil }
+  /// A page is showing (not the new tab page or an error).
+  var hasPage: Bool { url != nil && interstitial == nil }
 
   /// The address the user sees: a blocked or failed page's own, not the one before it.
   var displayURL: URL? {
@@ -217,6 +247,15 @@ final class Tab: NSObject, ObservableObject, Identifiable {
   }
 
   func stop() { web?.stopLoading() }
+
+  /// Pull to refresh. The spinner goes when the load finishes or fails, or now if nothing loads.
+  @objc private func pulledToRefresh() {
+    reload()
+    Task { @MainActor in
+      try? await Task.sleep(nanoseconds: 500_000_000)
+      if web?.isLoading != true { web?.scrollView.refreshControl?.endRefreshing() }
+    }
+  }
 
   func takeSnapshot() {
     guard let web, web.window != nil, web.bounds.width > 0 else { return }
@@ -553,7 +592,7 @@ extension Tab: WKUIDelegate {
     // Popups and OAuth windows: a new tab that keeps its opener.
     let tab = Tab(app: app, isPrivate: isPrivate)
     configuration.userContentController = tab.controller
-    let w = WKWebView(frame: .zero, configuration: configuration)
+    let w = BrowserWebView(frame: .zero, configuration: configuration)
     tab.setUp(w)
     app.tabs.insert(tab, after: self)
     return w

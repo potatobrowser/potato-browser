@@ -7,10 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2B47F8BD184756FB8A7E34AD /* PotatoShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2E51E247355D8A6FE3265462 /* PotatoShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C0C632AA2557A41D2D16B34E /* WebResources in Resources */ = {isa = PBXBuildFile; fileRef = 6B0F6E5A5B22CE7AA67F91DA /* WebResources */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		1807A5DF1AC30604612D26C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3CE14C03C1C22779953E5B29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D562DFFFED47D4D88AF5021C;
+			remoteInfo = PotatoShare;
+		};
 		26B4197143950ED9BE7AE4D0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3CE14C03C1C22779953E5B29 /* Project object */;
@@ -27,12 +35,37 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		3BDCD454FF4B9ADC067B8F6D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2B47F8BD184756FB8A7E34AD /* PotatoShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		2133365591A26C8708CE1095 /* PotatoBrowserTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PotatoBrowserTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2E51E247355D8A6FE3265462 /* PotatoShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PotatoShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B0F6E5A5B22CE7AA67F91DA /* WebResources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = WebResources; sourceTree = SOURCE_ROOT; };
 		B5F8ECB8116CE2E798D9C3EC /* PotatoBrowser.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PotatoBrowser.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6321D3673547A13C2A9DA69 /* PotatoBrowserUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PotatoBrowserUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		227AD88757AAF6D7D68F11FF /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D562DFFFED47D4D88AF5021C /* PotatoShare */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		24893CBDE35D7E2A9CF72042 /* PotatoBrowserTests */ = {
@@ -53,6 +86,27 @@
 			path = PotatoBrowser;
 			sourceTree = "<group>";
 		};
+		8B9A568742EB3868A65B3378 /* PotatoShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				227AD88757AAF6D7D68F11FF /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = PotatoShare;
+			sourceTree = "<group>";
+		};
+		9817B77EE64A05A963B69D78 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		A06D4A725C88FAFDD645CEA1 /* PotatoBrowserUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			explicitFileTypes = {
@@ -71,6 +125,7 @@
 				B5F8ECB8116CE2E798D9C3EC /* PotatoBrowser.app */,
 				2133365591A26C8708CE1095 /* PotatoBrowserTests.xctest */,
 				B6321D3673547A13C2A9DA69 /* PotatoBrowserUITests.xctest */,
+				2E51E247355D8A6FE3265462 /* PotatoShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -82,6 +137,8 @@
 				4E2A7896500D6C6DA09952A6 /* PotatoBrowser */,
 				24893CBDE35D7E2A9CF72042 /* PotatoBrowserTests */,
 				A06D4A725C88FAFDD645CEA1 /* PotatoBrowserUITests */,
+				8B9A568742EB3868A65B3378 /* PotatoShare */,
+				9817B77EE64A05A963B69D78 /* Shared */,
 				10DBDCB3E267AF33FC4D9A63 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,13 +152,16 @@
 			buildPhases = (
 				180CAAE5D9D22D987FC1EFDD /* Sources */,
 				CBE2EB688FB3ACC84B97E725 /* Resources */,
+				3BDCD454FF4B9ADC067B8F6D /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A4C48C582A07D40EC7BBEDA5 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4E2A7896500D6C6DA09952A6 /* PotatoBrowser */,
+				9817B77EE64A05A963B69D78 /* Shared */,
 			);
 			name = PotatoBrowser;
 			packageProductDependencies = (
@@ -154,6 +214,28 @@
 			productReference = 2133365591A26C8708CE1095 /* PotatoBrowserTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		D562DFFFED47D4D88AF5021C /* PotatoShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58B56A64C67E79E098C3CB34 /* Build configuration list for PBXNativeTarget "PotatoShare" */;
+			buildPhases = (
+				CFAB832AD587FF7F30339A5C /* Sources */,
+				72F38D3EC01DA9F2CBAF11C5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				8B9A568742EB3868A65B3378 /* PotatoShare */,
+				9817B77EE64A05A963B69D78 /* Shared */,
+			);
+			name = PotatoShare;
+			packageProductDependencies = (
+			);
+			productName = PotatoShare;
+			productReference = 2E51E247355D8A6FE3265462 /* PotatoShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -176,6 +258,10 @@
 						DevelopmentTeam = G482FZWRVW;
 						ProvisioningStyle = Automatic;
 					};
+					D562DFFFED47D4D88AF5021C = {
+						DevelopmentTeam = G482FZWRVW;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 8E4D3251D1AFB8273F3424F0 /* Build configuration list for PBXProject "PotatoBrowser" */;
@@ -193,6 +279,7 @@
 			projectRoot = "";
 			targets = (
 				4ABB7AC3BFA9C109AA1EC5C1 /* PotatoBrowser */,
+				D562DFFFED47D4D88AF5021C /* PotatoShare */,
 				88905DC72DB925762BF9F5DE /* PotatoBrowserTests */,
 				6AECF94888AB4805790CDD2F /* PotatoBrowserUITests */,
 			);
@@ -200,6 +287,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		72F38D3EC01DA9F2CBAF11C5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7474B118BD42087FE10906EC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -246,6 +340,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CFAB832AD587FF7F30339A5C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -258,6 +359,11 @@
 			isa = PBXTargetDependency;
 			target = 4ABB7AC3BFA9C109AA1EC5C1 /* PotatoBrowser */;
 			targetProxy = 26B4197143950ED9BE7AE4D0 /* PBXContainerItemProxy */;
+		};
+		A4C48C582A07D40EC7BBEDA5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D562DFFFED47D4D88AF5021C /* PotatoShare */;
+			targetProxy = 1807A5DF1AC30604612D26C1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -393,6 +499,24 @@
 			};
 			name = Debug;
 		};
+		742E1BD038DFA89413061C66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PotatoShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.potatobrowser.app.share;
+				PRODUCT_NAME = PotatoShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		940481DB6680E04118D14F62 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -485,6 +609,24 @@
 			};
 			name = Debug;
 		};
+		C7F51A702715E6CF5687BE0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PotatoShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.potatobrowser.app.share;
+				PRODUCT_NAME = PotatoShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		E4AF0FCA1C84FEA8E3ADC7A5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -510,6 +652,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		58B56A64C67E79E098C3CB34 /* Build configuration list for PBXNativeTarget "PotatoShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7F51A702715E6CF5687BE0C /* Debug */,
+				742E1BD038DFA89413061C66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		8E4D3251D1AFB8273F3424F0 /* Build configuration list for PBXProject "PotatoBrowser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
