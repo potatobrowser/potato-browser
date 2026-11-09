@@ -1,6 +1,6 @@
 {
   "name": "@potato/ios",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Potato Browser for iPhone and iPad: the web bundles and tooling around the Xcode project.",
   "private": true,
   "license": "MIT",
