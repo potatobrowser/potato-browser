@@ -68,25 +68,19 @@ final class KeyboardTests: XCTestCase {
   }
 
   func testTabShortcuts() {
-    // Tabs: k1, k2, and the new tab page, selected. Cmd+W closes that one, with nothing focused.
+    // Tabs: k1, k2, and the new tab page, selected. Ctrl+Shift+Tab shows k2 without focusing it.
     let app = launchUnfocused(["/k1", "/k2"])
+    XCTAssertTrue(pressUntil(app, XCUIKeyboardKey.tab.rawValue, [.control, .shift], until: showing(app, "/k2")), "Ctrl+Shift+Tab")
     XCTAssertTrue(pressUntil(app, "w", .command, until: { tabCount(app) == 2 }), "Cmd+W closes the tab")
-    XCTAssertTrue(addressShows(app, containing: "/k2"))
+    // Now k1 and the new tab page, which took k2's place; k2 comes back at the end.
+    XCTAssertTrue(pressUntil(app, "t", [.command, .shift], until: showing(app, "/k2")), "Shift+Cmd+T reopens it")
+    XCTAssertTrue(waitForTabs(app, 3))
 
     // Ctrl+Tab goes round; Cmd+1 to Cmd+8 pick a tab, Cmd+9 the last one.
     XCTAssertTrue(pressUntil(app, XCUIKeyboardKey.tab.rawValue, .control, until: showing(app, "/k1")), "Ctrl+Tab wraps around")
-    XCTAssertTrue(pressUntil(app, XCUIKeyboardKey.tab.rawValue, [.control, .shift], until: showing(app, "/k2")), "Ctrl+Shift+Tab")
+    XCTAssertTrue(pressUntil(app, "3", .command, until: showing(app, "/k2")), "Cmd+3")
     XCTAssertTrue(pressUntil(app, "1", .command, until: showing(app, "/k1")), "Cmd+1")
     XCTAssertTrue(pressUntil(app, "9", .command, until: showing(app, "/k2")), "Cmd+9")
-
-    // A tab closed in the tab switcher comes back with Shift+Cmd+T.
-    app.buttons["tabs-button"].tap()
-    XCTAssertTrue(app.buttons["close-tab"].firstMatch.waitForExistence(timeout: 5))
-    app.buttons["close-tab"].firstMatch.tap()
-    app.buttons["tabs-done"].tap()
-    XCTAssertTrue(waitForTabs(app, 1))
-    XCTAssertTrue(pressUntil(app, "t", [.command, .shift], until: { tabCount(app) == 2 }), "Shift+Cmd+T reopens the closed tab")
-    XCTAssertTrue(addressShows(app, containing: "/k1"))
   }
 
   func testNewTabShortcut() {
